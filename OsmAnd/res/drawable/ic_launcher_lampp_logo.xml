@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Letter "L" centered in the safe zone (66x66 centered) -->
+  <group
+      android:scaleX="0.6"
+      android:scaleY="0.6"
+      android:translateX="21.6"
+      android:translateY="21.6">
+    <!-- L shape: vertical bar + horizontal bar -->
+    <path
+        android:pathData="M30,20 L30,88 L78,88 L78,74 L44,74 L44,20 Z"
+        android:fillColor="#e94560"/>
+  </group>
+</vector>

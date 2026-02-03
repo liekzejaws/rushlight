@@ -64,6 +64,9 @@ public class DiscountHelper {
 	private static final String TAG = "DiscountHelper";
 	private static final org.apache.commons.logging.Log LOG = PlatformUtil.getLog(DiscountHelper.class);
 
+	// ===== LAMPP: Promotional banners disabled =====
+	private static final boolean LAMPP_PROMOTIONS_DISABLED = true;
+
 	private static long mLastCheckTime;
 	private static ControllerData mData;
 	private static boolean mBannerVisible;
@@ -98,6 +101,10 @@ public class DiscountHelper {
 	private static final String FEATURE_NAUTICAL = "nautical";
 
 	public static void checkAndDisplay(MapActivity mapActivity) {
+		// ===== LAMPP: Promotional banners disabled =====
+		if (LAMPP_PROMOTIONS_DISABLED) {
+			return;
+		}
 		OsmandApplication app = mapActivity.getApp();
 		OsmandSettings settings = app.getSettings();
 		if (settings.DO_NOT_SHOW_STARTUP_MESSAGES.get() || !settings.INAPPS_READ.get()) {

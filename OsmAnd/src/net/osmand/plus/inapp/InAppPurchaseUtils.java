@@ -11,66 +11,70 @@ import java.util.Calendar;
 
 public class InAppPurchaseUtils {
 
+	// ===== LAMPP: All features unlocked by default =====
+	// This makes all premium features available without purchase
+	private static final boolean LAMPP_ALL_FEATURES_UNLOCKED = true;
+
 	public static final int HMD_PROMO_YEARS = 3;
 	public static final int HUGEROCK_PROMO_MONTHS = 6;
 	public static final int TRIPLTEK_PROMO_MONTHS = 12;
 	private static final long ANDROID_AUTO_START_DATE_MS = 10L * 1000L * 60L * 60L * 24L; // 10 days
 
 	public static boolean isFullVersionPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().FULL_VERSION_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().FULL_VERSION_PURCHASED.get();
 	}
 
 	public static boolean isLiveUpdatesPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().LIVE_UPDATES_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().LIVE_UPDATES_PURCHASED.get();
 	}
 
 	public static boolean isMapsPlusPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().OSMAND_MAPS_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().OSMAND_MAPS_PURCHASED.get();
 	}
 
 	public static boolean isOsmAndProPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().OSMAND_PRO_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().OSMAND_PRO_PURCHASED.get();
 	}
 
 	public static boolean isContourLinesPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().CONTOUR_LINES_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().CONTOUR_LINES_PURCHASED.get();
 	}
 
 	public static boolean isDepthContoursPurchased(@NonNull OsmandApplication app) {
-		return app.getSettings().DEPTH_CONTOURS_PURCHASED.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().DEPTH_CONTOURS_PURCHASED.get();
 	}
 
 	public static boolean isPromoSubscribed(@NonNull OsmandApplication app) {
-		return app.getSettings().BACKUP_PURCHASE_ACTIVE.get();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().BACKUP_PURCHASE_ACTIVE.get();
 	}
 
 	public static boolean isMapperUpdatesSubscribed(@NonNull OsmandApplication app) {
-		return app.getSettings().MAPPER_LIVE_UPDATES_EXPIRE_TIME.get() > System.currentTimeMillis();
+		return LAMPP_ALL_FEATURES_UNLOCKED || app.getSettings().MAPPER_LIVE_UPDATES_EXPIRE_TIME.get() > System.currentTimeMillis();
 	}
 
 
 	public static boolean isFullVersionAvailable(@NonNull OsmandApplication app) {
-		return isFullVersionAvailable(app, true);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isFullVersionAvailable(app, true);
 	}
 
 	public static boolean isFullVersionAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isFullVersionPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isFullVersionPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
 	}
 
 	public static boolean isMapsPlusAvailable(@NonNull OsmandApplication app) {
-		return isMapsPlusAvailable(app, true);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isMapsPlusAvailable(app, true);
 	}
 
 	public static boolean isMapsPlusAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isMapsPlusPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isMapsPlusPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
 	}
 
 	public static boolean isOsmAndProAvailable(@NonNull OsmandApplication app) {
-		return isOsmAndProAvailable(app, true);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isOsmAndProAvailable(app, true);
 	}
 
 	public static boolean isOsmAndProAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isOsmAndProPurchased(app) || isPromoSubscribed(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isOsmAndProPurchased(app) || isPromoSubscribed(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
 	}
 
 	private static boolean checkDeveloperBuildIfNeeded(@NonNull OsmandApplication app, boolean shouldCheck) {
@@ -78,11 +82,12 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isSubscribedToAny(@NonNull OsmandApplication app) {
-		return isSubscribedToAny(app, true);
+		return LAMPP_ALL_FEATURES_UNLOCKED || isSubscribedToAny(app, true);
 	}
 
 	public static boolean isSubscribedToAny(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return checkDeveloperBuildIfNeeded(app, checkDevBuild)
+		return LAMPP_ALL_FEATURES_UNLOCKED
+				|| checkDeveloperBuildIfNeeded(app, checkDevBuild)
 				|| isMapsPlusAvailable(app, checkDevBuild)
 				|| isOsmAndProAvailable(app, checkDevBuild)
 				|| isMapperUpdatesSubscribed(app)
@@ -91,7 +96,8 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isLiveUpdatesAvailable(@NonNull OsmandApplication app) {
-		return isLiveUpdatesPurchased(app)
+		return LAMPP_ALL_FEATURES_UNLOCKED
+				|| isLiveUpdatesPurchased(app)
 				|| isOsmAndProAvailable(app)
 				|| isMapperUpdatesSubscribed(app)
 				|| checkDeveloperBuildIfNeeded(app, true)

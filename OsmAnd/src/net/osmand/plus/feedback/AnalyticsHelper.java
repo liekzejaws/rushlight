@@ -35,6 +35,9 @@ public class AnalyticsHelper extends SQLiteOpenHelper {
 
 	private static final Log LOG = PlatformUtil.getLog(AnalyticsHelper.class);
 
+	// ===== LAMPP: Analytics disabled =====
+	private static final boolean LAMPP_ANALYTICS_DISABLED = true;
+
 	private static final String ANALYTICS_UPLOAD_URL = "https://osmand.net/api/submit_analytics";
 	private static final String ANALYTICS_FILE_NAME = "analytics.json";
 
@@ -169,6 +172,10 @@ public class AnalyticsHelper extends SQLiteOpenHelper {
 	}
 
 	public boolean submitCollectedDataAsync() {
+		// ===== LAMPP: Analytics upload disabled =====
+		if (LAMPP_ANALYTICS_DISABLED) {
+			return false;
+		}
 		if (app.getSettings().isInternetConnectionAvailable()) {
 			long collectedRowsCount = getCollectedRowsCount();
 			if (collectedRowsCount > DATA_PARCEL_SIZE) {

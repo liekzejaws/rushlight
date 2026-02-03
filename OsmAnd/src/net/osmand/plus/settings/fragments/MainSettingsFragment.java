@@ -21,6 +21,7 @@ import androidx.preference.PreferenceViewHolder;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.ui.BackupAuthorizationFragment;
 import net.osmand.plus.backup.ui.BackupCloudFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
@@ -190,6 +191,11 @@ public class MainSettingsFragment extends BaseSettingsFragment implements OnSele
 
 	private void setupBackupAndRestorePref() {
 		Preference backupSettings = findPreference(BACKUP_AND_RESTORE);
+		// ===== LAMPP: Hide cloud backup option =====
+		if (BackupHelper.LAMPP_CLOUD_DISABLED) {
+			backupSettings.setVisible(false);
+			return;
+		}
 		backupSettings.setIcon(getContentIcon(R.drawable.ic_action_cloud_upload));
 
 		if (app.getBackupHelper().isRegistered()) {

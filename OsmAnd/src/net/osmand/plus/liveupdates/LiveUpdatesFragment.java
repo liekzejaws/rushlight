@@ -45,8 +45,6 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseFullScreenDialogFragment;
 import net.osmand.plus.base.OsmandBaseExpandableListAdapter;
-import net.osmand.plus.chooseplan.ChoosePlanFragment;
-import net.osmand.plus.chooseplan.OsmAndFeature;
 import net.osmand.plus.download.local.LocalItem;
 import net.osmand.plus.download.local.LocalItemUtils;
 import net.osmand.plus.helpers.AndroidUiHelper;
@@ -253,18 +251,9 @@ public class LiveUpdatesFragment extends BaseFullScreenDialogFragment implements
 		toolbarSwitchContainer.setOnClickListener(view -> {
 			boolean visible = !isChecked;
 			if (visible) {
-				if (InAppPurchaseUtils.isLiveUpdatesAvailable(app)) {
-					switchOnLiveUpdates();
-					updateToolbarSwitch(true);
-				} else {
-					updateToolbarSwitch(false);
-					app.showToastMessage(R.string.osm_live_ask_for_purchase);
-
-					FragmentActivity activity = getActivity();
-					if (activity != null) {
-						ChoosePlanFragment.showInstance(activity, OsmAndFeature.HOURLY_MAP_UPDATES);
-					}
-				}
+				// LAMPP: All features unlocked, no purchase check needed
+				switchOnLiveUpdates();
+				updateToolbarSwitch(true);
 			} else {
 				settings.IS_LIVE_UPDATES_ON.set(false);
 				enableLiveUpdates(false);

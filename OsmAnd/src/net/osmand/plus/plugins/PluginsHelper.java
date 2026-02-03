@@ -108,23 +108,26 @@ public class PluginsHelper {
 		Set<String> enabledPlugins = app.getSettings().getEnabledPlugins();
 		allPlugins.clear();
 
-		allPlugins.add(new WikipediaPlugin(app));
-		allPlugins.add(new OsmandRasterMapsPlugin(app));
-		allPlugins.add(new OsmandMonitoringPlugin(app));
-		checkMarketPlugin(app, new SRTMPlugin(app));
-		allPlugins.add(new WeatherPlugin(app));
-		checkMarketPlugin(app, new NauticalMapsPlugin(app));
-		allPlugins.add(new AisTrackerPlugin(app));
-		checkMarketPlugin(app, new SkiMapsPlugin(app));
-		allPlugins.add(new AudioVideoNotesPlugin(app));
-		checkMarketPlugin(app, new ParkingPositionPlugin(app));
-		allPlugins.add(new OsmEditingPlugin(app));
-		allPlugins.add(new MapillaryPlugin(app));
-		allPlugins.add(new ExternalSensorsPlugin(app));
-		allPlugins.add(new VehicleMetricsPlugin(app));
-		allPlugins.add(new StarWatcherPlugin(app));
-		allPlugins.add(new AccessibilityPlugin(app));
-		allPlugins.add(new OsmandDevelopmentPlugin(app));
+		// ===== LAMPP: Plugins to KEEP =====
+		allPlugins.add(new WikipediaPlugin(app));          // Offline POIs useful
+		allPlugins.add(new OsmandRasterMapsPlugin(app));   // Satellite/terrain imagery
+		allPlugins.add(new OsmandMonitoringPlugin(app));   // Track recording
+		checkMarketPlugin(app, new SRTMPlugin(app));       // Elevation data
+		checkMarketPlugin(app, new NauticalMapsPlugin(app)); // Water navigation
+		allPlugins.add(new AudioVideoNotesPlugin(app));    // Document locations
+		allPlugins.add(new ExternalSensorsPlugin(app));    // ANT+/Bluetooth sensors
+		allPlugins.add(new StarWatcherPlugin(app));        // Celestial navigation!
+		allPlugins.add(new AccessibilityPlugin(app));      // Important for all users
+		allPlugins.add(new OsmandDevelopmentPlugin(app));  // Debugging tools
+
+		// ===== LAMPP: Plugins DISABLED =====
+		// allPlugins.add(new WeatherPlugin(app));         // Requires online data
+		// allPlugins.add(new AisTrackerPlugin(app));      // Ship tracking - niche
+		// checkMarketPlugin(app, new SkiMapsPlugin(app)); // Ski resort specific
+		// checkMarketPlugin(app, new ParkingPositionPlugin(app)); // Car-focused
+		// allPlugins.add(new OsmEditingPlugin(app));      // No need to upload to OSM
+		// allPlugins.add(new MapillaryPlugin(app));       // Street imagery - online
+		// allPlugins.add(new VehicleMetricsPlugin(app));  // Car OBD diagnostics
 
 		loadCustomPlugins(app);
 		registerAppInitializingDependedProperties(app);

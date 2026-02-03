@@ -63,6 +63,9 @@ public class BackupHelper {
 
 	public static final Log LOG = PlatformUtil.getLog(BackupHelper.class);
 
+	// ===== LAMPP: Cloud backup disabled =====
+	public static final boolean LAMPP_CLOUD_DISABLED = true;
+
 	public static boolean DEBUG;
 
 	public static final String INFO_EXT = ".info";
@@ -221,6 +224,10 @@ public class BackupHelper {
 	}
 
 	public boolean isRegistered() {
+		// LAMPP: Cloud disabled, never register
+		if (LAMPP_CLOUD_DISABLED) {
+			return false;
+		}
 		return !Algorithms.isEmpty(getDeviceId()) && !Algorithms.isEmpty(getAccessToken());
 	}
 
