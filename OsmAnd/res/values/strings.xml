@@ -10,6 +10,21 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+	<!-- LAMPP: ZIM Browser strings -->
+	<string name="no_file_selected">No ZIM file selected</string>
+	<string name="select_zim_file_descr">Open a ZIM file from your device to browse offline Wikipedia articles</string>
+	<string name="shared_string_local">Local</string>
+	<string name="catalog_load_error">Could not load catalog</string>
+	<string name="try_again_later">Please try again later</string>
+	<string name="downloaded_files">Downloaded Files</string>
+	<string name="no_downloaded_files">No downloaded files</string>
+	<string name="download_zim_hint">Browse the Download tab to get Wikipedia offline</string>
+	<string name="all_languages">All languages</string>
+	<string name="search_no_results">No results found</string>
+	<string name="search_results_count">Found %1$d articles</string>
+	<string name="delete_zim_file">Delete ZIM file?</string>
+	<string name="delete_zim_file_descr">This will permanently delete the file from your device.</string>
+
 	<string name="galactic_line">Galactic Line</string>
 	<string name="meridian_line">Meridian Line</string>
 	<string name="equator_line">Equator Line</string>

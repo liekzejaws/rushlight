@@ -73,6 +73,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -83,6 +84,9 @@ import java.util.Set;
 public class WikipediaPlugin extends OsmandPlugin {
 
 	private static final Log LOG = PlatformUtil.getLog(WikipediaPlugin.class);
+
+	// ===== LAMPP: ZIM file support =====
+	private ZimFileManager zimFileManager;
 	public static final String URL_PHOTO = "url-photo";
 	public static final String ORG_WIKI_SUFFIX = ".org/wiki/";
 	public final CommonPreference<Boolean> GLOBAL_WIKIPEDIA_POI_ENABLED;
@@ -175,12 +179,6 @@ public class WikipediaPlugin extends OsmandPlugin {
 	}
 
 	@Override
-	public void disable(@NonNull OsmandApplication app) {
-		super.disable(app);
-		toggleWikipediaPoi(false, null);
-	}
-
-	@Override
 	protected void registerLayerContextMenuActions(@NonNull ContextMenuAdapter adapter,
 			@NonNull MapActivity mapActivity, @NonNull List<RenderingRuleProperty> customRules) {
 		if (isEnabled()) {
@@ -232,6 +230,24 @@ public class WikipediaPlugin extends OsmandPlugin {
 				.setColor(app, selected ? R.color.osmand_orange : ContextMenuItem.INVALID_ID)
 				.setIcon(R.drawable.ic_action_popular_places)
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
+				.setListener(listener));
+
+		// ===== LAMPP: Add ZIM browser option =====
+		createZimBrowserItem(adapter, mapActivity);
+	}
+
+	// ===== LAMPP: ZIM browser menu item =====
+	private static final String ZIM_BROWSER_ID = "zim_browser";
+
+	private void createZimBrowserItem(ContextMenuAdapter adapter, MapActivity mapActivity) {
+		ItemClickListener listener = (uiAdapter, view, item, isChecked) -> {
+			ZimBrowserFragment.showInstance(mapActivity);
+			return true;
+		};
+
+		adapter.addItem(new ContextMenuItem(ZIM_BROWSER_ID)
+				.setTitle(app.getString(R.string.shared_string_wikipedia) + " (ZIM)")
+				.setIcon(R.drawable.ic_action_read_from_file)
 				.setListener(listener));
 	}
 
@@ -581,5 +597,54 @@ public class WikipediaPlugin extends OsmandPlugin {
 	public static boolean containsWikipediaExtension(@NonNull String fileName) {
 		return CollectionUtils.containsAny(fileName,
 				WIKI_NAME, IndexConstants.BINARY_WIKI_MAP_INDEX_EXT);
+	}
+
+	// ===== LAMPP: ZIM file support methods =====
+
+	/**
+	 * Get the ZimFileManager instance, creating it if necessary.
+	 */
+	@NonNull
+	public ZimFileManager getZimFileManager() {
+		if (zimFileManager == null) {
+			zimFileManager = new ZimFileManager(app);
+		}
+		return zimFileManager;
+	}
+
+	/**
+	 * Open a ZIM file for browsing offline Wikipedia.
+	 *
+	 * @param file The ZIM file to open
+	 * @return true if successfully opened
+	 */
+	public boolean openZimFile(@NonNull File file) {
+		return getZimFileManager().openZimFile(file);
+	}
+
+	/**
+	 * Check if a ZIM file is currently open.
+	 */
+	public boolean isZimFileOpen() {
+		return zimFileManager != null && zimFileManager.isOpen();
+	}
+
+	/**
+	 * Show the ZIM browser fragment.
+	 */
+	public void showZimBrowser() {
+		if (mapActivity != null) {
+			ZimBrowserFragment.showInstance(mapActivity);
+		}
+	}
+
+	@Override
+	public void disable(@NonNull OsmandApplication app) {
+		super.disable(app);
+		toggleWikipediaPoi(false, null);
+		// Close ZIM file when plugin is disabled
+		if (zimFileManager != null) {
+			zimFileManager.close();
+		}
 	}
 }

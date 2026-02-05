@@ -448,6 +448,11 @@ dependencies {
 	implementation 'org.bouncycastle:bcpkix-jdk15on:1.56'
 	implementation 'com.google.android.play:review:2.0.1'
 
+	// ===== LAMPP: Kiwix ZIM file support for offline Wikipedia =====
+	// Using official libkiwix for zstd compression support (zimdroid is obsolete)
+	implementation 'org.kiwix:libkiwix:2.4.1'
+	implementation 'com.getkeepsafe.relinker:relinker:1.4.5'
+
 	implementation "androidx.car.app:app:1.7.0"
 	implementation "androidx.car.app:app-projected:1.7.0"
 
