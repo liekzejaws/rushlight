@@ -9,6 +9,9 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.Version;
 
 import org.apache.commons.logging.Log;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -169,6 +172,78 @@ public class ContentManifest {
             return "No content shared";
         }
         return String.join(", ", parts);
+    }
+
+    /**
+     * Serialize manifest to JSON for network exchange.
+     */
+    @NonNull
+    public String toJson() {
+        try {
+            JSONObject json = new JSONObject();
+            JSONArray items = new JSONArray();
+
+            for (ShareableContent content : contentList) {
+                if (content.isShared()) {
+                    JSONObject item = new JSONObject();
+                    item.put("filename", content.getFilename());
+                    item.put("size", content.getFileSize());
+                    item.put("type", content.getContentType().name());
+                    if (content.getChecksum() != null) {
+                        item.put("checksum", content.getChecksum());
+                    }
+                    items.put(item);
+                }
+            }
+
+            json.put("items", items);
+            json.put("summary", getSummary());
+
+            return json.toString();
+        } catch (JSONException e) {
+            LOG.error("Failed to serialize manifest", e);
+            return "{}";
+        }
+    }
+
+    /**
+     * Parse a manifest received from a peer.
+     * Creates a ContentManifest with content items for display/selection.
+     */
+    @NonNull
+    public static ContentManifest fromJson(@NonNull OsmandApplication app, @NonNull String jsonStr) {
+        ContentManifest manifest = new ContentManifest(app);
+
+        try {
+            JSONObject json = new JSONObject(jsonStr);
+            JSONArray items = json.optJSONArray("items");
+
+            if (items != null) {
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.getJSONObject(i);
+                    String filename = item.getString("filename");
+                    long size = item.getLong("size");
+                    String typeName = item.optString("type", "MAP");
+                    String checksum = item.optString("checksum", null);
+
+                    ContentType type;
+                    try {
+                        type = ContentType.valueOf(typeName);
+                    } catch (IllegalArgumentException e) {
+                        type = ContentType.MAP;
+                    }
+
+                    // For remote content, we don't have a local path
+                    ShareableContent content = new ShareableContent(
+                            filename, "", size, type, checksum);
+                    manifest.contentList.add(content);
+                }
+            }
+        } catch (JSONException e) {
+            LOG.error("Failed to parse manifest JSON", e);
+        }
+
+        return manifest;
     }
 
     // Private scanning methods

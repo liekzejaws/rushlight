@@ -74,6 +74,14 @@ public class ShareableContent {
         return contentType;
     }
 
+    /**
+     * Alias for getContentType() for convenience.
+     */
+    @NonNull
+    public ContentType getType() {
+        return contentType;
+    }
+
     @Nullable
     public String getChecksum() {
         return checksum;
