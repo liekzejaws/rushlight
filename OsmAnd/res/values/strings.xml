@@ -10,6 +10,18 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+	<!-- LAMPP: P2P Share strings -->
+	<string name="p2p_share_name">P2P Share</string>
+	<string name="p2p_share_description">Share maps, Wikipedia, and AI models directly with nearby devices without internet. Includes app self-spreading.</string>
+	<string name="p2p_share_scanning">Scanning for nearby devices…</string>
+	<string name="p2p_share_nearby_devices">Nearby Devices</string>
+	<string name="p2p_share_no_devices">No devices found</string>
+	<string name="p2p_share_no_devices_desc">Make sure Bluetooth is enabled on both devices and they are running Lampp</string>
+	<string name="p2p_share_scan">Scan for devices</string>
+	<string name="p2p_share_my_content">My Shared Content</string>
+	<string name="p2p_share_no_content">No content available</string>
+	<string name="p2p_share_tap_to_connect">Tap to connect</string>
+
 	<!-- LAMPP: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>
 	<string name="select_zim_file_descr">Open a ZIM file from your device to browse offline Wikipedia articles</string>

@@ -35,6 +35,7 @@ public interface OsmAndCustomizationConstants {
 	String DRAWER_VEHICLE_METRICS_ID = DRAWER_ITEM_ID_SCHEME + "vehicle_metrics";
 	String DRAWER_STAR_MAP_ID = DRAWER_ITEM_ID_SCHEME + "star_map";
 	String DRAWER_AI_ASSISTANT_ID = DRAWER_ITEM_ID_SCHEME + "ai_assistant"; // LAMPP
+	String DRAWER_P2P_SHARE_ID = DRAWER_ITEM_ID_SCHEME + "p2p_share"; // LAMPP
 
 	// Configure Map:
 	String CONFIGURE_MAP_ITEM_ID_SCHEME = "map.configure.";

@@ -57,6 +57,7 @@ import net.osmand.plus.plugins.skimaps.SkiMapsPlugin;
 import net.osmand.plus.plugins.astro.StarWatcherPlugin;
 import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.plugins.weather.WeatherPlugin;
+import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
 import net.osmand.plus.poi.PoiUIFilter;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.render.RendererRegistry.RendererEventListener;
@@ -119,6 +120,7 @@ public class PluginsHelper {
 		allPlugins.add(new StarWatcherPlugin(app));        // Celestial navigation!
 		allPlugins.add(new AccessibilityPlugin(app));      // Important for all users
 		allPlugins.add(new OsmandDevelopmentPlugin(app));  // Debugging tools
+		allPlugins.add(new P2pSharePlugin(app));           // P2P content sharing
 
 		// ===== LAMPP: Plugins DISABLED =====
 		// allPlugins.add(new WeatherPlugin(app));         // Requires online data

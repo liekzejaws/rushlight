@@ -37,21 +37,47 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 
 ---
 
-## Upcoming Phases
+## Phase 6: P2P Content Sharing (IN PROGRESS)
 
-### Phase 6: P2P Content Sharing (NEXT)
 Share maps, Wikipedia, models between phones without internet.
-- WiFi Direct + Bluetooth transfer
-- Reference Briar's transport layer
-- APK self-spreading capability
+
+### Technical Approach
+1. **BLE Beaconing** - Fast peer discovery (10-50m)
+2. **WiFi Direct** - High-speed transfer (250 Mbps)
+3. **Bluetooth Classic** - Fallback (720 Kbps)
+
+### Plugin Structure
+```
+OsmAnd/src/net/osmand/plus/plugins/p2pshare/
+├── P2pSharePlugin.java           # Main plugin
+├── P2pShareManager.java          # Core logic
+├── ContentManifest.java          # Shareable content list
+├── discovery/                    # BLE peer discovery
+├── transport/                    # WiFi Direct + BT transfer
+├── protocol/                     # File transfer protocol
+└── ui/                           # Fragments and adapters
+```
+
+### Features
+- Share maps (.obf), ZIMs, LLM models (.gguf)
+- **APK self-spreading** - Share app to devices without it
+- Resume interrupted transfers
+- Checksum verification
+
+### Files to Modify
+- `PluginsHelper.java` - Register plugin
+- `OsmAndCustomizationConstants.java` - Add drawer ID
+- `AndroidManifest.xml` - Add WiFi Direct permissions
+
+---
+
+## Future Phases
 
 ### Phase 7: Security Features
-For hostile environments (activists, journalists).
 - Panic wipe, stealth mode, duress PIN
 - Encrypted storage (SQLCipher)
 
 ### Phase 8: AI Terrain Navigator
-Novel feature - describe terrain to estimate position.
 - "I see a hill to my north" → estimated location
 
 ---
