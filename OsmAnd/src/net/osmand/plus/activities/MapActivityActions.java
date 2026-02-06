@@ -71,6 +71,7 @@ import net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem;
 import net.osmand.plus.wikivoyage.WikivoyageWelcomeDialogFragment;
 import net.osmand.plus.wikivoyage.data.TravelHelper;
 import net.osmand.plus.wikivoyage.explore.WikivoyageExploreActivity;
+import net.osmand.plus.ai.LlmChatFragment;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
@@ -476,6 +477,16 @@ public class MapActivityActions extends MapActions {
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					app.logEvent("drawer_search_open");
 					activity.getFragmentsHelper().showQuickSearch(ShowQuickSearchMode.NEW_IF_EXPIRED, false);
+					return true;
+				}));
+
+		// LAMPP: AI Assistant for offline AI chat
+		adapter.addItem(new ContextMenuItem(DRAWER_AI_ASSISTANT_ID)
+				.setTitle("AI Assistant")
+				.setIcon(R.drawable.ic_action_help)
+				.setListener((uiAdapter, view, item, isChecked) -> {
+					app.logEvent("drawer_ai_assistant_open");
+					LlmChatFragment.showInstance(activity.getSupportFragmentManager());
 					return true;
 				}));
 

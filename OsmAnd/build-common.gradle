@@ -453,6 +453,11 @@ dependencies {
 	implementation 'org.kiwix:libkiwix:2.4.1'
 	implementation 'com.getkeepsafe.relinker:relinker:1.4.5'
 
+	// ===== LAMPP: Local LLM support for offline AI assistance =====
+	// Using llama.cpp via Ai-Core AAR for flexible GGUF model support
+	// Supports Deepseek, Phi, Qwen, Llama, Mistral, etc.
+	implementation fileTree(dir: 'libs', include: ['*.aar'])
+
 	implementation "androidx.car.app:app:1.7.0"
 	implementation "androidx.car.app:app-projected:1.7.0"
 

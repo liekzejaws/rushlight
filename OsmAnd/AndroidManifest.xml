@@ -4,6 +4,10 @@
 	android:installLocation="auto"
 	package="net.osmand.plus">
 
+	<!-- LAMPP: Allow Ai-Core (llama.cpp) on devices below SDK 30 -->
+	<!-- AI features will only work on Android 11+ but app will still run on older devices -->
+	<uses-sdk tools:overrideLibrary="com.mp.ai_core" />
+
 	<permission
 		android:name="${applicationId}.SERVICE_PERMISSION"
 		android:protectionLevel="signature" />
