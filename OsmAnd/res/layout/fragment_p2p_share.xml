@@ -43,7 +43,7 @@
 
     </LinearLayout>
 
-    <!-- Nearby peers section -->
+    <!-- Nearby peers section header -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -54,58 +54,65 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Body2"
         android:textColor="?attr/default_icon_color" />
 
-    <!-- Peers list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/peers_recycler"
+    <!-- Content area: peers list OR empty state (use FrameLayout to stack them) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingHorizontal="@dimen/content_padding_half" />
+        android:layout_weight="1">
 
-    <!-- Empty state for no peers -->
-    <LinearLayout
-        android:id="@+id/empty_peers_state"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="@dimen/content_padding">
-
-        <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@drawable/ic_action_wifi_off"
-            android:tint="?attr/default_icon_color" />
-
-        <TextView
+        <!-- Peers list -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/peers_recycler"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/content_padding"
-            android:gravity="center"
-            android:text="@string/p2p_share_no_devices"
-            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="@dimen/content_padding_half"
+            android:visibility="gone" />
 
-        <TextView
+        <!-- Empty state for no peers -->
+        <LinearLayout
+            android:id="@+id/empty_peers_state"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_height="match_parent"
             android:gravity="center"
-            android:text="@string/p2p_share_no_devices_desc"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+            android:orientation="vertical"
+            android:padding="@dimen/content_padding">
 
-        <Button
-            android:id="@+id/start_scan_button"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/content_padding"
-            android:text="@string/p2p_share_scan" />
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_action_wifi_off"
+                android:tint="?attr/default_icon_color" />
 
-    </LinearLayout>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/content_padding"
+                android:gravity="center"
+                android:text="@string/p2p_share_no_devices"
+                android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
-    <!-- My shared content section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/p2p_share_no_devices_desc"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+
+            <Button
+                android:id="@+id/start_scan_button"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/content_padding"
+                android:text="@string/p2p_share_scan" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- My shared content section (fixed at bottom) -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -144,7 +151,7 @@
 
         <Button
             android:id="@+id/configure_content_button"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/shared_string_settings"

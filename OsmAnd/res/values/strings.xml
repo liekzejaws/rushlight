@@ -21,6 +21,15 @@
 	<string name="p2p_share_my_content">My Shared Content</string>
 	<string name="p2p_share_no_content">No content available</string>
 	<string name="p2p_share_tap_to_connect">Tap to connect</string>
+	<string name="p2p_share_configure_content">Configure Shared Content</string>
+	<string name="p2p_share_maps_section">Maps</string>
+	<string name="p2p_share_wikipedia_section">Wikipedia</string>
+	<string name="p2p_share_models_section">LLM Models</string>
+	<string name="p2p_share_app_section">Share App</string>
+	<string name="p2p_share_select_all">Select all</string>
+	<string name="p2p_share_deselect_all">Deselect all</string>
+	<string name="p2p_share_total_shared">Total: %1$s</string>
+	<string name="p2p_share_items_selected">%1$d items selected</string>
 
 	<!-- LAMPP: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>

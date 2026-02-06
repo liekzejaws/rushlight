@@ -180,8 +180,15 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
     }
 
     private void showContentConfigDialog() {
-        // TODO Phase 6.2: Show dialog to configure which content is shared
-        app.showShortToastMessage("Content configuration coming soon");
+        ContentConfigBottomSheet.showInstance(
+                getChildFragmentManager(),
+                this::onContentConfigChanged
+        );
+    }
+
+    private void onContentConfigChanged() {
+        // Refresh the content summary after configuration changes
+        updateUI();
     }
 
     // P2pShareListener callbacks

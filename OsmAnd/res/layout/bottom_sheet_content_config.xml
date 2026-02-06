@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/list_background_color"
+    android:orientation="vertical">
+
+    <!-- Header with title and close button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/content_padding"
+        android:paddingVertical="@dimen/content_padding">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/p2p_share_configure_content"
+            android:textAppearance="@style/TextAppearance.AppCompat.Title" />
+
+        <ImageButton
+            android:id="@+id/close_button"
+            style="@style/Widget.AppCompat.ActionButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/shared_string_close"
+            app:srcCompat="@drawable/ic_action_close"
+            app:tint="?attr/default_icon_color" />
+
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/divider_color" />
+
+    <!-- Select all / Deselect all buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/content_padding"
+        android:paddingVertical="@dimen/content_padding_half">
+
+        <Button
+            android:id="@+id/select_all_button"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingHorizontal="@dimen/content_padding"
+            android:text="@string/p2p_share_select_all"
+            android:textAllCaps="false"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/deselect_all_button"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingHorizontal="@dimen/content_padding"
+            android:text="@string/p2p_share_deselect_all"
+            android:textAllCaps="false"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <!-- Content list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/content_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/content_padding" />
+
+    <!-- Bottom summary -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/divider_color" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/activity_background_basic"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="@dimen/content_padding">
+
+        <TextView
+            android:id="@+id/summary_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/p2p_share_no_content"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body2" />
+
+        <Button
+            android:id="@+id/done_button"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/shared_string_done" />
+
+    </LinearLayout>
+
+</LinearLayout>
