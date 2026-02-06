@@ -14,11 +14,11 @@ import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import org.apache.commons.logging.Log;
 
 /**
- * LAMPP Phase 6.4: Manages transport connections for P2P file transfer.
+ * LAMPP Phase 6.5: Manages transport connections for P2P file transfer.
  *
  * Strategy:
  * 1. Primary: WiFi Direct (fast, ~250 Mbps)
- * 2. Fallback: Bluetooth Classic (slower, ~720 Kbps, more compatible) - Phase 6.5
+ * 2. Fallback: Bluetooth Classic (slower, ~720 Kbps, more compatible)
  */
 public class TransportManager implements TransportCallback {
 
@@ -26,18 +26,28 @@ public class TransportManager implements TransportCallback {
 
     private final OsmandApplication app;
     private final WifiDirectTransport wifiDirectTransport;
-    // private BluetoothTransport bluetoothTransport; // TODO Phase 6.5
+    private final BluetoothTransport bluetoothTransport;
 
     private TransportCallback callback;
     private DiscoveredPeer connectedPeer;
     private ContentManifest localManifest;
     private Activity currentActivity;
 
+    // Track which transport is active
+    private enum ActiveTransport { NONE, WIFI_DIRECT, BLUETOOTH }
+    private ActiveTransport activeTransport = ActiveTransport.NONE;
+
     public TransportManager(@NonNull OsmandApplication app) {
         this.app = app;
+
+        // Initialize both transports
         this.wifiDirectTransport = new WifiDirectTransport(app);
         wifiDirectTransport.setCallback(this);
-        LOG.info("TransportManager initialized");
+
+        this.bluetoothTransport = new BluetoothTransport(app);
+        bluetoothTransport.setCallback(this);
+
+        LOG.info("TransportManager initialized with WiFi Direct and Bluetooth");
     }
 
     /**
@@ -63,10 +73,28 @@ public class TransportManager implements TransportCallback {
     public void setLocalManifest(@Nullable ContentManifest manifest) {
         this.localManifest = manifest;
         wifiDirectTransport.setLocalManifest(manifest);
+        bluetoothTransport.setLocalManifest(manifest);
     }
 
     public void setCallback(@Nullable TransportCallback callback) {
         this.callback = callback;
+    }
+
+    /**
+     * Start listening for incoming connections (Bluetooth server).
+     * Called when starting to scan for peers.
+     */
+    public void startListening() {
+        if (bluetoothTransport.isAvailable()) {
+            bluetoothTransport.startListening();
+        }
+    }
+
+    /**
+     * Stop listening for incoming connections.
+     */
+    public void stopListening() {
+        bluetoothTransport.stopListening();
     }
 
     /**
@@ -77,18 +105,21 @@ public class TransportManager implements TransportCallback {
         LOG.info("Initiating connection to: " + peer.getDeviceName());
         connectedPeer = peer;
 
-        // Try WiFi Direct first
+        // Try WiFi Direct first (faster)
         if (wifiDirectTransport.isAvailable()) {
+            LOG.info("Using WiFi Direct transport");
+            activeTransport = ActiveTransport.WIFI_DIRECT;
             wifiDirectTransport.connect(peer, currentActivity);
+        } else if (bluetoothTransport.isAvailable()) {
+            // Fallback to Bluetooth
+            LOG.info("WiFi Direct not available, falling back to Bluetooth");
+            activeTransport = ActiveTransport.BLUETOOTH;
+            bluetoothTransport.connect(peer);
         } else {
-            // TODO Phase 6.5: Try Bluetooth fallback
-            // if (bluetoothTransport.isAvailable()) {
-            //     bluetoothTransport.connect(peer, ...);
-            // } else {
+            activeTransport = ActiveTransport.NONE;
             if (callback != null) {
-                callback.onConnectionFailed(peer, "No transport available (WiFi Direct not supported)");
+                callback.onConnectionFailed(peer, "No transport available (WiFi Direct and Bluetooth unavailable)");
             }
-            // }
         }
     }
 
@@ -102,11 +133,16 @@ public class TransportManager implements TransportCallback {
 
         LOG.info("Disconnecting from: " + connectedPeer.getDeviceName());
 
-        if (wifiDirectTransport.isConnected()) {
-            wifiDirectTransport.disconnect();
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.disconnect();
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.disconnect();
+                break;
         }
-        // TODO Phase 6.5: else if (bluetoothTransport.isConnected()) { ... }
 
+        activeTransport = ActiveTransport.NONE;
         connectedPeer = null;
     }
 
@@ -121,8 +157,13 @@ public class TransportManager implements TransportCallback {
 
         LOG.info("Sending manifest to: " + connectedPeer.getDeviceName());
 
-        if (wifiDirectTransport.isConnected()) {
-            wifiDirectTransport.sendManifest(manifestJson);
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.sendManifest(manifestJson);
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.sendManifest(manifestJson);
+                break;
         }
     }
 
@@ -137,8 +178,13 @@ public class TransportManager implements TransportCallback {
 
         LOG.info("Requesting file: " + content.getFilename());
 
-        if (wifiDirectTransport.isConnected()) {
-            wifiDirectTransport.requestFile(content);
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.requestFile(content);
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.requestFile(content);
+                break;
         }
     }
 
@@ -148,8 +194,13 @@ public class TransportManager implements TransportCallback {
     public void cancelTransfer() {
         LOG.info("Cancelling transfer");
 
-        if (wifiDirectTransport.isConnected()) {
-            wifiDirectTransport.cancelTransfer();
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.cancelTransfer();
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.cancelTransfer();
+                break;
         }
     }
 
@@ -157,8 +208,7 @@ public class TransportManager implements TransportCallback {
      * Check if currently connected to a peer.
      */
     public boolean isConnected() {
-        return wifiDirectTransport.isConnected();
-        // TODO Phase 6.5: || bluetoothTransport.isConnected();
+        return wifiDirectTransport.isConnected() || bluetoothTransport.isConnected();
     }
 
     /**
@@ -180,8 +230,42 @@ public class TransportManager implements TransportCallback {
      * Check if Bluetooth is available for fallback.
      */
     public boolean isBluetoothAvailable() {
-        // TODO Phase 6.5: return bluetoothTransport.isAvailable();
-        return false;
+        return bluetoothTransport.isAvailable();
+    }
+
+    /**
+     * Get a description of available transports.
+     */
+    @NonNull
+    public String getTransportStatus() {
+        StringBuilder status = new StringBuilder();
+        if (wifiDirectTransport.isAvailable()) {
+            status.append("WiFi Direct: Available");
+        } else {
+            status.append("WiFi Direct: Unavailable");
+        }
+        status.append("\n");
+        if (bluetoothTransport.isAvailable()) {
+            status.append("Bluetooth: Available");
+        } else {
+            status.append("Bluetooth: Unavailable");
+        }
+        return status.toString();
+    }
+
+    /**
+     * Get the name of the currently active transport.
+     */
+    @NonNull
+    public String getActiveTransportName() {
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                return "WiFi Direct";
+            case BLUETOOTH:
+                return "Bluetooth";
+            default:
+                return "None";
+        }
     }
 
     /**
@@ -193,8 +277,9 @@ public class TransportManager implements TransportCallback {
         }
 
         disconnect();
+        stopListening();
         wifiDirectTransport.shutdown();
-        // TODO Phase 6.5: bluetoothTransport.shutdown();
+        bluetoothTransport.shutdown();
     }
 
     // ---- TransportCallback implementation (forward to our callback) ----
@@ -210,6 +295,7 @@ public class TransportManager implements TransportCallback {
     @Override
     public void onDisconnected(@NonNull DiscoveredPeer peer, @Nullable String reason) {
         connectedPeer = null;
+        activeTransport = ActiveTransport.NONE;
         if (callback != null) {
             callback.onDisconnected(peer, reason);
         }
@@ -217,7 +303,16 @@ public class TransportManager implements TransportCallback {
 
     @Override
     public void onConnectionFailed(@NonNull DiscoveredPeer peer, @NonNull String error) {
+        // If WiFi Direct failed, try Bluetooth as fallback
+        if (activeTransport == ActiveTransport.WIFI_DIRECT && bluetoothTransport.isAvailable()) {
+            LOG.info("WiFi Direct failed, trying Bluetooth fallback: " + error);
+            activeTransport = ActiveTransport.BLUETOOTH;
+            bluetoothTransport.connect(peer);
+            return;
+        }
+
         connectedPeer = null;
+        activeTransport = ActiveTransport.NONE;
         if (callback != null) {
             callback.onConnectionFailed(peer, error);
         }
