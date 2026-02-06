@@ -84,6 +84,7 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
 
         if (shareManager != null) {
             shareManager.addListener(this);
+            shareManager.setCurrentActivity(getActivity());
             shareManager.refreshLocalManifest();
         }
 

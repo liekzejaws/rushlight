@@ -1,6 +1,6 @@
 package net.osmand.plus.plugins.p2pshare;
 
-import android.content.Context;
+import android.app.Activity;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,10 +18,10 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Core manager for P2P content sharing.
+ * LAMPP Phase 6.3: Core manager for P2P content sharing.
  * Coordinates discovery, transport, and content manifest operations.
  */
-public class P2pShareManager {
+public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallback {
 
     private static final Log LOG = PlatformUtil.getLog(P2pShareManager.class);
 
@@ -29,7 +29,7 @@ public class P2pShareManager {
     private final ContentManifest localManifest;
     private final List<P2pShareListener> listeners = new CopyOnWriteArrayList<>();
 
-    // Managers for different aspects of P2P (will be initialized in later phases)
+    // Managers for different aspects of P2P
     private PeerDiscoveryManager discoveryManager;
     private TransportManager transportManager;
 
@@ -39,6 +39,9 @@ public class P2pShareManager {
     // State
     private boolean isScanning = false;
     private boolean isTransferring = false;
+
+    // Activity reference for permission requests
+    private Activity currentActivity;
 
     public interface P2pShareListener {
         default void onPeerDiscovered(@NonNull DiscoveredPeer peer) {}
@@ -52,12 +55,23 @@ public class P2pShareManager {
         this.app = app;
         this.localManifest = new ContentManifest(app);
 
+        // Initialize the discovery manager
+        discoveryManager = new PeerDiscoveryManager(app, this);
+
         LOG.info("P2pShareManager initialized");
+    }
+
+    /**
+     * Set the current activity for permission requests.
+     */
+    public void setCurrentActivity(@Nullable Activity activity) {
+        this.currentActivity = activity;
     }
 
     /**
      * Start scanning for nearby peers.
      * Uses BLE beaconing for discovery.
+     * Also starts advertising so others can find us.
      */
     public void startScanning() {
         if (isScanning) {
@@ -66,13 +80,15 @@ public class P2pShareManager {
         }
 
         LOG.info("Starting peer discovery scan");
-        isScanning = true;
 
-        // TODO Phase 6.3: Initialize and start BLE discovery
-        // discoveryManager = new PeerDiscoveryManager(app, this::onPeerFound);
-        // discoveryManager.startScanning();
+        // Start both scanning and advertising
+        if (discoveryManager != null) {
+            discoveryManager.startScanning(currentActivity);
+            discoveryManager.startAdvertising(currentActivity);
+        }
 
-        notifyScanningStateChanged(true);
+        isScanning = discoveryManager != null && discoveryManager.isScanning();
+        notifyScanningStateChanged(isScanning);
     }
 
     /**
@@ -84,13 +100,13 @@ public class P2pShareManager {
         }
 
         LOG.info("Stopping peer discovery scan");
+
+        if (discoveryManager != null) {
+            discoveryManager.stopScanning();
+            discoveryManager.stopAdvertising();
+        }
+
         isScanning = false;
-
-        // TODO Phase 6.3: Stop BLE discovery
-        // if (discoveryManager != null) {
-        //     discoveryManager.stopScanning();
-        // }
-
         notifyScanningStateChanged(false);
     }
 
@@ -99,9 +115,13 @@ public class P2pShareManager {
      */
     public void connectToPeer(@NonNull DiscoveredPeer peer) {
         LOG.info("Connecting to peer: " + peer.getDeviceName());
+        peer.setState(DiscoveredPeer.PeerState.CONNECTING);
 
         // TODO Phase 6.4: Implement WiFi Direct connection
         // transportManager.connect(peer);
+
+        // For now, just show that we're attempting
+        app.showShortToastMessage("Connection will be implemented in Phase 6.4");
     }
 
     /**
@@ -134,6 +154,10 @@ public class P2pShareManager {
      */
     @NonNull
     public List<DiscoveredPeer> getDiscoveredPeers() {
+        // Return peers from discovery manager if available
+        if (discoveryManager != null) {
+            return discoveryManager.getDiscoveredPeers();
+        }
         return new ArrayList<>(discoveredPeers);
     }
 
@@ -149,6 +173,13 @@ public class P2pShareManager {
      */
     public boolean isTransferring() {
         return isTransferring;
+    }
+
+    /**
+     * Check if BLE is available.
+     */
+    public boolean isBleAvailable() {
+        return discoveryManager != null && discoveryManager.isBleAvailable();
     }
 
     /**
@@ -171,6 +202,11 @@ public class P2pShareManager {
     public void shutdown() {
         LOG.info("Shutting down P2pShareManager");
         stopScanning();
+
+        if (discoveryManager != null) {
+            discoveryManager.shutdown();
+            discoveryManager = null;
+        }
 
         if (transportManager != null) {
             transportManager.shutdown();
@@ -213,20 +249,37 @@ public class P2pShareManager {
         }
     }
 
-    // Callbacks from discovery/transport (will be used in later phases)
+    // PeerDiscoveryManager.PeerDiscoveryCallback implementation
 
-    void onPeerFound(@NonNull DiscoveredPeer peer) {
+    @Override
+    public void onPeerDiscovered(@NonNull DiscoveredPeer peer) {
+        LOG.info("Peer discovered: " + peer.getDeviceName());
         if (!discoveredPeers.contains(peer)) {
             discoveredPeers.add(peer);
-            notifyPeerDiscovered(peer);
         }
+        notifyPeerDiscovered(peer);
     }
 
-    void onPeerLost(@NonNull DiscoveredPeer peer) {
-        if (discoveredPeers.remove(peer)) {
-            notifyPeerLost(peer);
-        }
+    @Override
+    public void onPeerUpdated(@NonNull DiscoveredPeer peer) {
+        // Signal strength update - UI can refresh if needed
+        LOG.debug("Peer updated: " + peer.getDeviceName() + " RSSI: " + peer.getSignalStrength());
     }
+
+    @Override
+    public void onPeerLost(@NonNull DiscoveredPeer peer) {
+        LOG.info("Peer lost: " + peer.getDeviceName());
+        discoveredPeers.remove(peer);
+        notifyPeerLost(peer);
+    }
+
+    @Override
+    public void onDiscoveryError(@NonNull String error) {
+        LOG.error("Discovery error: " + error);
+        app.showShortToastMessage(error);
+    }
+
+    // Callbacks from transport (will be used in later phases)
 
     void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {
         for (P2pShareListener listener : listeners) {
