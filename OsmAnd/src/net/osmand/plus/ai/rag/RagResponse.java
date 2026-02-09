@@ -8,38 +8,70 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * LAMPP Phase 7: Response from the RAG pipeline.
+ * LAMPP Phase 7 & 8: Response from the RAG pipeline.
  *
  * Contains the generated answer text along with source citations
- * and timing/performance metadata.
+ * (Wikipedia articles and/or POIs) and timing/performance metadata.
  */
 public class RagResponse {
 
     private final String answer;
-    private final List<ArticleSource> sources;
-    private final long searchTimeMs;
+    private final List<ArticleSource> sources;       // Wikipedia sources
+    private final List<PoiSource> poiSources;         // POI sources (Phase 8)
+    private final long searchTimeMs;                  // Wikipedia search time
+    private final long poiSearchTimeMs;               // POI search time (Phase 8)
     private final long generationTimeMs;
     private final boolean usedWikipedia;
+    private final boolean usedPoiData;                // Phase 8
     private final String error;
 
     private RagResponse(@NonNull String answer, @NonNull List<ArticleSource> sources,
-                        long searchTimeMs, long generationTimeMs,
-                        boolean usedWikipedia, @Nullable String error) {
+                        @NonNull List<PoiSource> poiSources,
+                        long searchTimeMs, long poiSearchTimeMs, long generationTimeMs,
+                        boolean usedWikipedia, boolean usedPoiData, @Nullable String error) {
         this.answer = answer;
         this.sources = Collections.unmodifiableList(new ArrayList<>(sources));
+        this.poiSources = Collections.unmodifiableList(new ArrayList<>(poiSources));
         this.searchTimeMs = searchTimeMs;
+        this.poiSearchTimeMs = poiSearchTimeMs;
         this.generationTimeMs = generationTimeMs;
         this.usedWikipedia = usedWikipedia;
+        this.usedPoiData = usedPoiData;
         this.error = error;
     }
 
     /**
-     * Create a successful response with sources.
+     * Create a successful response with Wikipedia sources.
      */
     @NonNull
     public static RagResponse success(@NonNull String answer, @NonNull List<ArticleSource> sources,
                                        long searchTimeMs, long generationTimeMs) {
-        return new RagResponse(answer, sources, searchTimeMs, generationTimeMs, true, null);
+        return new RagResponse(answer, sources, Collections.emptyList(),
+                searchTimeMs, 0, generationTimeMs, !sources.isEmpty(), false, null);
+    }
+
+    /**
+     * Create a successful response with POI sources (Phase 8).
+     */
+    @NonNull
+    public static RagResponse successWithPoi(@NonNull String answer, @NonNull List<PoiSource> poiSources,
+                                              long poiSearchTimeMs, long generationTimeMs) {
+        return new RagResponse(answer, Collections.emptyList(), poiSources,
+                0, poiSearchTimeMs, generationTimeMs, false, !poiSources.isEmpty(), null);
+    }
+
+    /**
+     * Create a successful response with both Wikipedia and POI sources (Phase 8: Hybrid).
+     */
+    @NonNull
+    public static RagResponse successHybrid(@NonNull String answer,
+                                             @NonNull List<ArticleSource> wikiSources,
+                                             @NonNull List<PoiSource> poiSources,
+                                             long wikiSearchTimeMs, long poiSearchTimeMs,
+                                             long generationTimeMs) {
+        return new RagResponse(answer, wikiSources, poiSources,
+                wikiSearchTimeMs, poiSearchTimeMs, generationTimeMs,
+                !wikiSources.isEmpty(), !poiSources.isEmpty(), null);
     }
 
     /**
@@ -47,7 +79,8 @@ public class RagResponse {
      */
     @NonNull
     public static RagResponse successWithoutWikipedia(@NonNull String answer, long generationTimeMs) {
-        return new RagResponse(answer, Collections.emptyList(), 0, generationTimeMs, false, null);
+        return new RagResponse(answer, Collections.emptyList(), Collections.emptyList(),
+                0, 0, generationTimeMs, false, false, null);
     }
 
     /**
@@ -55,7 +88,8 @@ public class RagResponse {
      */
     @NonNull
     public static RagResponse error(@NonNull String error) {
-        return new RagResponse("", Collections.emptyList(), 0, 0, false, error);
+        return new RagResponse("", Collections.emptyList(), Collections.emptyList(),
+                0, 0, 0, false, false, error);
     }
 
     /**
@@ -75,10 +109,32 @@ public class RagResponse {
     }
 
     /**
-     * Check if any sources were used.
+     * Check if any Wikipedia sources were used.
      */
     public boolean hasSources() {
         return !sources.isEmpty();
+    }
+
+    /**
+     * Get the list of POI sources (Phase 8).
+     */
+    @NonNull
+    public List<PoiSource> getPoiSources() {
+        return poiSources;
+    }
+
+    /**
+     * Check if any POI sources were used (Phase 8).
+     */
+    public boolean hasPoiSources() {
+        return !poiSources.isEmpty();
+    }
+
+    /**
+     * Check if any sources (Wikipedia or POI) were used.
+     */
+    public boolean hasAnySources() {
+        return hasSources() || hasPoiSources();
     }
 
     /**
@@ -86,6 +142,13 @@ public class RagResponse {
      */
     public long getSearchTimeMs() {
         return searchTimeMs;
+    }
+
+    /**
+     * Get time spent searching POIs (Phase 8).
+     */
+    public long getPoiSearchTimeMs() {
+        return poiSearchTimeMs;
     }
 
     /**
@@ -99,7 +162,7 @@ public class RagResponse {
      * Get total time for the RAG pipeline.
      */
     public long getTotalTimeMs() {
-        return searchTimeMs + generationTimeMs;
+        return searchTimeMs + poiSearchTimeMs + generationTimeMs;
     }
 
     /**
@@ -107,6 +170,13 @@ public class RagResponse {
      */
     public boolean usedWikipedia() {
         return usedWikipedia;
+    }
+
+    /**
+     * Check if POI data was used for this response (Phase 8).
+     */
+    public boolean usedPoiData() {
+        return usedPoiData;
     }
 
     /**
@@ -125,7 +195,7 @@ public class RagResponse {
     }
 
     /**
-     * Get a formatted citation string for all sources.
+     * Get a formatted citation string for Wikipedia sources.
      * Example: "Sources: Brooklyn Bridge, East River"
      */
     @NonNull
@@ -145,24 +215,72 @@ public class RagResponse {
     }
 
     /**
+     * Get a formatted string for POI sources (Phase 8).
+     * Example: "Nearby: Starbucks (150m NE), Blue Bottle (320m N)"
+     */
+    @NonNull
+    public String getFormattedPoiSources() {
+        if (poiSources.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder("Nearby: ");
+        for (int i = 0; i < poiSources.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            PoiSource poi = poiSources.get(i);
+            sb.append(poi.getName());
+            sb.append(" (").append(poi.getDistanceDirection()).append(")");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Get a combined formatted string for all sources.
+     */
+    @NonNull
+    public String getFormattedAllSources() {
+        StringBuilder sb = new StringBuilder();
+        if (!sources.isEmpty()) {
+            sb.append(getFormattedSources());
+        }
+        if (!poiSources.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append("\n");
+            }
+            sb.append(getFormattedPoiSources());
+        }
+        return sb.toString();
+    }
+
+    /**
      * Get performance summary string.
      */
     @NonNull
     public String getPerformanceSummary() {
+        StringBuilder sb = new StringBuilder();
         if (usedWikipedia) {
-            return String.format("Search: %dms, Generation: %dms, Total: %dms",
-                    searchTimeMs, generationTimeMs, getTotalTimeMs());
-        } else {
-            return String.format("Generation: %dms", generationTimeMs);
+            sb.append("Wiki: ").append(searchTimeMs).append("ms");
         }
+        if (usedPoiData) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append("POI: ").append(poiSearchTimeMs).append("ms");
+        }
+        if (sb.length() > 0) sb.append(", ");
+        sb.append("Gen: ").append(generationTimeMs).append("ms");
+        sb.append(", Total: ").append(getTotalTimeMs()).append("ms");
+        return sb.toString();
     }
 
     @Override
     public String toString() {
         return "RagResponse{" +
                 "answerLength=" + answer.length() +
-                ", sources=" + sources.size() +
+                ", wikiSources=" + sources.size() +
+                ", poiSources=" + poiSources.size() +
                 ", usedWikipedia=" + usedWikipedia +
+                ", usedPoiData=" + usedPoiData +
                 ", totalTimeMs=" + getTotalTimeMs() +
                 (error != null ? ", error=" + error : "") +
                 '}';
@@ -174,9 +292,12 @@ public class RagResponse {
     public static class Builder {
         private StringBuilder answer = new StringBuilder();
         private List<ArticleSource> sources = new ArrayList<>();
+        private List<PoiSource> poiSources = new ArrayList<>();
         private long searchTimeMs = 0;
+        private long poiSearchTimeMs = 0;
         private long generationStartTime = 0;
         private boolean usedWikipedia = false;
+        private boolean usedPoiData = false;
         private String error = null;
 
         public Builder() {
@@ -189,8 +310,19 @@ public class RagResponse {
             return this;
         }
 
+        public Builder setPoiSources(@NonNull List<PoiSource> poiSources) {
+            this.poiSources = new ArrayList<>(poiSources);
+            this.usedPoiData = !poiSources.isEmpty();
+            return this;
+        }
+
         public Builder setSearchTimeMs(long timeMs) {
             this.searchTimeMs = timeMs;
+            return this;
+        }
+
+        public Builder setPoiSearchTimeMs(long timeMs) {
+            this.poiSearchTimeMs = timeMs;
             return this;
         }
 
@@ -210,13 +342,36 @@ public class RagResponse {
         }
 
         @NonNull
+        public List<ArticleSource> getSources() {
+            return sources;
+        }
+
+        @NonNull
+        public List<PoiSource> getPoiSources() {
+            return poiSources;
+        }
+
+        public long getSearchTimeMs() {
+            return searchTimeMs;
+        }
+
+        public long getPoiSearchTimeMs() {
+            return poiSearchTimeMs;
+        }
+
+        public long getGenerationTimeMs() {
+            return System.currentTimeMillis() - generationStartTime;
+        }
+
+        @NonNull
         public RagResponse build() {
             long generationTimeMs = System.currentTimeMillis() - generationStartTime;
             if (error != null) {
                 return RagResponse.error(error);
             }
-            return new RagResponse(answer.toString(), sources,
-                    searchTimeMs, generationTimeMs, usedWikipedia, null);
+            return new RagResponse(answer.toString(), sources, poiSources,
+                    searchTimeMs, poiSearchTimeMs, generationTimeMs,
+                    usedWikipedia, usedPoiData, null);
         }
     }
 }

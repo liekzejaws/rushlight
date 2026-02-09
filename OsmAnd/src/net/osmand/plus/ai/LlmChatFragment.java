@@ -29,6 +29,7 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.ai.rag.ArticleSource;
+import net.osmand.plus.ai.rag.PoiSource;
 import net.osmand.plus.ai.rag.RagCallback;
 import net.osmand.plus.ai.rag.RagManager;
 import net.osmand.plus.ai.rag.RagResponse;
@@ -184,12 +185,16 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			modelActionButton.setVisibility(View.GONE);
 		} else if (llmManager.isModelLoaded()) {
 			modelStatusIcon.setImageResource(R.drawable.ic_action_done);
-			// Show model name and Wikipedia status
-			String status = "Model: " + llmManager.getCurrentModelName();
+			// Show model name and data source status
+			StringBuilder status = new StringBuilder();
+			status.append("Model: ").append(llmManager.getCurrentModelName());
 			if (ragManager.isWikipediaAvailable()) {
-				status += " | Wiki: " + ragManager.getWikipediaTitle();
+				status.append(" | Wiki: ").append(ragManager.getWikipediaTitle());
 			}
-			modelStatusText.setText(status);
+			if (ragManager.isMapDataAvailable()) {
+				status.append(" | POI: On");
+			}
+			modelStatusText.setText(status.toString());
 			modelActionButton.setText("Unload");
 			modelActionButton.setVisibility(View.VISIBLE);
 		} else if (llmManager.hasDownloadedModels()) {
@@ -306,8 +311,16 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 				int lastIndex = messages.size() - 1;
 				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
 					ChatMessage aiMessage = messages.get(lastIndex);
+					boolean changed = false;
 					if (response.hasSources()) {
 						aiMessage.sources = response.getSources();
+						changed = true;
+					}
+					if (response.hasPoiSources()) {
+						aiMessage.poiSources = response.getPoiSources();
+						changed = true;
+					}
+					if (changed) {
 						chatAdapter.notifyItemChanged(lastIndex);
 					}
 				}
@@ -359,6 +372,7 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 		int role;
 		String content;
 		List<ArticleSource> sources; // Wikipedia sources used (for AI messages)
+		List<PoiSource> poiSources;  // POI sources used (Phase 8)
 
 		ChatMessage(int role, String content) {
 			this.role = role;
@@ -369,14 +383,37 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			return sources != null && !sources.isEmpty();
 		}
 
+		boolean hasPoiSources() {
+			return poiSources != null && !poiSources.isEmpty();
+		}
+
+		boolean hasAnySources() {
+			return hasSources() || hasPoiSources();
+		}
+
 		String getSourcesText() {
-			if (!hasSources()) return "";
-			StringBuilder sb = new StringBuilder("\n\nSources: ");
-			for (int i = 0; i < sources.size(); i++) {
-				if (i > 0) sb.append(", ");
-				sb.append(sources.get(i).getTitle());
+			StringBuilder sb = new StringBuilder();
+
+			// Wikipedia sources
+			if (hasSources()) {
+				sb.append("Sources: ");
+				for (int i = 0; i < sources.size(); i++) {
+					if (i > 0) sb.append(", ");
+					sb.append(sources.get(i).getTitle());
+				}
 			}
-			return sb.toString();
+
+			// POI sources
+			if (hasPoiSources()) {
+				if (sb.length() > 0) sb.append("\n");
+				sb.append("Nearby: ");
+				for (int i = 0; i < poiSources.size(); i++) {
+					if (i > 0) sb.append(", ");
+					sb.append(poiSources.get(i).toChatString());
+				}
+			}
+
+			return sb.length() > 0 ? sb.toString() : "";
 		}
 	}
 
@@ -419,8 +456,8 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			void bind(ChatMessage message) {
 				contentText.setText(message.content);
 
-				// Show sources if available (for AI messages with Wikipedia context)
-				if (message.role == ChatMessage.ROLE_AI && message.hasSources()) {
+				// Show sources if available (for AI messages with Wikipedia/POI context)
+				if (message.role == ChatMessage.ROLE_AI && message.hasAnySources()) {
 					if (sourcesText != null) {
 						sourcesText.setVisibility(View.VISIBLE);
 						sourcesText.setText(message.getSourcesText().trim());

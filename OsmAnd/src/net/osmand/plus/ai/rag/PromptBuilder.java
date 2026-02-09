@@ -5,9 +5,9 @@ import androidx.annotation.NonNull;
 import java.util.List;
 
 /**
- * LAMPP Phase 7: Builds prompts for RAG-augmented LLM generation.
+ * LAMPP Phase 7 & 8: Builds prompts for RAG-augmented LLM generation.
  *
- * Constructs prompts that include Wikipedia context and citation instructions.
+ * Constructs prompts that include Wikipedia context, POI data, and citation instructions.
  */
 public class PromptBuilder {
 
@@ -27,6 +27,51 @@ public class PromptBuilder {
             "%s" +
             "=== End Context ===\n\n" +
             "Question: %s\n\n" +
+            "Answer:";
+
+    /**
+     * Template for location-aware POI search prompt (Phase 8).
+     */
+    private static final String LOCATION_TEMPLATE =
+            "You are helping a user find places nearby.\n" +
+            "The user is at: %s\n\n" +
+            "=== Nearby Places ===\n" +
+            "%s" +
+            "=== End Places ===\n\n" +
+            "Question: %s\n\n" +
+            "Provide helpful information about the nearby places. " +
+            "Mention distance and direction when relevant. Be concise.\n\n" +
+            "Answer:";
+
+    /**
+     * Template for direction/distance queries about places (Phase 8.2).
+     */
+    private static final String DIRECTION_TEMPLATE =
+            "You are helping a user with direction and distance information.\n" +
+            "The user is at: %s\n\n" +
+            "=== Places Found ===\n" +
+            "%s" +
+            "=== End Places ===\n\n" +
+            "Question: %s\n\n" +
+            "Provide clear direction and distance information based on the found places. " +
+            "Be specific about cardinal directions (N, NE, E, SE, S, SW, W, NW). " +
+            "If multiple places with the same name exist, mention them all.\n\n" +
+            "Answer:";
+
+    /**
+     * Template for hybrid Wikipedia + POI prompt (Phase 8).
+     */
+    private static final String HYBRID_TEMPLATE =
+            "Use the following information to answer the question.\n\n" +
+            "=== Wikipedia Context ===\n" +
+            "%s" +
+            "=== End Wikipedia ===\n\n" +
+            "=== Nearby Places ===\n" +
+            "%s" +
+            "=== End Places ===\n\n" +
+            "Question: %s\n\n" +
+            "Cite Wikipedia sources as [Source: Title]. " +
+            "Include distance/direction for nearby places.\n\n" +
             "Answer:";
 
     /**
@@ -204,6 +249,204 @@ public class PromptBuilder {
     }
 
     /**
+     * Build a prompt for location-based POI search (Phase 8).
+     *
+     * @param query User's question
+     * @param poiSources List of nearby POIs
+     * @param location User's location context
+     * @return Complete prompt for LLM
+     */
+    @NonNull
+    public String buildLocationPrompt(@NonNull String query,
+                                       @NonNull List<PoiSource> poiSources,
+                                       @NonNull LocationContext location) {
+        if (poiSources.isEmpty()) {
+            return buildNoPoiPrompt(query);
+        }
+
+        StringBuilder poiContext = new StringBuilder();
+        for (PoiSource poi : poiSources) {
+            poiContext.append(poi.toPromptString()).append("\n");
+        }
+
+        return String.format(LOCATION_TEMPLATE,
+                location.getLocationString(),
+                poiContext.toString(),
+                query);
+    }
+
+    /**
+     * Build a prompt for location search with token budget (Phase 8).
+     */
+    @NonNull
+    public String buildLocationPrompt(@NonNull String query,
+                                       @NonNull List<PoiSource> poiSources,
+                                       @NonNull LocationContext location,
+                                       int maxContextTokens) {
+        if (poiSources.isEmpty()) {
+            return buildNoPoiPrompt(query);
+        }
+
+        StringBuilder poiContext = new StringBuilder();
+        int remainingTokens = maxContextTokens;
+
+        for (PoiSource poi : poiSources) {
+            String entry = poi.toPromptString() + "\n";
+            int entryTokens = estimateTokens(entry);
+
+            if (remainingTokens - entryTokens < 50) {
+                break;
+            }
+
+            poiContext.append(entry);
+            remainingTokens -= entryTokens;
+        }
+
+        return String.format(LOCATION_TEMPLATE,
+                location.getLocationString(),
+                poiContext.toString(),
+                query);
+    }
+
+    /**
+     * Build a hybrid prompt with both Wikipedia and POI context (Phase 8).
+     */
+    @NonNull
+    public String buildHybridPrompt(@NonNull String query,
+                                     @NonNull List<ArticleSource> wikiSources,
+                                     @NonNull List<PoiSource> poiSources) {
+        StringBuilder wikiContext = new StringBuilder();
+        for (ArticleSource source : wikiSources) {
+            wikiContext.append(String.format(ARTICLE_TEMPLATE,
+                    source.getTitle(),
+                    source.getText()));
+        }
+
+        StringBuilder poiContext = new StringBuilder();
+        for (PoiSource poi : poiSources) {
+            poiContext.append(poi.toPromptString()).append("\n");
+        }
+
+        return String.format(HYBRID_TEMPLATE,
+                wikiContext.toString(),
+                poiContext.toString(),
+                query);
+    }
+
+    /**
+     * Build a hybrid prompt with token budget (Phase 8).
+     */
+    @NonNull
+    public String buildHybridPrompt(@NonNull String query,
+                                     @NonNull List<ArticleSource> wikiSources,
+                                     @NonNull List<PoiSource> poiSources,
+                                     int maxContextTokens) {
+        // Split budget: 60% wiki, 40% POI
+        int wikiBudget = (int) (maxContextTokens * 0.6);
+        int poiBudget = maxContextTokens - wikiBudget;
+
+        StringBuilder wikiContext = new StringBuilder();
+        int remainingWikiTokens = wikiBudget;
+
+        for (ArticleSource source : wikiSources) {
+            String header = "[" + source.getTitle() + "]\n";
+            int headerTokens = estimateTokens(header);
+
+            if (remainingWikiTokens - headerTokens <= 50) {
+                break;
+            }
+
+            int textBudget = remainingWikiTokens - headerTokens - 10;
+            String text = truncateToTokens(source.getText(), textBudget);
+
+            wikiContext.append(header);
+            wikiContext.append(text);
+            wikiContext.append("\n\n");
+
+            remainingWikiTokens -= (headerTokens + estimateTokens(text) + 2);
+        }
+
+        StringBuilder poiContext = new StringBuilder();
+        int remainingPoiTokens = poiBudget;
+
+        for (PoiSource poi : poiSources) {
+            String entry = poi.toPromptString() + "\n";
+            int entryTokens = estimateTokens(entry);
+
+            if (remainingPoiTokens - entryTokens < 20) {
+                break;
+            }
+
+            poiContext.append(entry);
+            remainingPoiTokens -= entryTokens;
+        }
+
+        return String.format(HYBRID_TEMPLATE,
+                wikiContext.toString(),
+                poiContext.toString(),
+                query);
+    }
+
+    /**
+     * Build a prompt when no POI results are found (Phase 8).
+     */
+    @NonNull
+    public String buildNoPoiPrompt(@NonNull String query) {
+        return "Note: No places were found nearby for this query.\n\n" +
+                "Question: " + query + "\n\n" +
+                "Answer:";
+    }
+
+    /**
+     * Build a prompt for direction/distance queries about places (Phase 8.2).
+     *
+     * @param query User's question about direction/distance
+     * @param placeResults List of places found in map data
+     * @param location User's current location
+     * @param maxContextTokens Maximum tokens for context
+     * @return Complete prompt for LLM
+     */
+    @NonNull
+    public String buildDirectionPrompt(@NonNull String query,
+                                        @NonNull List<PlaceResult> placeResults,
+                                        @NonNull LocationContext location,
+                                        int maxContextTokens) {
+        if (placeResults.isEmpty()) {
+            return buildNoPoiPrompt(query);
+        }
+
+        StringBuilder placeContext = new StringBuilder();
+        int remainingTokens = maxContextTokens;
+
+        for (PlaceResult place : placeResults) {
+            String entry = place.toPromptString() + "\n";
+            int entryTokens = estimateTokens(entry);
+
+            if (remainingTokens - entryTokens < 50) {
+                break;
+            }
+
+            placeContext.append(entry);
+            remainingTokens -= entryTokens;
+        }
+
+        return String.format(DIRECTION_TEMPLATE,
+                location.getLocationString(),
+                placeContext.toString(),
+                query);
+    }
+
+    /**
+     * Build a direction prompt with default token budget (Phase 8.2).
+     */
+    @NonNull
+    public String buildDirectionPrompt(@NonNull String query,
+                                        @NonNull List<PlaceResult> placeResults,
+                                        @NonNull LocationContext location) {
+        return buildDirectionPrompt(query, placeResults, location, DEFAULT_CONTEXT_BUDGET);
+    }
+
+    /**
      * Format citation text for display in chat.
      *
      * @param sources List of sources used
@@ -221,6 +464,25 @@ public class PromptBuilder {
                 sb.append(", ");
             }
             sb.append(sources.get(i).getTitle());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Format POI sources for display in chat (Phase 8).
+     */
+    @NonNull
+    public String formatPoiCitations(@NonNull List<PoiSource> poiSources) {
+        if (poiSources.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder("\n\nNearby: ");
+        for (int i = 0; i < poiSources.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(poiSources.get(i).toChatString());
         }
         return sb.toString();
     }
