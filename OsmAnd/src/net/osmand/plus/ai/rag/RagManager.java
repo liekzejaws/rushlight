@@ -21,14 +21,21 @@ import java.util.concurrent.Executors;
  * LAMPP Phase 7 & 8: Orchestrates the RAG (Retrieval-Augmented Generation) pipeline.
  *
  * Coordinates between:
- * 1. QueryClassifier - determines if Wikipedia or POI lookup is needed
+ * 1. QueryClassifier - determines if Wikipedia or map data lookup is needed
  * 2. ZimSearchAdapter - searches Wikipedia ZIM files
- * 3. MapDataAdapter - searches POI database (Phase 8)
+ * 3. MapDataAdapter - searches map data for places and POIs (Phase 8)
  * 4. PromptBuilder - constructs context-augmented prompts
  * 5. LlmManager - generates responses with streaming
  *
+ * Map Data Query Types:
+ * - DIRECTION_QUERY: "Which direction is X from here?" - Always enabled (core offline feature)
+ *   Searches for cities, villages, regions in loaded map data.
+ * - LOCATION_SEARCH: "Find coffee near me" - Disabled by default (amenity search)
+ *   Searches for POI amenities (restaurants, gas stations, etc.)
+ *   Can be enabled for online/non-emergency use cases.
+ *
  * The pipeline:
- * User Query → Classify → (Optional: Search Wikipedia/POI) → Build Prompt → Generate Response
+ * User Query → Classify → (Optional: Search Wikipedia/Map) → Build Prompt → Generate Response
  */
 public class RagManager {
 
@@ -64,7 +71,10 @@ public class RagManager {
     private int contextTokenBudget = DEFAULT_CONTEXT_TOKENS;
     private int poiSearchRadius = DEFAULT_POI_RADIUS;
     private boolean wikipediaEnabled = true;
-    private boolean poiSearchEnabled = true;     // Phase 8
+
+    // POI amenity search (coffee, restaurants, etc.) - disabled by default for offline/survival focus
+    // Note: Direction queries (cities, regions) always work via DIRECTION_QUERY type
+    private boolean poiAmenitySearchEnabled = false;
 
     public RagManager(@NonNull OsmandApplication app, @NonNull LlmManager llmManager) {
         this.app = app;
@@ -76,7 +86,7 @@ public class RagManager {
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
 
-        LOG.info("RagManager initialized (Phase 8: POI search enabled)");
+        LOG.info("RagManager initialized (Phase 8: Direction queries enabled, POI amenity search disabled by default)");
     }
 
     /**
@@ -118,8 +128,9 @@ public class RagManager {
                 && zimAdapter.isAvailable();
 
         // Determine if we should search POIs (Phase 8)
-        boolean shouldSearchPoi = poiSearchEnabled
-                && queryType.needsPoiSearch()
+        // Note: This is for amenity searches (coffee, restaurants, etc.), not direction queries
+        boolean shouldSearchPoi = poiAmenitySearchEnabled
+                && queryType == QueryClassifier.QueryType.LOCATION_SEARCH
                 && mapAdapter.isAvailable();
 
         // Check for direction queries about places (Phase 8.2)
@@ -127,10 +138,11 @@ public class RagManager {
                 && mapAdapter.isAvailable();
 
         // Also check for hybrid queries (location context in factual query)
+        // Only applicable when POI amenity search is enabled
         boolean isHybridQuery = shouldSearchWikipedia
                 && classifier.hasLocationContext(query)
                 && mapAdapter.isAvailable()
-                && poiSearchEnabled;
+                && poiAmenitySearchEnabled;
 
         List<ArticleSource> wikiSources = new ArrayList<>();
         List<PoiSource> poiSources = new ArrayList<>();
@@ -405,17 +417,23 @@ public class RagManager {
     }
 
     /**
-     * Enable or disable POI search (Phase 8).
+     * Enable or disable POI amenity search (Phase 8).
+     *
+     * POI amenity search includes coffee shops, restaurants, gas stations, etc.
+     * This is disabled by default for offline/survival focus.
+     * Note: Direction queries (cities, regions) are always enabled.
      */
-    public void setPoiSearchEnabled(boolean enabled) {
-        this.poiSearchEnabled = enabled;
+    public void setPoiAmenitySearchEnabled(boolean enabled) {
+        this.poiAmenitySearchEnabled = enabled;
     }
 
     /**
-     * Check if POI search is enabled (Phase 8).
+     * Check if POI amenity search is enabled (Phase 8).
+     *
+     * @return true if amenity search (coffee, restaurants, etc.) is enabled
      */
-    public boolean isPoiSearchEnabled() {
-        return poiSearchEnabled;
+    public boolean isPoiAmenitySearchEnabled() {
+        return poiAmenitySearchEnabled;
     }
 
     /**
@@ -477,14 +495,18 @@ public class RagManager {
             sb.append("Not loaded");
         }
 
-        sb.append("\nMap/POI: ");
+        sb.append("\nMap Data: ");
         if (mapAdapter.isAvailable()) {
             sb.append("Available");
-            if (!poiSearchEnabled) {
-                sb.append(" (disabled)");
-            }
         } else {
             sb.append("No map data");
+        }
+
+        sb.append("\nPOI Amenity Search: ");
+        if (poiAmenitySearchEnabled) {
+            sb.append("Enabled");
+        } else {
+            sb.append("Disabled (offline mode)");
         }
 
         return sb.toString();
