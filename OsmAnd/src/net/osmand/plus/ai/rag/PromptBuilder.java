@@ -53,8 +53,9 @@ public class PromptBuilder {
 
     /**
      * Maximum context tokens to use (leaving room for response).
+     * Reduced from 3000 to 1500 for TinyLlama and other small models.
      */
-    private static final int DEFAULT_CONTEXT_BUDGET = 3000;
+    private static final int DEFAULT_CONTEXT_BUDGET = 1500;
 
     /**
      * Build a RAG prompt with Wikipedia context.

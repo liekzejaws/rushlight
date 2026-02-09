@@ -34,10 +34,12 @@ public class RagManager {
     private static final Log LOG = PlatformUtil.getLog(RagManager.class);
 
     // Default maximum articles to include as context
-    private static final int DEFAULT_MAX_SOURCES = 3;
+    // Reduced from 3 to 2 to fit in smaller model context windows
+    private static final int DEFAULT_MAX_SOURCES = 2;
 
     // Default token budget for context
-    private static final int DEFAULT_CONTEXT_TOKENS = 3000;
+    // Reduced from 3000 to 1500 for TinyLlama and other small models (2K-4K context)
+    private static final int DEFAULT_CONTEXT_TOKENS = 1500;
 
     private final OsmandApplication app;
     private final LlmManager llmManager;
