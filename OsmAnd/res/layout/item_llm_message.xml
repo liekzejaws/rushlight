@@ -40,6 +40,17 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Body1"
                 android:textIsSelectable="true" />
 
+            <!-- Wikipedia sources (shown for AI messages with RAG) -->
+            <TextView
+                android:id="@+id/message_sources"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                android:textStyle="italic"
+                android:textColor="?android:attr/textColorSecondary"
+                android:visibility="gone" />
+
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>

@@ -28,6 +28,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.ai.rag.ArticleSource;
+import net.osmand.plus.ai.rag.RagCallback;
+import net.osmand.plus.ai.rag.RagManager;
+import net.osmand.plus.ai.rag.RagResponse;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.wikivoyage.WikiBaseDialogFragment;
 
@@ -62,6 +66,7 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 
 	// State
 	private LlmManager llmManager;
+	private RagManager ragManager;
 	private ChatAdapter chatAdapter;
 	private final List<ChatMessage> messages = new ArrayList<>();
 
@@ -78,8 +83,9 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 		updateNightMode();
 		View view = inflater.inflate(R.layout.fragment_llm_chat, container, false);
 
-		// Initialize manager
+		// Initialize managers
 		llmManager = new LlmManager(app);
+		ragManager = new RagManager(app, llmManager);
 
 		// Setup UI
 		setupToolbar(view.findViewById(R.id.toolbar));
@@ -178,7 +184,12 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			modelActionButton.setVisibility(View.GONE);
 		} else if (llmManager.isModelLoaded()) {
 			modelStatusIcon.setImageResource(R.drawable.ic_action_done);
-			modelStatusText.setText("Model: " + llmManager.getCurrentModelName());
+			// Show model name and Wikipedia status
+			String status = "Model: " + llmManager.getCurrentModelName();
+			if (ragManager.isWikipediaAvailable()) {
+				status += " | Wiki: " + ragManager.getWikipediaTitle();
+			}
+			modelStatusText.setText(status);
 			modelActionButton.setText("Unload");
 			modelActionButton.setVisibility(View.VISIBLE);
 		} else if (llmManager.hasDownloadedModels()) {
@@ -255,10 +266,26 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 		updateUI();
 		updateSendButton();
 
-		// Generate response
-		llmManager.generateResponseAsync(text, new LlmManager.LlmCallback() {
+		// Generate response using RAG pipeline
+		ragManager.queryAsync(text, new RagCallback() {
 			@Override
-			public void onPartialResult(String partialText) {
+			public void onSearchStarted(@NonNull List<String> searchTerms) {
+				// Could show "Searching Wikipedia..." indicator
+				LOG.debug("RAG: Searching for " + searchTerms);
+			}
+
+			@Override
+			public void onSearchComplete(@NonNull List<ArticleSource> sources, long timeMs) {
+				LOG.debug("RAG: Found " + sources.size() + " sources in " + timeMs + "ms");
+			}
+
+			@Override
+			public void onGenerationStarted(boolean usesWikipedia) {
+				LOG.debug("RAG: Generation started, usesWikipedia=" + usesWikipedia);
+			}
+
+			@Override
+			public void onPartialResult(@NonNull String partialText) {
 				// Update the last AI message with partial response
 				int lastIndex = messages.size() - 1;
 				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
@@ -274,13 +301,24 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			}
 
 			@Override
-			public void onComplete(String fullResponse) {
+			public void onComplete(@NonNull RagResponse response) {
+				// Update the final message with sources if available
+				int lastIndex = messages.size() - 1;
+				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
+					ChatMessage aiMessage = messages.get(lastIndex);
+					if (response.hasSources()) {
+						aiMessage.sources = response.getSources();
+						chatAdapter.notifyItemChanged(lastIndex);
+					}
+				}
+
+				LOG.info("RAG complete: " + response.getPerformanceSummary());
 				updateUI();
 				updateSendButton();
 			}
 
 			@Override
-			public void onError(String error) {
+			public void onError(@NonNull String error) {
 				// Add error message
 				ChatMessage errorMessage = new ChatMessage(ChatMessage.ROLE_SYSTEM, "Error: " + error);
 				messages.add(errorMessage);
@@ -305,6 +343,11 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 		super.onDestroyView();
 		// Don't close the model - keep it loaded for quick access
 		// User can manually unload from status bar if needed
+
+		// Shutdown RAG manager to release executor resources
+		if (ragManager != null) {
+			ragManager.shutdown();
+		}
 	}
 
 	// Chat message data class
@@ -315,10 +358,25 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 
 		int role;
 		String content;
+		List<ArticleSource> sources; // Wikipedia sources used (for AI messages)
 
 		ChatMessage(int role, String content) {
 			this.role = role;
 			this.content = content;
+		}
+
+		boolean hasSources() {
+			return sources != null && !sources.isEmpty();
+		}
+
+		String getSourcesText() {
+			if (!hasSources()) return "";
+			StringBuilder sb = new StringBuilder("\n\nSources: ");
+			for (int i = 0; i < sources.size(); i++) {
+				if (i > 0) sb.append(", ");
+				sb.append(sources.get(i).getTitle());
+			}
+			return sb.toString();
 		}
 	}
 
@@ -348,16 +406,30 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			CardView messageCard;
 			TextView roleText;
 			TextView contentText;
+			TextView sourcesText;
 
 			MessageViewHolder(@NonNull View itemView) {
 				super(itemView);
 				messageCard = itemView.findViewById(R.id.message_card);
 				roleText = itemView.findViewById(R.id.message_role);
 				contentText = itemView.findViewById(R.id.message_content);
+				sourcesText = itemView.findViewById(R.id.message_sources);
 			}
 
 			void bind(ChatMessage message) {
 				contentText.setText(message.content);
+
+				// Show sources if available (for AI messages with Wikipedia context)
+				if (message.role == ChatMessage.ROLE_AI && message.hasSources()) {
+					if (sourcesText != null) {
+						sourcesText.setVisibility(View.VISIBLE);
+						sourcesText.setText(message.getSourcesText().trim());
+					}
+				} else {
+					if (sourcesText != null) {
+						sourcesText.setVisibility(View.GONE);
+					}
+				}
 
 				// Style based on role
 				LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) messageCard.getLayoutParams();
