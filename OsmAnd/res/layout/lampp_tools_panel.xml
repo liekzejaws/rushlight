@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:fillViewport="true">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:padding="16dp">
+
+		<!-- Section header -->
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Theme"
+			android:textSize="20sp"
+			android:textStyle="bold"
+			android:textColor="?attr/main_font_color_basic"
+			android:layout_marginBottom="12dp" />
+
+		<!-- Pip-Boy preset card -->
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/preset_pip_boy"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:clickable="true"
+			android:focusable="true"
+			app:cardBackgroundColor="@color/lampp_bg_solid"
+			app:cardCornerRadius="12dp"
+			app:cardElevation="2dp"
+			app:strokeColor="@color/lampp_green_primary"
+			app:strokeWidth="2dp">
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="16dp">
+
+				<!-- Color preview stripe -->
+				<View
+					android:id="@+id/stripe_pip_boy"
+					android:layout_width="4dp"
+					android:layout_height="40dp"
+					android:layout_alignParentStart="true"
+					android:layout_centerVertical="true"
+					android:background="@color/lampp_green_primary" />
+
+				<LinearLayout
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_toEndOf="@id/stripe_pip_boy"
+					android:layout_marginStart="12dp"
+					android:layout_centerVertical="true"
+					android:orientation="vertical">
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Pip-Boy"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="@color/lampp_green_primary" />
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Retro-futuristic terminal"
+						android:textSize="12sp"
+						android:textColor="@color/lampp_text_secondary" />
+
+				</LinearLayout>
+
+				<ImageView
+					android:id="@+id/check_pip_boy"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_alignParentEnd="true"
+					android:layout_centerVertical="true"
+					android:src="@drawable/ic_action_done"
+					android:visibility="gone"
+					app:tint="@color/lampp_green_primary" />
+
+			</RelativeLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Modern preset card -->
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/preset_modern"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:clickable="true"
+			android:focusable="true"
+			app:cardBackgroundColor="@color/lampp_modern_list_bg"
+			app:cardCornerRadius="12dp"
+			app:cardElevation="2dp"
+			app:strokeColor="@color/lampp_modern_primary"
+			app:strokeWidth="2dp">
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="16dp">
+
+				<View
+					android:id="@+id/stripe_modern"
+					android:layout_width="4dp"
+					android:layout_height="40dp"
+					android:layout_alignParentStart="true"
+					android:layout_centerVertical="true"
+					android:background="@color/lampp_modern_primary" />
+
+				<LinearLayout
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_toEndOf="@id/stripe_modern"
+					android:layout_marginStart="12dp"
+					android:layout_centerVertical="true"
+					android:orientation="vertical">
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Modern"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="@color/lampp_modern_text_primary" />
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Sleek teal and grey"
+						android:textSize="12sp"
+						android:textColor="@color/lampp_modern_text_secondary" />
+
+				</LinearLayout>
+
+				<ImageView
+					android:id="@+id/check_modern"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_alignParentEnd="true"
+					android:layout_centerVertical="true"
+					android:src="@drawable/ic_action_done"
+					android:visibility="gone"
+					app:tint="@color/lampp_modern_primary" />
+
+			</RelativeLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Classic OsmAnd preset card -->
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/preset_classic"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:clickable="true"
+			android:focusable="true"
+			app:cardBackgroundColor="@color/lampp_classic_card_preview_bg"
+			app:cardCornerRadius="12dp"
+			app:cardElevation="2dp"
+			app:strokeColor="@color/lampp_classic_tab_active_light"
+			app:strokeWidth="2dp">
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="16dp">
+
+				<View
+					android:id="@+id/stripe_classic"
+					android:layout_width="4dp"
+					android:layout_height="40dp"
+					android:layout_alignParentStart="true"
+					android:layout_centerVertical="true"
+					android:background="@color/lampp_classic_tab_active_light" />
+
+				<LinearLayout
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_toEndOf="@id/stripe_classic"
+					android:layout_marginStart="12dp"
+					android:layout_centerVertical="true"
+					android:orientation="vertical">
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Classic OsmAnd"
+						android:textSize="16sp"
+						android:textStyle="bold"
+						android:textColor="@color/lampp_classic_text_primary_light" />
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Default OsmAnd look"
+						android:textSize="12sp"
+						android:textColor="@color/lampp_classic_text_secondary_light" />
+
+				</LinearLayout>
+
+				<ImageView
+					android:id="@+id/check_classic"
+					android:layout_width="24dp"
+					android:layout_height="24dp"
+					android:layout_alignParentEnd="true"
+					android:layout_centerVertical="true"
+					android:src="@drawable/ic_action_done"
+					android:visibility="gone"
+					app:tint="@color/lampp_classic_tab_active_light" />
+
+			</RelativeLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Divider -->
+		<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:background="?attr/divider_color"
+			android:layout_marginBottom="12dp" />
+
+		<!-- More settings button -->
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/more_settings_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="More settings..."
+			android:textColor="@color/lampp_text_secondary"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_settings"
+			app:iconTint="@color/lampp_text_secondary"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+	</LinearLayout>
+</ScrollView>

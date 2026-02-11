@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- ============================================ -->
+	<!-- LAMPP Pip-Boy Preset Colors (green on black) -->
+	<!-- ============================================ -->
+
+	<!-- Primary green (classic Pip-Boy) -->
+	<color name="lampp_green_primary">#33FF33</color>
+	<color name="lampp_green_dark">#1A8F1A</color>
+	<color name="lampp_green_glow">#4433FF33</color>
+	<color name="lampp_green_dim">#8833FF33</color>
+
+	<!-- Backgrounds -->
+	<color name="lampp_bg_dark">#CC1A1A1A</color>
+	<color name="lampp_bg_panel">#F01A1A1A</color>
+	<color name="lampp_bg_solid">#FF1A1A1A</color>
+	<color name="lampp_bg_tab_bar">#E6111111</color>
+
+	<!-- Text -->
+	<color name="lampp_text_primary">#33FF33</color>
+	<color name="lampp_text_secondary">#22AA22</color>
+	<color name="lampp_text_dim">#117711</color>
+
+	<!-- Accents -->
+	<color name="lampp_accent_orange">#FF8F00</color>
+	<color name="lampp_accent_red">#FF3333</color>
+	<color name="lampp_divider">#3333FF33</color>
+
+	<!-- Tab states (used as defaults, overridden by preset) -->
+	<color name="lampp_tab_active">#33FF33</color>
+	<color name="lampp_tab_inactive">#55888888</color>
+	<color name="lampp_tab_active_bg">#3333FF33</color>
+
+	<!-- Drag handle -->
+	<color name="lampp_drag_handle">#66888888</color>
+
+	<!-- Content colors for overlay style -->
+	<color name="lampp_pipboy_list_bg">#FF1A1A1A</color>
+	<color name="lampp_pipboy_activity_bg">#FF111111</color>
+	<color name="lampp_pipboy_card_bg">#FF222222</color>
+	<color name="lampp_pipboy_toolbar_text">#33FF33</color>
+	<color name="lampp_pipboy_searchbar_hint">#117711</color>
+
+	<!-- ============================================ -->
+	<!-- Modern Preset Colors (teal + grey)           -->
+	<!-- ============================================ -->
+	<color name="lampp_modern_primary">#009688</color>
+	<color name="lampp_modern_accent">#4DB6AC</color>
+	<color name="lampp_modern_panel_bg">#F037474F</color>
+	<color name="lampp_modern_tab_bar_bg">#E6263238</color>
+	<color name="lampp_modern_text_primary">#ECEFF1</color>
+	<color name="lampp_modern_text_secondary">#90A4AE</color>
+	<color name="lampp_modern_tab_active">#009688</color>
+	<color name="lampp_modern_tab_inactive">#546E7A</color>
+	<color name="lampp_modern_tab_active_bg">#1A009688</color>
+
+	<!-- Content colors for overlay style -->
+	<color name="lampp_modern_list_bg">#FF37474F</color>
+	<color name="lampp_modern_activity_bg">#FF263238</color>
+	<color name="lampp_modern_card_bg">#FF455A64</color>
+	<color name="lampp_modern_toolbar_text">#ECEFF1</color>
+	<color name="lampp_modern_searchbar_hint">#546E7A</color>
+	<color name="lampp_modern_divider">#33ECEFF1</color>
+
+	<!-- ============================================ -->
+	<!-- Classic OsmAnd Preset Colors (day/night)     -->
+	<!-- ============================================ -->
+	<color name="lampp_classic_tab_active_light">#237BFF</color>
+	<color name="lampp_classic_tab_active_dark">#4E9AFF</color>
+	<color name="lampp_classic_tab_inactive_light">#55888888</color>
+	<color name="lampp_classic_tab_inactive_dark">#55888888</color>
+	<color name="lampp_classic_tab_active_bg_light">#1A237BFF</color>
+	<color name="lampp_classic_tab_active_bg_dark">#1A4E9AFF</color>
+	<color name="lampp_classic_panel_bg_light">#F0FFFFFF</color>
+	<color name="lampp_classic_panel_bg_dark">#F0303030</color>
+	<color name="lampp_classic_tab_bar_bg_light">#E6F5F5F5</color>
+	<color name="lampp_classic_tab_bar_bg_dark">#E6212121</color>
+	<color name="lampp_classic_text_primary_light">#DE000000</color>
+	<color name="lampp_classic_text_primary_dark">#DEFFFFFF</color>
+	<color name="lampp_classic_text_secondary_light">#8A000000</color>
+	<color name="lampp_classic_text_secondary_dark">#8AFFFFFF</color>
+
+	<!-- ============================================ -->
+	<!-- Misc / shared colors                         -->
+	<!-- ============================================ -->
+	<color name="lampp_classic_card_preview_bg">#FFF5F5F5</color>
+	<color name="lampp_btn_tint_transparent_white">#33FFFFFF</color>
+</resources>

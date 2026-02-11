@@ -33,8 +33,11 @@ import net.osmand.plus.ai.rag.PoiSource;
 import net.osmand.plus.ai.rag.RagCallback;
 import net.osmand.plus.ai.rag.RagManager;
 import net.osmand.plus.ai.rag.RagResponse;
+import net.osmand.plus.lampp.LamppPanelFragment;
+import net.osmand.plus.lampp.LamppStylePreset;
+import net.osmand.plus.lampp.LamppThemeUtils;
+import net.osmand.plus.lampp.effects.TerminalCursorBlinker;
 import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.wikivoyage.WikiBaseDialogFragment;
 
 import org.apache.commons.logging.Log;
 
@@ -48,7 +51,7 @@ import java.util.List;
  * Provides a conversational UI for interacting with locally-running
  * AI models for offline assistance with survival, navigation, and general knowledge.
  */
-public class LlmChatFragment extends WikiBaseDialogFragment {
+public class LlmChatFragment extends LamppPanelFragment {
 
 	public static final String TAG = "LlmChatFragment";
 	private static final Log LOG = PlatformUtil.getLog(LlmChatFragment.class);
@@ -70,49 +73,44 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 	private RagManager ragManager;
 	private ChatAdapter chatAdapter;
 	private final List<ChatMessage> messages = new ArrayList<>();
+	@Nullable
+	private TerminalCursorBlinker cursorBlinker;
 
-	public static void showInstance(@NonNull FragmentManager fragmentManager) {
-		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
-			LlmChatFragment fragment = new LlmChatFragment();
-			fragment.show(fragmentManager, TAG);
-		}
+	@Override
+	protected int getPanelLayoutId() {
+		return R.layout.fragment_llm_chat;
 	}
 
-	@Nullable
+	@NonNull
 	@Override
-	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		updateNightMode();
-		View view = inflater.inflate(R.layout.fragment_llm_chat, container, false);
+	public String getPanelTag() {
+		return TAG;
+	}
 
+	@Override
+	protected void onPanelViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		// Initialize managers
 		llmManager = new LlmManager(app);
 		ragManager = new RagManager(app, llmManager);
+		cursorBlinker = new TerminalCursorBlinker();
 
 		// Setup UI
-		setupToolbar(view.findViewById(R.id.toolbar));
+		toolbar = view.findViewById(R.id.toolbar);
+		if (toolbar != null) {
+			toolbar.setTitle("AI Assistant");
+			toolbar.inflateMenu(R.menu.menu_llm_chat);
+			toolbar.setOnMenuItemClickListener(item -> {
+				if (item.getItemId() == R.id.action_models) {
+					showModelManagement();
+					return true;
+				}
+				return false;
+			});
+		}
 		initViews(view);
 		setupListeners();
 		updateModelStatus();
 		updateUI();
-
-		return view;
-	}
-
-	@Override
-	protected void setupToolbar(Toolbar toolbar) {
-		super.setupToolbar(toolbar);
-		this.toolbar = toolbar;
-		toolbar.setTitle("AI Assistant");
-
-		// Add menu for model management
-		toolbar.inflateMenu(R.menu.menu_llm_chat);
-		toolbar.setOnMenuItemClickListener(item -> {
-			if (item.getItemId() == R.id.action_models) {
-				showModelManagement();
-				return true;
-			}
-			return false;
-		});
 	}
 
 	private void initViews(View view) {
@@ -303,10 +301,20 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 					chatAdapter.notifyItemInserted(messages.size() - 1);
 				}
 				chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+
+				// Update cursor blinker base text for Pip-Boy effect
+				if (cursorBlinker != null && cursorBlinker.isRunning()) {
+					cursorBlinker.updateBaseText(partialText);
+				}
 			}
 
 			@Override
 			public void onComplete(@NonNull RagResponse response) {
+				// Stop cursor blinker
+				if (cursorBlinker != null) {
+					cursorBlinker.stop();
+				}
+
 				// Update the final message with sources if available
 				int lastIndex = messages.size() - 1;
 				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
@@ -361,6 +369,18 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 		if (ragManager != null) {
 			ragManager.shutdown();
 		}
+
+		// Stop cursor blinker
+		if (cursorBlinker != null) {
+			cursorBlinker.stop();
+			cursorBlinker = null;
+		}
+	}
+
+	private boolean isPipBoyCursorEnabled() {
+		return app != null
+				&& LamppThemeUtils.getActivePreset(app) == LamppStylePreset.PIP_BOY
+				&& app.getSettings().LAMPP_PIPBOY_CURSOR_BLINK.get();
 	}
 
 	// Chat message data class
@@ -456,6 +476,15 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 			void bind(ChatMessage message) {
 				contentText.setText(message.content);
 
+				// Pip-Boy terminal cursor blink effect on last AI message during generation
+				int position = getAdapterPosition();
+				if (message.role == ChatMessage.ROLE_AI
+						&& position == messages.size() - 1
+						&& llmManager != null && llmManager.isGenerating()
+						&& isPipBoyCursorEnabled()) {
+					cursorBlinker.attachTo(contentText, message.content);
+				}
+
 				// Show sources if available (for AI messages with Wikipedia/POI context)
 				if (message.role == ChatMessage.ROLE_AI && message.hasAnySources()) {
 					if (sourcesText != null) {
@@ -468,30 +497,30 @@ public class LlmChatFragment extends WikiBaseDialogFragment {
 					}
 				}
 
-				// Style based on role
+				// Style based on role — use preset-aware colors
 				LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) messageCard.getLayoutParams();
+				net.osmand.plus.lampp.LamppStylePreset preset =
+						net.osmand.plus.lampp.LamppThemeUtils.getActivePreset(app);
+				android.content.Context ctx = itemView.getContext();
 
 				switch (message.role) {
 					case ChatMessage.ROLE_USER:
 						params.gravity = Gravity.END;
-						messageCard.setCardBackgroundColor(getResources().getColor(
-							nightMode ? R.color.active_color_primary_dark : R.color.active_color_primary_light));
-						contentText.setTextColor(getResources().getColor(R.color.text_color_primary_dark));
+						messageCard.setCardBackgroundColor(preset.getUserMessageBgColor(ctx, nightMode));
+						contentText.setTextColor(preset.getUserMessageTextColor(ctx, nightMode));
 						roleText.setVisibility(View.GONE);
 						break;
 
 					case ChatMessage.ROLE_AI:
 						params.gravity = Gravity.START;
-						messageCard.setCardBackgroundColor(getResources().getColor(
-							nightMode ? R.color.card_and_list_background_dark : R.color.card_and_list_background_light));
-						contentText.setTextColor(getResources().getColor(
-							nightMode ? R.color.text_color_primary_dark : R.color.text_color_primary_light));
+						messageCard.setCardBackgroundColor(preset.getAiMessageBgColor(ctx, nightMode));
+						contentText.setTextColor(preset.getAiMessageTextColor(ctx, nightMode));
 						roleText.setVisibility(View.GONE);
 						break;
 
 					case ChatMessage.ROLE_SYSTEM:
 						params.gravity = Gravity.CENTER;
-						messageCard.setCardBackgroundColor(getResources().getColor(R.color.color_warning));
+						messageCard.setCardBackgroundColor(preset.getSystemMessageBgColor(ctx, nightMode));
 						contentText.setTextColor(getResources().getColor(R.color.text_color_primary_dark));
 						roleText.setVisibility(View.GONE);
 						break;

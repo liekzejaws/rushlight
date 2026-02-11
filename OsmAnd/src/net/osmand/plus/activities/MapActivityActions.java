@@ -480,16 +480,6 @@ public class MapActivityActions extends MapActions {
 					return true;
 				}));
 
-		// LAMPP: AI Assistant for offline AI chat
-		adapter.addItem(new ContextMenuItem(DRAWER_AI_ASSISTANT_ID)
-				.setTitle("AI Assistant")
-				.setIcon(R.drawable.ic_action_help)
-				.setListener((uiAdapter, view, item, isChecked) -> {
-					app.logEvent("drawer_ai_assistant_open");
-					LlmChatFragment.showInstance(activity.getSupportFragmentManager());
-					return true;
-				}));
-
 		OsmandMonitoringPlugin monitoringPlugin = PluginsHelper.getActivePlugin(OsmandMonitoringPlugin.class);
 		if (monitoringPlugin != null) {
 			adapter.addItem(new ContextMenuItem(DRAWER_TRIP_RECORDING_ID)

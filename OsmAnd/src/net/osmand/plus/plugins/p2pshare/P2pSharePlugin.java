@@ -1,7 +1,5 @@
 package net.osmand.plus.plugins.p2pshare;
 
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.DRAWER_P2P_SHARE_ID;
-
 import android.app.Activity;
 
 import androidx.annotation.NonNull;
@@ -11,7 +9,6 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.plugins.OsmandPlugin;
-import net.osmand.plus.plugins.p2pshare.ui.P2pShareFragment;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
 import net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem;
 
@@ -79,16 +76,7 @@ public class P2pSharePlugin extends OsmandPlugin {
 
     @Override
     protected void registerOptionsMenuItems(@NonNull MapActivity mapActivity, @NonNull ContextMenuAdapter helper) {
-        if (isActive()) {
-            helper.addItem(new ContextMenuItem(DRAWER_P2P_SHARE_ID)
-                    .setTitleId(R.string.p2p_share_name, mapActivity)
-                    .setIcon(R.drawable.ic_action_bluetooth)
-                    .setListener((uiAdapter, view, item, isChecked) -> {
-                        app.logEvent("drawer_p2p_share_open");
-                        P2pShareFragment.showInstance(mapActivity.getSupportFragmentManager());
-                        return true;
-                    }));
-        }
+        // P2P Share is now accessed via the LAMPP side tab bar — no drawer item needed
     }
 
     @Nullable

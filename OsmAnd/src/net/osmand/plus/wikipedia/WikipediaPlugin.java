@@ -232,23 +232,6 @@ public class WikipediaPlugin extends OsmandPlugin {
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
 				.setListener(listener));
 
-		// ===== LAMPP: Add ZIM browser option =====
-		createZimBrowserItem(adapter, mapActivity);
-	}
-
-	// ===== LAMPP: ZIM browser menu item =====
-	private static final String ZIM_BROWSER_ID = "zim_browser";
-
-	private void createZimBrowserItem(ContextMenuAdapter adapter, MapActivity mapActivity) {
-		ItemClickListener listener = (uiAdapter, view, item, isChecked) -> {
-			ZimBrowserFragment.showInstance(mapActivity);
-			return true;
-		};
-
-		adapter.addItem(new ContextMenuItem(ZIM_BROWSER_ID)
-				.setTitle(app.getString(R.string.shared_string_wikipedia) + " (ZIM)")
-				.setIcon(R.drawable.ic_action_read_from_file)
-				.setListener(listener));
 	}
 
 	@NonNull
@@ -627,15 +610,6 @@ public class WikipediaPlugin extends OsmandPlugin {
 	 */
 	public boolean isZimFileOpen() {
 		return zimFileManager != null && zimFileManager.isOpen();
-	}
-
-	/**
-	 * Show the ZIM browser fragment.
-	 */
-	public void showZimBrowser() {
-		if (mapActivity != null) {
-			ZimBrowserFragment.showInstance(mapActivity);
-		}
 	}
 
 	@Override

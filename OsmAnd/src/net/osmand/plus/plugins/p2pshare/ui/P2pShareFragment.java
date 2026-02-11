@@ -1,9 +1,7 @@
 package net.osmand.plus.plugins.p2pshare.ui;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -11,21 +9,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
-import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
+import net.osmand.plus.lampp.LamppPanelFragment;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
 import net.osmand.plus.plugins.p2pshare.P2pShareManager;
 import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
-import net.osmand.plus.plugins.p2pshare.ShareableContent;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import net.osmand.plus.plugins.p2pshare.ui.adapters.NearbyPeersAdapter;
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.wikivoyage.WikiBaseDialogFragment;
 
 import org.apache.commons.logging.Log;
 
@@ -38,7 +33,7 @@ import java.util.List;
  * Shows nearby peers, local content available for sharing,
  * and manages the sharing process.
  */
-public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShareManager.P2pShareListener {
+public class P2pShareFragment extends LamppPanelFragment implements P2pShareManager.P2pShareListener {
 
     public static final String TAG = "P2pShareFragment";
     private static final Log LOG = PlatformUtil.getLog(P2pShareFragment.class);
@@ -54,31 +49,43 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
     private Button configureContentButton;
     private Button startScanButton;
 
+    // Transfer progress UI
+    private View transferProgressCard;
+    private TextView transferFilename;
+    private ProgressBar transferProgressBar;
+    private TextView transferProgressText;
+    private Button transferCancelButton;
+
     // State
     private P2pShareManager shareManager;
     private NearbyPeersAdapter peersAdapter;
     private final List<DiscoveredPeer> peers = new ArrayList<>();
 
-    public static void showInstance(@NonNull FragmentManager fragmentManager) {
-        if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
-            P2pShareFragment fragment = new P2pShareFragment();
-            fragment.show(fragmentManager, TAG);
-        }
+    @Override
+    protected int getPanelLayoutId() {
+        return R.layout.fragment_p2p_share;
     }
 
-    @Nullable
+    @NonNull
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        updateNightMode();
-        View view = inflater.inflate(R.layout.fragment_p2p_share, container, false);
+    public String getPanelTag() {
+        return TAG;
+    }
 
+    @Override
+    protected void onPanelViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         // Get manager from plugin
         P2pSharePlugin plugin = PluginsHelper.getPlugin(P2pSharePlugin.class);
         if (plugin != null) {
             shareManager = plugin.getShareManager();
         }
 
-        setupToolbar(view.findViewById(R.id.toolbar));
+        // Setup toolbar if present
+        toolbar = view.findViewById(R.id.toolbar);
+        if (toolbar != null) {
+            toolbar.setTitle(R.string.p2p_share_name);
+        }
+
         initViews(view);
         setupListeners();
 
@@ -89,8 +96,6 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
         }
 
         updateUI();
-
-        return view;
     }
 
     @Override
@@ -99,13 +104,6 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
         if (shareManager != null) {
             shareManager.removeListener(this);
         }
-    }
-
-    @Override
-    protected void setupToolbar(Toolbar toolbar) {
-        super.setupToolbar(toolbar);
-        this.toolbar = toolbar;
-        toolbar.setTitle(R.string.p2p_share_name);
     }
 
     private void initViews(View view) {
@@ -117,6 +115,19 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
         myContentSummary = view.findViewById(R.id.my_content_summary);
         configureContentButton = view.findViewById(R.id.configure_content_button);
         startScanButton = view.findViewById(R.id.start_scan_button);
+
+        // Transfer progress views
+        transferProgressCard = view.findViewById(R.id.transfer_progress_card);
+        transferFilename = view.findViewById(R.id.transfer_filename);
+        transferProgressBar = view.findViewById(R.id.transfer_progress_bar);
+        transferProgressText = view.findViewById(R.id.transfer_progress_text);
+        transferCancelButton = view.findViewById(R.id.transfer_cancel_button);
+        transferCancelButton.setOnClickListener(v -> {
+            if (shareManager != null) {
+                shareManager.cancelTransfer();
+            }
+            transferProgressCard.setVisibility(View.GONE);
+        });
 
         // Setup RecyclerView
         peersAdapter = new NearbyPeersAdapter(peers, this::onPeerClicked);
@@ -136,7 +147,6 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
         });
 
         configureContentButton.setOnClickListener(v -> {
-            // TODO Phase 6.2: Show content configuration dialog
             showContentConfigDialog();
         });
     }
@@ -171,9 +181,23 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
     private void onPeerClicked(@NonNull DiscoveredPeer peer) {
         LOG.info("Peer clicked: " + peer.getDeviceName());
 
-        // TODO Phase 6.4: Connect to peer and show their content
-        // For now, just show a toast
-        app.showShortToastMessage("Connecting to " + peer.getDeviceName() + "...");
+        // If already connected and manifest available, show content directly
+        if (peer.getState() == DiscoveredPeer.PeerState.CONNECTED && peer.getRemoteManifest() != null) {
+            PeerContentBottomSheet.showInstance(getChildFragmentManager(), peer);
+            return;
+        }
+
+        // If already connecting, ignore duplicate taps
+        if (peer.getState() == DiscoveredPeer.PeerState.CONNECTING) {
+            return;
+        }
+
+        // Start connecting
+        peer.setState(DiscoveredPeer.PeerState.CONNECTING);
+        int index = peers.indexOf(peer);
+        if (index >= 0) {
+            peersAdapter.notifyItemChanged(index);
+        }
 
         if (shareManager != null) {
             shareManager.connectToPeer(peer);
@@ -218,6 +242,26 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
     }
 
     @Override
+    public void onPeerConnected(@NonNull DiscoveredPeer peer) {
+        requireActivity().runOnUiThread(() -> {
+            // Update the peer's visual state in the list
+            int index = peers.indexOf(peer);
+            if (index >= 0) {
+                peers.set(index, peer);
+                peersAdapter.notifyItemChanged(index);
+            }
+        });
+    }
+
+    @Override
+    public void onManifestReceived(@NonNull DiscoveredPeer peer) {
+        requireActivity().runOnUiThread(() -> {
+            // Show the peer content browsing bottom sheet
+            PeerContentBottomSheet.showInstance(getChildFragmentManager(), peer);
+        });
+    }
+
+    @Override
     public void onScanningStateChanged(boolean isScanning) {
         requireActivity().runOnUiThread(() -> {
             scanningIndicator.setVisibility(isScanning ? View.VISIBLE : View.GONE);
@@ -227,16 +271,32 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
 
     @Override
     public void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {
-        // TODO Phase 6.4: Update transfer progress UI
+        requireActivity().runOnUiThread(() -> {
+            transferProgressCard.setVisibility(View.VISIBLE);
+            transferFilename.setText(filename);
+            transferProgressBar.setProgress(progress);
+
+            String transferred = formatSize(bytesTransferred);
+            String total = formatSize(totalBytes);
+            transferProgressText.setText(getString(R.string.p2p_share_transfer_progress, transferred, total, progress));
+        });
     }
 
     @Override
     public void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {
         requireActivity().runOnUiThread(() -> {
             if (success) {
-                app.showShortToastMessage("Transfer complete: " + filename);
+                transferFilename.setText(getString(R.string.p2p_share_transfer_complete) + ": " + filename);
+                transferProgressBar.setProgress(100);
+                transferProgressText.setText("");
+                // Hide after 3 seconds
+                transferProgressCard.postDelayed(() ->
+                        transferProgressCard.setVisibility(View.GONE), 3000);
             } else {
-                app.showShortToastMessage("Transfer failed: " + (error != null ? error : "Unknown error"));
+                String errorMsg = error != null ? error : "Unknown";
+                transferFilename.setText(getString(R.string.p2p_share_transfer_failed, errorMsg));
+                transferProgressCard.postDelayed(() ->
+                        transferProgressCard.setVisibility(View.GONE), 5000);
             }
         });
     }
@@ -245,5 +305,17 @@ public class P2pShareFragment extends WikiBaseDialogFragment implements P2pShare
         boolean hasPeers = !peers.isEmpty();
         peersRecycler.setVisibility(hasPeers ? View.VISIBLE : View.GONE);
         emptyPeersState.setVisibility(hasPeers ? View.GONE : View.VISIBLE);
+    }
+
+    private String formatSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        } else if (bytes < 1024 * 1024) {
+            return String.format("%.1f KB", bytes / 1024.0);
+        } else if (bytes < 1024L * 1024 * 1024) {
+            return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        } else {
+            return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+        }
     }
 }

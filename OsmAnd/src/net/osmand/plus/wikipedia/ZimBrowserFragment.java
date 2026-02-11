@@ -26,7 +26,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -34,10 +33,8 @@ import com.google.android.material.tabs.TabLayout;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
-import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.plugins.PluginsHelper;
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.wikivoyage.WikiBaseDialogFragment;
+import net.osmand.plus.lampp.LamppPanelFragment;
 
 import org.apache.commons.logging.Log;
 
@@ -57,7 +54,7 @@ import java.util.concurrent.Executors;
  * - Local tab: Show downloaded files, open ZIM files, search articles
  * - Download tab: Browse and download ZIM files from Kiwix catalog with language filter
  */
-public class ZimBrowserFragment extends WikiBaseDialogFragment implements ZimDownloadManager.DownloadListener {
+public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloadManager.DownloadListener {
 
 	public static final String TAG = "ZimBrowserFragment";
 	private static final Log LOG = PlatformUtil.getLog(ZimBrowserFragment.class);
@@ -116,13 +113,24 @@ public class ZimBrowserFragment extends WikiBaseDialogFragment implements ZimDow
 	private String selectedLanguage = null; // null = all languages
 	private int currentTab = TAB_LOCAL;
 
-	@Nullable
 	@Override
-	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		updateNightMode();
-		View view = inflater.inflate(R.layout.fragment_zim_browser_tabbed, container, false);
+	protected int getPanelLayoutId() {
+		return R.layout.fragment_zim_browser_tabbed;
+	}
 
-		setupToolbar(view.findViewById(R.id.toolbar));
+	@NonNull
+	@Override
+	public String getPanelTag() {
+		return TAG;
+	}
+
+	@Override
+	protected void onPanelViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		// Setup toolbar if present
+		Toolbar toolbar = view.findViewById(R.id.toolbar);
+		if (toolbar != null) {
+			toolbar.setTitle(R.string.shared_string_wikipedia);
+		}
 
 		// Initialize managers
 		WikipediaPlugin plugin = PluginsHelper.getPlugin(WikipediaPlugin.class);
@@ -140,14 +148,6 @@ public class ZimBrowserFragment extends WikiBaseDialogFragment implements ZimDow
 
 		// Show local tab by default
 		showTab(TAB_LOCAL);
-
-		return view;
-	}
-
-	@Override
-	protected void setupToolbar(Toolbar toolbar) {
-		super.setupToolbar(toolbar);
-		toolbar.setTitle(R.string.shared_string_wikipedia);
 	}
 
 	private void initTabs(View view) {
@@ -609,14 +609,6 @@ public class ZimBrowserFragment extends WikiBaseDialogFragment implements ZimDow
 			downloadManager.removeListener(this);
 		}
 		executor.shutdown();
-	}
-
-	public static void showInstance(@NonNull MapActivity mapActivity) {
-		FragmentManager manager = mapActivity.getSupportFragmentManager();
-		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
-			ZimBrowserFragment fragment = new ZimBrowserFragment();
-			fragment.show(manager, TAG);
-		}
 	}
 
 	/**

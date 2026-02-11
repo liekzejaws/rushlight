@@ -77,6 +77,8 @@ import net.osmand.plus.feedback.RenderInitErrorBottomSheet;
 import net.osmand.plus.feedback.SendAnalyticsBottomSheetDialogFragment;
 import net.osmand.plus.firstusage.FirstUsageWizardFragment;
 import net.osmand.plus.helpers.*;
+import net.osmand.plus.lampp.LamppPanelManager;
+import net.osmand.plus.lampp.LamppSideTabBar;
 import net.osmand.plus.helpers.LockHelper.LockUIAdapter;
 import net.osmand.plus.importfiles.ImportHelper;
 import net.osmand.plus.importfiles.ui.ImportGpxBottomSheetDialogFragment;
@@ -182,6 +184,7 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 	private final DashboardOnMap dashboardOnMap = new DashboardOnMap(this);
 	private final MapFragmentsHelper fragmentsHelper = new MapFragmentsHelper(this);
 	private final TrackballController trackballController = new TrackballController(this);
+	private LamppPanelManager lamppPanelManager;
 	private final MapPermissionsResultCallback permissionsResultCallback = new MapPermissionsResultCallback(this);
 
 	private AppInitializeListener initListener;
@@ -314,6 +317,15 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 
 		drawerLayout = findViewById(R.id.drawer_layout);
 		mapViewWithLayers = findViewById(R.id.map_view_with_layers);
+
+		// LAMPP: Initialize Pip-Boy panel manager and side tab bar
+		lamppPanelManager = new LamppPanelManager(this);
+		LamppSideTabBar lamppTabBar = findViewById(R.id.lampp_side_tab_bar);
+		if (lamppTabBar != null) {
+			lamppPanelManager.setTabBar(lamppTabBar);
+			// Restore previously open panel after layout is ready
+			lamppTabBar.post(() -> lamppPanelManager.restorePanelIfNeeded());
+		}
 
 		checkAppInitialization();
 
@@ -554,6 +566,10 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 	@Override
 	public void onBackPressed() {
 		if (dashboardOnMap.onBackPressed()) {
+			return;
+		}
+		// LAMPP: Collapse panel before other back actions
+		if (lamppPanelManager != null && lamppPanelManager.onBackPressed()) {
 			return;
 		}
 		if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -1396,6 +1412,11 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 	@NonNull
 	public MapFragmentsHelper getFragmentsHelper() {
 		return fragmentsHelper;
+	}
+
+	@NonNull
+	public LamppPanelManager getLamppPanelManager() {
+		return lamppPanelManager;
 	}
 
 	@NonNull

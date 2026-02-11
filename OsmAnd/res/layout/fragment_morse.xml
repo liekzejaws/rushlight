@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/list_background_color"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/morse_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/morse_panel_title"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?attr/main_font_color_basic"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Send / Receive toggle row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/panel_send_button"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/morse_mode_send"
+            android:textSize="14sp"
+            android:layout_marginEnd="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/panel_receive_button"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/morse_mode_receive"
+            android:textSize="14sp"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
+    <!-- ==================== SEND CONTAINER ==================== -->
+    <LinearLayout
+        android:id="@+id/send_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <!-- Mode selector: Flash / Audio / Both -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mode_flash_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/morse_mode_flash"
+                android:textSize="13sp"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mode_audio_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/morse_mode_audio"
+                android:textSize="13sp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mode_both_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/morse_mode_both"
+                android:textSize="13sp"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
+
+        <!-- WPM control -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/wpm_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:layout_marginEnd="12dp" />
+
+            <SeekBar
+                android:id="@+id/wpm_seekbar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:min="5"
+                android:max="25"
+                android:progress="13" />
+
+        </LinearLayout>
+
+        <!-- Morse preview label -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_preview_label"
+            android:textSize="12sp"
+            android:textColor="?attr/searchbar_text_hint"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Morse preview (dots and dashes) -->
+        <ScrollView
+            android:id="@+id/morse_preview_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="?attr/activity_background_basic"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:fillViewport="true">
+
+            <TextView
+                android:id="@+id/morse_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="18sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:lineSpacingMultiplier="1.3" />
+
+        </ScrollView>
+
+        <!-- Status text -->
+        <TextView
+            android:id="@+id/morse_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_status_idle"
+            android:textSize="13sp"
+            android:textColor="?attr/searchbar_text_hint"
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Quick Messages chip bar (Phase 3) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_quick_messages_label"
+            android:textSize="12sp"
+            android:textColor="?attr/searchbar_text_hint"
+            android:layout_marginBottom="4dp" />
+
+        <net.osmand.plus.widgets.chips.HorizontalChipsView
+            android:id="@+id/quick_message_chips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:clipToPadding="false" />
+
+        <!-- Text input -->
+        <EditText
+            android:id="@+id/morse_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="80dp"
+            android:hint="@string/morse_input_hint"
+            android:inputType="textMultiLine"
+            android:gravity="top|start"
+            android:background="?attr/activity_background_basic"
+            android:textColor="?attr/main_font_color_basic"
+            android:textColorHint="?attr/searchbar_text_hint"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Send button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/morse_send_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_send"
+            android:textSize="16sp"
+            app:cornerRadius="8dp" />
+
+    </LinearLayout>
+
+    <!-- ==================== RECEIVE CONTAINER ==================== -->
+    <LinearLayout
+        android:id="@+id/receive_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Receive mode selector: Camera / Microphone -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/receive_mic_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/morse_receive_mic"
+                android:textSize="13sp"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/receive_camera_button"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/morse_receive_camera"
+                android:textSize="13sp"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
+
+        <!-- Sensitivity control -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/sensitivity_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:layout_marginEnd="12dp" />
+
+            <SeekBar
+                android:id="@+id/sensitivity_seekbar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:min="0"
+                android:max="100"
+                android:progress="50" />
+
+        </LinearLayout>
+
+        <!-- Decoded text label -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_decode_output"
+            android:textSize="12sp"
+            android:textColor="?attr/searchbar_text_hint"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Decoded text display -->
+        <ScrollView
+            android:id="@+id/decode_output_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="?attr/activity_background_basic"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:fillViewport="true">
+
+            <TextView
+                android:id="@+id/decode_output"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="18sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:lineSpacingMultiplier="1.3" />
+
+        </ScrollView>
+
+        <!-- AI Assist section (Phase 3) -->
+        <LinearLayout
+            android:id="@+id/ai_assist_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/ai_assist_toggle"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/morse_ai_assist"
+                android:textSize="12sp"
+                app:cornerRadius="16dp" />
+
+            <!-- AI processing indicator (hidden by default) -->
+            <LinearLayout
+                android:id="@+id/ai_processing_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:layout_marginTop="4dp">
+
+                <ProgressBar
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/morse_ai_processing"
+                    android:textSize="12sp"
+                    android:textColor="?attr/searchbar_text_hint" />
+
+            </LinearLayout>
+
+            <!-- AI suggestion text (hidden by default) -->
+            <TextView
+                android:id="@+id/ai_suggestion_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:textColor="?attr/searchbar_text_hint"
+                android:visibility="gone"
+                android:layout_marginTop="4dp"
+                android:padding="8dp"
+                android:background="?attr/activity_background_basic" />
+
+        </LinearLayout>
+
+        <!-- Buffer display (live dots/dashes) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/morse_decode_buffer"
+                android:textSize="12sp"
+                android:textColor="?attr/searchbar_text_hint"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/decode_buffer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:textSize="16sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:background="?attr/activity_background_basic"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+        <!-- Receive status text -->
+        <TextView
+            android:id="@+id/receive_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_receive_idle"
+            android:textSize="13sp"
+            android:textColor="?attr/searchbar_text_hint"
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Start/Stop receive button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/receive_start_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_receive_start"
+            android:textSize="16sp"
+            app:cornerRadius="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Self-test button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/self_test_button"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_self_test"
+            android:textSize="14sp"
+            app:cornerRadius="8dp" />
+
+    </LinearLayout>
+
+    <!-- ==================== HISTORY SECTION ==================== -->
+    <LinearLayout
+        android:id="@+id/history_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
+
+        <!-- History header (tap to expand/collapse) -->
+        <TextView
+            android:id="@+id/history_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/morse_history_title"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/searchbar_text_hint"
+            android:padding="8dp"
+            android:drawableEnd="@drawable/ic_action_arrow_down"
+            android:drawableTint="?attr/searchbar_text_hint" />
+
+        <!-- History log (initially collapsed) -->
+        <ScrollView
+            android:id="@+id/history_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:background="?attr/activity_background_basic"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/history_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="?attr/main_font_color_basic"
+                android:text="@string/morse_history_empty" />
+
+        </ScrollView>
+
+    </LinearLayout>
+
+</LinearLayout>

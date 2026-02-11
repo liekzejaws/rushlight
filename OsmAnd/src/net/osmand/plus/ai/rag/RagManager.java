@@ -86,7 +86,16 @@ public class RagManager {
         this.executor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
 
-        LOG.info("RagManager initialized (Phase 8: Direction queries enabled, POI amenity search disabled by default)");
+        // Read configuration from user preferences
+        this.wikipediaEnabled = app.getSettings().LAMPP_RAG_WIKIPEDIA_ENABLED.get();
+        this.poiAmenitySearchEnabled = app.getSettings().LAMPP_RAG_POI_SEARCH_ENABLED.get();
+        this.maxSources = app.getSettings().LAMPP_RAG_MAX_SOURCES.get();
+        this.contextTokenBudget = app.getSettings().LAMPP_RAG_CONTEXT_TOKENS.get();
+        this.poiSearchRadius = app.getSettings().LAMPP_RAG_POI_RADIUS.get();
+
+        LOG.info("RagManager initialized from preferences (wiki=" + wikipediaEnabled
+            + " poi=" + poiAmenitySearchEnabled + " sources=" + maxSources
+            + " tokens=" + contextTokenBudget + " radius=" + poiSearchRadius + ")");
     }
 
     /**

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!--
+	  LAMPP Panel Content Overlay Styles
+	  Applied via ContextThemeWrapper in LamppPanelFragment.onCreateView().
+	  Overrides OsmAnd's custom ?attr/ references so panel content picks up
+	  preset-specific colors without touching layout XML files.
+	  Classic preset uses no overlay (OsmAnd native theme passes through).
+	-->
+
+	<!-- Pip-Boy: green on black terminal aesthetic -->
+	<style name="LamppPanelOverlay.PipBoy" parent="">
+		<item name="colorPrimary">@color/lampp_green_primary</item>
+		<item name="colorAccent">@color/lampp_green_primary</item>
+		<item name="list_background_color">@color/lampp_pipboy_list_bg</item>
+		<item name="activity_background_basic">@color/lampp_pipboy_activity_bg</item>
+		<item name="card_and_list_background_basic">@color/lampp_pipboy_card_bg</item>
+		<item name="app_bar_primary_item_color">@color/lampp_pipboy_toolbar_text</item>
+		<item name="default_icon_color">@color/lampp_text_secondary</item>
+		<item name="main_font_color_basic">@color/lampp_text_primary</item>
+		<item name="active_color_basic">@color/lampp_green_primary</item>
+		<item name="searchbar_text">@color/lampp_text_primary</item>
+		<item name="searchbar_text_hint">@color/lampp_pipboy_searchbar_hint</item>
+		<item name="divider_color">@color/lampp_divider</item>
+		<item name="android:textColorPrimary">@color/lampp_text_primary</item>
+		<item name="android:textColorSecondary">@color/lampp_text_secondary</item>
+		<item name="android:colorBackground">@color/lampp_pipboy_list_bg</item>
+	</style>
+
+	<!-- Modern: sleek teal and grey -->
+	<style name="LamppPanelOverlay.Modern" parent="">
+		<item name="colorPrimary">@color/lampp_modern_primary</item>
+		<item name="colorAccent">@color/lampp_modern_accent</item>
+		<item name="list_background_color">@color/lampp_modern_list_bg</item>
+		<item name="activity_background_basic">@color/lampp_modern_activity_bg</item>
+		<item name="card_and_list_background_basic">@color/lampp_modern_card_bg</item>
+		<item name="app_bar_primary_item_color">@color/lampp_modern_toolbar_text</item>
+		<item name="default_icon_color">@color/lampp_modern_text_secondary</item>
+		<item name="main_font_color_basic">@color/lampp_modern_text_primary</item>
+		<item name="active_color_basic">@color/lampp_modern_primary</item>
+		<item name="searchbar_text">@color/lampp_modern_text_primary</item>
+		<item name="searchbar_text_hint">@color/lampp_modern_searchbar_hint</item>
+		<item name="divider_color">@color/lampp_modern_divider</item>
+		<item name="android:textColorPrimary">@color/lampp_modern_text_primary</item>
+		<item name="android:textColorSecondary">@color/lampp_modern_text_secondary</item>
+		<item name="android:colorBackground">@color/lampp_modern_list_bg</item>
+	</style>
+</resources>

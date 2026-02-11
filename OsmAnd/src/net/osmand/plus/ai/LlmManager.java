@@ -169,13 +169,21 @@ public class LlmManager implements Closeable {
 				constructor.setAccessible(true);
 				nativeLib = constructor.newInstance("default");
 
+				// Read inference parameters from user preferences
+				int threads = app.getSettings().LAMPP_LLM_THREADS.get();
+				int ctxSize = app.getSettings().LAMPP_LLM_CTX_SIZE.get();
+				int temp10 = app.getSettings().LAMPP_LLM_TEMPERATURE.get();
+				float temperature = temp10 / 10.0f;
+
 				// Initialize with model path and parameters
 				// Using the 7-parameter overload: (path, threads, ctxSize, temp, topK, topP, minP)
+				android.util.Log.i(TAG, "Init params: threads=" + threads
+					+ " ctxSize=" + ctxSize + " temperature=" + temperature);
 				boolean success = nativeLib.init(
 					modelFile.getAbsolutePath(),
-					DEFAULT_THREADS,
-					DEFAULT_CTX_SIZE,
-					DEFAULT_TEMPERATURE,
+					threads,
+					ctxSize,
+					temperature,
 					DEFAULT_TOP_K,
 					DEFAULT_TOP_P,
 					DEFAULT_MIN_P
@@ -275,8 +283,9 @@ public class LlmManager implements Closeable {
 
 				StringBuilder fullResponse = new StringBuilder();
 
-				// Use the native streaming generation
-				boolean success = nativeLib.nativeGenerateStream(prompt, DEFAULT_MAX_TOKENS, new StreamCallback() {
+				// Use the native streaming generation with user-configured max tokens
+				int maxTokens = app.getSettings().LAMPP_LLM_MAX_TOKENS.get();
+				boolean success = nativeLib.nativeGenerateStream(prompt, maxTokens, new StreamCallback() {
 					@Override
 					public void onToken(@NonNull String token) {
 						fullResponse.append(token);

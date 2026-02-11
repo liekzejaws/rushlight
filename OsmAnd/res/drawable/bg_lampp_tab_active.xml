@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- Green glow background -->
+	<item>
+		<shape android:shape="rectangle">
+			<solid android:color="@color/lampp_tab_active_bg" />
+			<corners android:radius="8dp" />
+		</shape>
+	</item>
+	<!-- Green border -->
+	<item>
+		<shape android:shape="rectangle">
+			<stroke
+				android:width="1.5dp"
+				android:color="@color/lampp_green_primary" />
+			<corners android:radius="8dp" />
+		</shape>
+	</item>
+</layer-list>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- LAMPP Dimensions -->
+
+	<!-- Side tab bar -->
+	<dimen name="lampp_tab_icon_size">48dp</dimen>
+	<dimen name="lampp_tab_spacing">4dp</dimen>
+	<dimen name="lampp_tab_bar_padding">6dp</dimen>
+	<dimen name="lampp_tab_bar_margin_end">4dp</dimen>
+	<dimen name="lampp_tab_bar_corner_radius">12dp</dimen>
+	<dimen name="lampp_tab_icon_padding">10dp</dimen>
+
+	<!-- Panel -->
+	<dimen name="lampp_drag_handle_width">16dp</dimen>
+	<dimen name="lampp_panel_corner_radius">16dp</dimen>
+	<dimen name="lampp_panel_elevation">8dp</dimen>
+
+	<!-- Ratios stored as integers (65 = 0.65) -->
+	<integer name="lampp_panel_width_percent_portrait">65</integer>
+	<integer name="lampp_panel_width_percent_landscape">50</integer>
+</resources>

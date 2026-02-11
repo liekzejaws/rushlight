@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- LAMPP Strings -->
+	<string name="lampp_tab_map">Map</string>
+	<string name="lampp_tab_ai_chat">AI Chat</string>
+	<string name="lampp_tab_wiki">Wikipedia</string>
+	<string name="lampp_tab_p2p">P2P Share</string>
+	<string name="lampp_tab_tools">Tools</string>
+	<string name="lampp_panel_drag_hint">Drag to resize</string>
+</resources>

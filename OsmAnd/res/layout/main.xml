@@ -69,6 +69,12 @@
 			android:layout_width="match_parent"
 			android:layout_height="match_parent" />
 
+		<!-- LAMPP: Panel container for Pip-Boy side panels (below fragmentContainer in z-order) -->
+		<FrameLayout
+			android:id="@+id/lamppPanelContainer"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" />
+
 		<FrameLayout
 			android:id="@+id/fragmentContainer"
 			android:layout_width="match_parent"
@@ -77,6 +83,9 @@
 		<View
 			android:layout_width="match_parent"
 			android:layout_height="match_parent" />
+
+		<!-- LAMPP: Floating side tab bar on right edge - LAST for highest z-order/touch priority -->
+		<include layout="@layout/lampp_side_tab_bar" />
 
 	</FrameLayout>
 

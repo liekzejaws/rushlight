@@ -47,6 +47,12 @@ Thumbs.db
 # Output files
 build
 
+# APK files (build outputs)
+*.apk
+
+# Keep ai-core-release.aar (needed for offline AI)
+!OsmAnd/libs/ai-core-release.aar
+
 #Rendering test files
 OsmAnd-java/src/test/resources/rendering/*
 OsmAnd-shared/bin

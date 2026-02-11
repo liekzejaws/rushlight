@@ -941,6 +941,76 @@ public class OsmandSettings {
 	public final CommonPreference<DistanceByTapTextSize> DISTANCE_BY_TAP_TEXT_SIZE = new EnumStringPreference<>(this, "distance_by_tap_text_size", DistanceByTapTextSize.NORMAL, DistanceByTapTextSize.values()).makeProfile();
 
 	public final CommonPreference<RadiusRulerMode> RADIUS_RULER_MODE = new EnumStringPreference<>(this, "ruler_mode", RadiusRulerMode.FIRST, RadiusRulerMode.values()).makeProfile();
+
+	// LAMPP: Style preset for Pip-Boy UI (Pip-Boy / Modern / Classic OsmAnd)
+	public final CommonPreference<net.osmand.plus.lampp.LamppStylePreset> LAMPP_STYLE_PRESET =
+			new EnumStringPreference<>(this, "lampp_style_preset",
+					net.osmand.plus.lampp.LamppStylePreset.PIP_BOY,
+					net.osmand.plus.lampp.LamppStylePreset.values()).makeGlobal().makeShared();
+
+	// LAMPP: Remember which panel tab was last open (empty string = none)
+	public final CommonPreference<String> LAMPP_ACTIVE_TAB =
+			new StringPreference(this, "lampp_active_tab", "").makeGlobal().makeShared();
+
+	// LAMPP AI: Inference threads (1-8)
+	public final CommonPreference<Integer> LAMPP_LLM_THREADS =
+			new IntPreference(this, "lampp_llm_threads", 4).makeGlobal().makeShared();
+
+	// LAMPP AI: Context window size
+	public final CommonPreference<Integer> LAMPP_LLM_CTX_SIZE =
+			new IntPreference(this, "lampp_llm_ctx_size", 4096).makeGlobal().makeShared();
+
+	// LAMPP AI: Max response tokens
+	public final CommonPreference<Integer> LAMPP_LLM_MAX_TOKENS =
+			new IntPreference(this, "lampp_llm_max_tokens", 1024).makeGlobal().makeShared();
+
+	// LAMPP AI: Temperature x10 (int 0-15 = float 0.0-1.5)
+	public final CommonPreference<Integer> LAMPP_LLM_TEMPERATURE =
+			new IntPreference(this, "lampp_llm_temperature", 7).makeGlobal().makeShared();
+
+	// LAMPP RAG: Wikipedia context toggle
+	public final CommonPreference<Boolean> LAMPP_RAG_WIKIPEDIA_ENABLED =
+			new BooleanPreference(this, "lampp_rag_wikipedia_enabled", true).makeGlobal().makeShared();
+
+	// LAMPP RAG: POI amenity search toggle
+	public final CommonPreference<Boolean> LAMPP_RAG_POI_SEARCH_ENABLED =
+			new BooleanPreference(this, "lampp_rag_poi_search_enabled", false).makeGlobal().makeShared();
+
+	// LAMPP RAG: Max Wikipedia sources (1-5)
+	public final CommonPreference<Integer> LAMPP_RAG_MAX_SOURCES =
+			new IntPreference(this, "lampp_rag_max_sources", 2).makeGlobal().makeShared();
+
+	// LAMPP RAG: Context token budget (500-6000)
+	public final CommonPreference<Integer> LAMPP_RAG_CONTEXT_TOKENS =
+			new IntPreference(this, "lampp_rag_context_tokens", 1500).makeGlobal().makeShared();
+
+	// LAMPP RAG: POI search radius in meters (100-10000)
+	public final CommonPreference<Integer> LAMPP_RAG_POI_RADIUS =
+			new IntPreference(this, "lampp_rag_poi_radius", 1000).makeGlobal().makeShared();
+
+	// LAMPP Pip-Boy Effects
+	public final CommonPreference<Boolean> LAMPP_PIPBOY_SCANLINES =
+			new BooleanPreference(this, "lampp_pipboy_scanlines", true).makeGlobal().makeShared();
+	public final CommonPreference<Boolean> LAMPP_PIPBOY_GLOW =
+			new BooleanPreference(this, "lampp_pipboy_glow", true).makeGlobal().makeShared();
+	public final CommonPreference<Boolean> LAMPP_PIPBOY_RETRO_FONT =
+			new BooleanPreference(this, "lampp_pipboy_retro_font", true).makeGlobal().makeShared();
+	public final CommonPreference<Boolean> LAMPP_PIPBOY_CURSOR_BLINK =
+			new BooleanPreference(this, "lampp_pipboy_cursor_blink", true).makeGlobal().makeShared();
+
+	// LAMPP Morse Code
+	public final CommonPreference<Integer> LAMPP_MORSE_WPM =
+			new IntPreference(this, "lampp_morse_wpm", 13).makeGlobal().makeShared();
+	public final CommonPreference<Integer> LAMPP_MORSE_AUDIO_FREQ =
+			new IntPreference(this, "lampp_morse_audio_freq", 800).makeGlobal().makeShared();
+	public final CommonPreference<Integer> LAMPP_MORSE_RECEIVE_SENSITIVITY =
+			new IntPreference(this, "lampp_morse_receive_sensitivity", 50).makeGlobal().makeShared();
+	// LAMPP Morse Phase 3: AI and Quick Messages
+	public final CommonPreference<Boolean> LAMPP_MORSE_AI_CORRECT =
+			new BooleanPreference(this, "lampp_morse_ai_correct", false).makeGlobal().makeShared();
+	public final CommonPreference<Boolean> LAMPP_MORSE_GPS_APPEND =
+			new BooleanPreference(this, "lampp_morse_gps_append", true).makeGlobal().makeShared();
+
 	public final OsmandPreference<Boolean> SHOW_COMPASS_ON_RADIUS_RULER = new BooleanPreference(this, "show_compass_ruler", true).makeProfile();
 
 	public final OsmandPreference<Boolean> SHOW_DISTANCE_RULER = new BooleanPreference(this, "show_distance_ruler", false).makeProfile();

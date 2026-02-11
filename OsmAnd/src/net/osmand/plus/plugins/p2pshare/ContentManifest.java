@@ -13,9 +13,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Context;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -59,6 +63,18 @@ public class ContentManifest {
 
         contentList.clear();
         contentList.addAll(newContent);
+
+        // Apply saved exclusion preferences
+        Set<String> excludedFiles = app.getApplicationContext()
+                .getSharedPreferences("p2p_share_config", Context.MODE_PRIVATE)
+                .getStringSet("excluded_files", Collections.emptySet());
+        if (excludedFiles != null && !excludedFiles.isEmpty()) {
+            for (ShareableContent content : contentList) {
+                if (excludedFiles.contains(content.getFilename())) {
+                    content.setShared(false);
+                }
+            }
+        }
 
         LOG.info("Content manifest updated: " + contentList.size() + " items");
     }

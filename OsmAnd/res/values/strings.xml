@@ -10,6 +10,42 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+	<!-- LAMPP: Settings screen strings -->
+	<string name="lampp_settings_title">LAMPP Settings</string>
+	<string name="lampp_ai_model_category">AI Model</string>
+	<string name="lampp_manage_models">Manage models</string>
+	<string name="lampp_manage_models_desc">Download, delete, or view LLM model files</string>
+	<string name="lampp_llm_threads_title">Inference threads</string>
+	<string name="lampp_llm_threads_desc">CPU threads for inference. More threads = faster on multi-core devices.</string>
+	<string name="lampp_llm_ctx_size_title">Context window</string>
+	<string name="lampp_llm_ctx_size_desc">Maximum tokens the model can process. Larger uses more RAM.</string>
+	<string name="lampp_llm_max_tokens_title">Max response length</string>
+	<string name="lampp_llm_max_tokens_desc">Maximum tokens the model generates per response.</string>
+	<string name="lampp_llm_temperature_title">Temperature</string>
+	<string name="lampp_llm_temperature_desc">Response randomness. Lower = focused, higher = creative.</string>
+	<string name="lampp_rag_context_category">AI Context Sources</string>
+	<string name="lampp_rag_wikipedia_title">Wikipedia context</string>
+	<string name="lampp_rag_wikipedia_desc">Search offline Wikipedia to augment AI responses with factual data.</string>
+	<string name="lampp_rag_poi_search_title">POI amenity search</string>
+	<string name="lampp_rag_poi_search_desc">Include nearby points of interest in AI context. Direction queries always work.</string>
+	<string name="lampp_rag_max_sources_title">Max Wikipedia sources</string>
+	<string name="lampp_rag_max_sources_desc">Wikipedia articles to include as context per query.</string>
+	<string name="lampp_rag_context_tokens_title">Context token budget</string>
+	<string name="lampp_rag_context_tokens_desc">Token budget for RAG context. Higher = more detail but uses more of the model\'s context window.</string>
+	<string name="lampp_rag_poi_radius_title">POI search radius</string>
+	<string name="lampp_rag_poi_radius_desc">Search radius in meters for nearby amenities.</string>
+
+	<!-- LAMPP: Pip-Boy Effects strings -->
+	<string name="lampp_pipboy_effects_category">Pip-Boy Effects</string>
+	<string name="lampp_pipboy_scanlines_title">CRT scan lines</string>
+	<string name="lampp_pipboy_scanlines_desc">Overlay subtle horizontal scan lines for a retro CRT effect</string>
+	<string name="lampp_pipboy_glow_title">Phosphor glow</string>
+	<string name="lampp_pipboy_glow_desc">Soft green edge glow around panel borders</string>
+	<string name="lampp_pipboy_retro_font_title">Retro terminal font</string>
+	<string name="lampp_pipboy_retro_font_desc">Use monospace font for panel text</string>
+	<string name="lampp_pipboy_cursor_blink_title">Terminal cursor</string>
+	<string name="lampp_pipboy_cursor_blink_desc">Blinking block cursor on AI chat responses</string>
+
 	<!-- LAMPP: P2P Share strings -->
 	<string name="p2p_share_name">P2P Share</string>
 	<string name="p2p_share_description">Share maps, Wikipedia, and AI models directly with nearby devices without internet. Includes app self-spreading.</string>
@@ -30,6 +66,57 @@
 	<string name="p2p_share_deselect_all">Deselect all</string>
 	<string name="p2p_share_total_shared">Total: %1$s</string>
 	<string name="p2p_share_items_selected">%1$d items selected</string>
+	<string name="p2p_share_peer_content">%s\'s Content</string>
+	<string name="p2p_share_download_selected">Download selected</string>
+	<string name="p2p_share_no_peer_content">This device has no content available</string>
+	<string name="p2p_share_connecting">Connecting…</string>
+	<string name="p2p_share_receiving_manifest">Receiving content list…</string>
+	<string name="p2p_share_transfer_progress">%1$s of %2$s (%3$d%%)</string>
+	<string name="p2p_share_transfer_complete">Transfer complete</string>
+	<string name="p2p_share_transfer_failed">Transfer failed: %s</string>
+
+	<!-- LAMPP: Morse Code strings -->
+	<string name="morse_panel_title">Morse Code</string>
+	<string name="morse_input_hint">Type message to transmit…</string>
+	<string name="morse_send">Send</string>
+	<string name="morse_stop">Stop</string>
+	<string name="morse_mode_flash">Flash</string>
+	<string name="morse_mode_audio">Audio</string>
+	<string name="morse_mode_both">Both</string>
+	<string name="morse_wpm_label">Speed: %d WPM</string>
+	<string name="morse_status_transmitting">Transmitting…</string>
+	<string name="morse_status_complete">Transmission complete</string>
+	<string name="morse_status_idle">Ready</string>
+	<string name="morse_flash_unavailable">Flash not available on this device</string>
+	<string name="morse_camera_permission_denied">Camera permission required for flash mode</string>
+	<string name="morse_empty_message">Enter a message to transmit</string>
+	<string name="morse_preview_label">Morse Preview</string>
+	<string name="morse_mode_send">Send</string>
+	<string name="morse_mode_receive">Receive</string>
+	<string name="morse_receive_camera">Camera</string>
+	<string name="morse_receive_mic">Microphone</string>
+	<string name="morse_receive_listening">Listening…</string>
+	<string name="morse_receive_detected">Signal detected</string>
+	<string name="morse_receive_decoded">Decoded</string>
+	<string name="morse_receive_idle">Tap Start to begin listening</string>
+	<string name="morse_receive_start">Start Listening</string>
+	<string name="morse_receive_stop">Stop Listening</string>
+	<string name="morse_decode_buffer">Buffer</string>
+	<string name="morse_decode_output">Decoded Text</string>
+	<string name="morse_audio_permission">Microphone permission required</string>
+	<string name="morse_self_test">Self Test</string>
+	<string name="morse_self_test_running">Running self-test…</string>
+	<string name="morse_self_test_result">Self-test: expected \"%1$s\", got \"%2$s\"</string>
+	<string name="morse_history_title">Message History</string>
+	<string name="morse_history_empty">No messages yet</string>
+	<string name="morse_sensitivity_label">Sensitivity: %d%%</string>
+	<!-- Morse Phase 3: Quick Messages -->
+	<string name="morse_quick_messages_label">Quick Messages</string>
+	<!-- Morse Phase 3: AI Assist -->
+	<string name="morse_ai_assist">AI Assist</string>
+	<string name="morse_ai_processing">AI processing\u2026</string>
+	<string name="morse_ai_correction_label">AI corrected:</string>
+	<string name="morse_ai_unavailable">AI model not loaded</string>
 
 	<!-- LAMPP: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>

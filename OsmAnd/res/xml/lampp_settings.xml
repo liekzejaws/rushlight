@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/lampp_settings_title">
+
+	<!-- AI Model -->
+	<PreferenceCategory
+		android:key="lampp_ai_model"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/lampp_ai_model_category" />
+
+	<Preference
+		android:key="lampp_manage_models"
+		android:layout="@layout/preference_with_descr"
+		android:persistent="false"
+		android:title="@string/lampp_manage_models" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_llm_threads"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_llm_threads_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_llm_ctx_size"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_llm_ctx_size_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_llm_max_tokens"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_llm_max_tokens_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_llm_temperature"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_llm_temperature_title" />
+
+	<!-- AI Context Sources -->
+	<PreferenceCategory
+		android:key="lampp_rag_context"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/lampp_rag_context_category" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_rag_wikipedia_enabled"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_rag_wikipedia_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_rag_poi_search_enabled"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_rag_poi_search_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_rag_max_sources"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_rag_max_sources_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_rag_context_tokens"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_rag_context_tokens_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_rag_poi_radius"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_rag_poi_radius_title" />
+
+	<!-- Pip-Boy Visual Effects -->
+	<PreferenceCategory
+		android:key="lampp_pipboy_effects"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/lampp_pipboy_effects_category" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_pipboy_scanlines"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_pipboy_scanlines_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_pipboy_glow"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_pipboy_glow_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_pipboy_retro_font"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_pipboy_retro_font_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_pipboy_cursor_blink"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_pipboy_cursor_blink_title" />
+
+</PreferenceScreen>

@@ -47,6 +47,8 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     public interface P2pShareListener {
         default void onPeerDiscovered(@NonNull DiscoveredPeer peer) {}
         default void onPeerLost(@NonNull DiscoveredPeer peer) {}
+        default void onPeerConnected(@NonNull DiscoveredPeer peer) {}
+        default void onManifestReceived(@NonNull DiscoveredPeer peer) {}
         default void onScanningStateChanged(boolean isScanning) {}
         default void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {}
         default void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {}
@@ -338,8 +340,11 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     @Override
     public void onConnected(@NonNull DiscoveredPeer peer) {
         LOG.info("Connected to peer: " + peer.getDeviceName());
+        peer.setState(DiscoveredPeer.PeerState.CONNECTED);
         app.showShortToastMessage("Connected to " + peer.getDeviceName());
-        // Notify listeners - could add onPeerConnected to P2pShareListener
+        for (P2pShareListener listener : listeners) {
+            listener.onPeerConnected(peer);
+        }
     }
 
     @Override
@@ -351,6 +356,7 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     @Override
     public void onConnectionFailed(@NonNull DiscoveredPeer peer, @NonNull String error) {
         LOG.error("Connection failed to " + peer.getDeviceName() + ": " + error);
+        peer.setState(DiscoveredPeer.PeerState.DISCOVERED);
         app.showShortToastMessage("Connection failed: " + error);
     }
 
@@ -362,6 +368,9 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
         peer.setRemoteManifest(remoteManifest);
         peer.setManifestSummary(remoteManifest.getSummary());
         app.showShortToastMessage("Received: " + remoteManifest.getSummary());
+        for (P2pShareListener listener : listeners) {
+            listener.onManifestReceived(peer);
+        }
     }
 
     @Override

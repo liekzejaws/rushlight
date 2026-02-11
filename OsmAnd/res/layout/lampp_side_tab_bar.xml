@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LAMPP: Floating side tab bar - included in map FrameLayout -->
+<net.osmand.plus.lampp.LamppSideTabBar
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/lampp_side_tab_bar"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:layout_gravity="end|center_vertical"
+	android:layout_marginEnd="@dimen/lampp_tab_bar_margin_end"
+	android:orientation="vertical"
+	android:padding="@dimen/lampp_tab_bar_padding"
+	android:elevation="8dp"
+	android:background="@drawable/bg_lampp_tab_bar"
+	android:visibility="visible" />
