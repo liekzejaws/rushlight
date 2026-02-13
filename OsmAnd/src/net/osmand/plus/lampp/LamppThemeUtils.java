@@ -11,15 +11,60 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.core.content.res.ResourcesCompat;
 
+import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.settings.enums.DayNightMode;
 import net.osmand.plus.settings.enums.ThemeUsageContext;
+
+import org.apache.commons.logging.Log;
 
 /**
  * LAMPP: Theme utilities for the Pip-Boy UI system.
  * Resolves colors based on the active {@link LamppStylePreset}.
  */
 public class LamppThemeUtils {
+
+	private static final Log LOG = PlatformUtil.getLog(LamppThemeUtils.class);
+
+	/**
+	 * Phase 12: Sync map day/night mode with theme preset.
+	 *
+	 * When Pip-Boy theme is active, forces the map to NIGHT mode (dark roads, dark bg)
+	 * to match the green-on-black Pip-Boy aesthetic.
+	 * When switching away from Pip-Boy, restores the original DayNightMode.
+	 */
+	public static void syncMapDarkMode(@NonNull OsmandApplication app) {
+		LamppStylePreset preset = getActivePreset(app);
+		String savedMode = app.getSettings().LAMPP_ORIGINAL_DAY_NIGHT_MODE.get();
+
+		if (preset == LamppStylePreset.PIP_BOY) {
+			// Save current mode if not already saved (first time activating Pip-Boy)
+			DayNightMode currentMode = app.getSettings().DAYNIGHT_MODE.get();
+			if (savedMode.isEmpty() && currentMode != DayNightMode.NIGHT) {
+				app.getSettings().LAMPP_ORIGINAL_DAY_NIGHT_MODE.set(currentMode.name());
+				LOG.info("Dark map sync: saved original mode=" + currentMode.name());
+			}
+
+			// Force NIGHT mode for Pip-Boy
+			if (currentMode != DayNightMode.NIGHT) {
+				app.getSettings().DAYNIGHT_MODE.set(DayNightMode.NIGHT);
+				LOG.info("Dark map sync: forced NIGHT mode for Pip-Boy");
+			}
+		} else {
+			// Restore original mode if we previously overrode it
+			if (!savedMode.isEmpty()) {
+				try {
+					DayNightMode originalMode = DayNightMode.valueOf(savedMode);
+					app.getSettings().DAYNIGHT_MODE.set(originalMode);
+					LOG.info("Dark map sync: restored original mode=" + originalMode.name());
+				} catch (IllegalArgumentException e) {
+					LOG.warn("Dark map sync: invalid saved mode '" + savedMode + "', ignoring");
+				}
+				app.getSettings().LAMPP_ORIGINAL_DAY_NIGHT_MODE.set("");
+			}
+		}
+	}
 
 	/**
 	 * Wraps the given context with the active preset's theme overlay.

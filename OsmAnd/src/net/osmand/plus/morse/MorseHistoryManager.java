@@ -1,10 +1,15 @@
 package net.osmand.plus.morse;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import net.osmand.PlatformUtil;
+
+import org.apache.commons.logging.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,11 +17,15 @@ import java.util.List;
 /**
  * LAMPP Morse Code: Thread-safe in-memory message history store.
  *
- * Stores sent and received MorseMessage objects with a maximum capacity.
- * Notifies a listener on the main thread when messages are added or cleared.
+ * Phase 12: Now backed by SQLite via MorseHistoryDatabase.
+ * Messages persist across app restarts — critical for survival comms.
+ *
+ * In-memory list is kept at MAX_MESSAGES for UI performance.
+ * All messages are stored in SQLite for long-term retention.
  */
 public class MorseHistoryManager {
 
+    private static final Log LOG = PlatformUtil.getLog(MorseHistoryManager.class);
     private static final int MAX_MESSAGES = 100;
 
     /**
@@ -32,6 +41,38 @@ public class MorseHistoryManager {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     @Nullable
     private HistoryListener listener;
+    @Nullable
+    private MorseHistoryDatabase historyDb;
+
+    /**
+     * Create a history manager without database backing (legacy behavior).
+     */
+    public MorseHistoryManager() {
+        this.historyDb = null;
+    }
+
+    /**
+     * Create a history manager with SQLite database persistence.
+     * Loads existing messages from the database on construction.
+     */
+    public MorseHistoryManager(@NonNull Context context) {
+        this.historyDb = MorseHistoryDatabase.getInstance(context);
+        loadFromDatabase();
+    }
+
+    /**
+     * Load messages from the database into the in-memory list.
+     */
+    private void loadFromDatabase() {
+        if (historyDb != null) {
+            List<MorseMessage> dbMessages = historyDb.loadMessages(MAX_MESSAGES);
+            synchronized (messages) {
+                messages.clear();
+                messages.addAll(dbMessages);
+            }
+            LOG.info("Loaded " + dbMessages.size() + " Morse messages from database");
+        }
+    }
 
     /**
      * Set the listener for history change events.
@@ -52,6 +93,11 @@ public class MorseHistoryManager {
                 messages.remove(0);
             }
             messages.add(message);
+        }
+
+        // Persist to database
+        if (historyDb != null) {
+            historyDb.insertMessage(message);
         }
 
         if (listener != null) {
@@ -86,10 +132,15 @@ public class MorseHistoryManager {
 
     /**
      * Clear all messages. Thread-safe.
+     * Clears both in-memory list and database.
      */
     public void clear() {
         synchronized (messages) {
             messages.clear();
+        }
+
+        if (historyDb != null) {
+            historyDb.clearAll();
         }
 
         if (listener != null) {

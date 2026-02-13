@@ -12,8 +12,10 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,6 +36,7 @@ public class LamppSideTabBar extends LinearLayout {
 	private LamppTab activeTab = null;
 	private OnTabSelectedListener tabSelectedListener;
 	private final ImageView[] tabViews = new ImageView[LamppTab.visibleTabs().length];
+	private final TextView[] badgeViews = new TextView[LamppTab.visibleTabs().length];
 
 	// Tab transition animation
 	private int previousActiveIndex = -1;
@@ -73,7 +76,10 @@ public class LamppSideTabBar extends LinearLayout {
 
 		for (int i = 0; i < tabs.length; i++) {
 			LamppTab tab = tabs[i];
-			ImageView tabView = (ImageView) inflater.inflate(R.layout.lampp_tab_item, this, false);
+			View itemView = inflater.inflate(R.layout.lampp_tab_item_badged, this, false);
+			ImageView tabView = itemView.findViewById(R.id.tab_icon);
+			TextView badgeView = itemView.findViewById(R.id.tab_badge);
+
 			tabView.setImageResource(tab.getIconRes());
 			tabView.setContentDescription(tab.getTitle());
 
@@ -83,18 +89,19 @@ public class LamppSideTabBar extends LinearLayout {
 						LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
 				int spacing = context.getResources().getDimensionPixelSize(R.dimen.lampp_tab_spacing);
 				lp.topMargin = spacing;
-				tabView.setLayoutParams(lp);
+				itemView.setLayoutParams(lp);
 			}
 
 			final LamppTab clickedTab = tab;
-			tabView.setOnClickListener(v -> {
+			itemView.setOnClickListener(v -> {
 				if (tabSelectedListener != null) {
 					tabSelectedListener.onTabSelected(clickedTab);
 				}
 			});
 
 			tabViews[i] = tabView;
-			addView(tabView);
+			badgeViews[i] = badgeView;
+			addView(itemView);
 		}
 
 		updateTabStates();
@@ -342,6 +349,47 @@ public class LamppSideTabBar extends LinearLayout {
 			ImageViewCompat.setImageTintList(tabView,
 					ColorStateList.valueOf(isActive ? activeColor : inactiveColor));
 		}
+	}
+
+	/**
+	 * Phase 12: Set badge count for a specific tab.
+	 * Shows a small red dot with count at the top-right corner of the tab icon.
+	 *
+	 * @param tab   The tab to update
+	 * @param count Badge count (0 = hidden)
+	 */
+	public void setBadgeCount(@NonNull LamppTab tab, int count) {
+		LamppTab[] tabs = LamppTab.visibleTabs();
+		for (int i = 0; i < tabs.length; i++) {
+			if (tabs[i] == tab && i < badgeViews.length && badgeViews[i] != null) {
+				TextView badge = badgeViews[i];
+				if (count <= 0) {
+					badge.setVisibility(View.GONE);
+				} else {
+					badge.setVisibility(View.VISIBLE);
+					badge.setText(count > 99 ? "99+" : String.valueOf(count));
+
+					// Red circle background
+					GradientDrawable badgeBg = new GradientDrawable();
+					badgeBg.setShape(GradientDrawable.OVAL);
+					badgeBg.setColor(0xFFE53935); // Material Red 600
+					badge.setBackground(badgeBg);
+				}
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Get the screen coordinates of a tab view for onboarding overlays.
+	 */
+	@NonNull
+	public int[] getTabViewBounds(int index) {
+		int[] location = new int[2];
+		if (index >= 0 && index < tabViews.length && tabViews[index] != null) {
+			tabViews[index].getLocationOnScreen(location);
+		}
+		return location;
 	}
 
 	/**

@@ -148,6 +148,16 @@
 	<string name="rushlight_unlock_panel">Unlock Rushlight Panel</string>
 	<string name="rushlight_auth_subtitle">Authenticate to access tools</string>
 
+	<!-- Rushlight: Onboarding (Phase 12) -->
+	<string name="onboarding_title">Welcome to Rushlight</string>
+	<string name="onboarding_subtitle">Your offline survival computer. Tap the tabs on the right to explore:</string>
+	<string name="onboarding_tab_ai">\u2728 AI Chat — Ask questions using a local LLM, no internet needed</string>
+	<string name="onboarding_tab_wiki">\uD83D\uDCDA Wikipedia — Browse offline knowledge from ZIM files</string>
+	<string name="onboarding_tab_p2p">\uD83D\uDD17 P2P Share — Exchange maps and files with nearby devices</string>
+	<string name="onboarding_tab_morse">\uD83D\uDD26 Morse Code — Send and receive messages via light or sound</string>
+	<string name="onboarding_tab_tools">\u2699 Tools — Theme settings, security, and app configuration</string>
+	<string name="onboarding_got_it">Got it</string>
+
 	<!-- Rushlight: AI Chat Polish (Phase 10) -->
 	<string name="rushlight_ai_behavior_category">AI Behavior</string>
 	<string name="rushlight_system_prompt_title">System prompt</string>

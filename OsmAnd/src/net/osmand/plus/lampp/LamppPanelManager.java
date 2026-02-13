@@ -9,6 +9,10 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.p2pshare.P2pShareManager;
+import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
+import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import net.osmand.plus.security.PanelLockManager;
 
 import org.apache.commons.logging.Log;
@@ -24,6 +28,7 @@ public class LamppPanelManager {
 
 	private final MapActivity mapActivity;
 	private final PanelLockManager panelLockManager;
+	private final TabBadgeManager tabBadgeManager;
 	@Nullable
 	private LamppSideTabBar tabBar;
 	@Nullable
@@ -33,6 +38,7 @@ public class LamppPanelManager {
 		this.mapActivity = mapActivity;
 		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
 		this.panelLockManager = new PanelLockManager(app.getSettings());
+		this.tabBadgeManager = new TabBadgeManager();
 	}
 
 	public void setTabBar(@Nullable LamppSideTabBar tabBar) {
@@ -40,7 +46,20 @@ public class LamppPanelManager {
 		if (tabBar != null) {
 			tabBar.setOnTabSelectedListener(this::onTabSelected);
 			tabBar.setActiveTab(activeTab);
+
+			// Phase 12: Wire badge manager to tab bar display
+			tabBadgeManager.setListener((tab, count) -> {
+				mapActivity.runOnUiThread(() -> tabBar.setBadgeCount(tab, count));
+			});
 		}
+	}
+
+	/**
+	 * Phase 12: Get the tab badge manager for fragments to increment badges.
+	 */
+	@NonNull
+	public TabBadgeManager getTabBadgeManager() {
+		return tabBadgeManager;
 	}
 
 	private void onTabSelected(@NonNull LamppTab tab) {
@@ -65,6 +84,9 @@ public class LamppPanelManager {
 	}
 
 	private void openPanelInternal(@NonNull LamppTab tab) {
+		// Phase 12: Clear badge when opening this tab
+		tabBadgeManager.clearBadge(tab);
+
 		// Close existing panel if any
 		closeActivePanel(false);
 
@@ -181,6 +203,10 @@ public class LamppPanelManager {
 	 * Uses a crossfade animation instead of an abrupt close+reopen.
 	 */
 	public void refreshTheme() {
+		// Phase 12: Sync map dark mode with theme preset
+		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
+		LamppThemeUtils.syncMapDarkMode(app);
+
 		if (tabBar != null) {
 			tabBar.animateColorRefresh();
 		}
@@ -203,6 +229,36 @@ public class LamppPanelManager {
 	}
 
 	/**
+	 * Phase 12: Register a P2P event listener that increments badges
+	 * when the P2P panel is not the active tab.
+	 */
+	private void registerP2pBadgeListener() {
+		P2pSharePlugin plugin = PluginsHelper.getPlugin(P2pSharePlugin.class);
+		if (plugin != null) {
+			P2pShareManager shareManager = plugin.getShareManager();
+			if (shareManager != null) {
+				shareManager.addListener(new P2pShareManager.P2pShareListener() {
+					@Override
+					public void onPeerDiscovered(@NonNull DiscoveredPeer peer) {
+						if (activeTab != LamppTab.P2P) {
+							mapActivity.runOnUiThread(() -> tabBadgeManager.incrementBadge(LamppTab.P2P));
+						}
+					}
+
+					@Override
+					public void onTransferComplete(@NonNull String filename, boolean success,
+					                                @Nullable String error) {
+						if (activeTab != LamppTab.P2P && success) {
+							mapActivity.runOnUiThread(() -> tabBadgeManager.incrementBadge(LamppTab.P2P));
+						}
+					}
+				});
+				LOG.info("P2P badge listener registered");
+			}
+		}
+	}
+
+	/**
 	 * Persist the active tab to SharedPreferences so it survives app restarts.
 	 */
 	private void saveActiveTabPreference() {
@@ -216,6 +272,18 @@ public class LamppPanelManager {
 	 */
 	public void restorePanelIfNeeded() {
 		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
+
+		// Phase 12: Apply dark map sync on startup if Pip-Boy is active
+		LamppThemeUtils.syncMapDarkMode(app);
+
+		// Phase 12: Register P2P badge listener for events while P2P panel is inactive
+		registerP2pBadgeListener();
+
+		// Phase 12: Show onboarding overlay on first launch (slight delay for map to load)
+		mapActivity.getWindow().getDecorView().postDelayed(() -> {
+			OnboardingOverlay.showIfNeeded(mapActivity);
+		}, 1500);
+
 		String tabName = app.getSettings().LAMPP_ACTIVE_TAB.get();
 		if (tabName != null && !tabName.isEmpty()) {
 			try {

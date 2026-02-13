@@ -291,17 +291,13 @@ public class TransportManager implements TransportCallback {
     }
 
     /**
-     * Get the name of the currently active transport.
+     * Check if P2P encryption is enabled.
      */
-    @NonNull
-    public String getActiveTransportName() {
-        switch (activeTransport) {
-            case WIFI_DIRECT:
-                return "WiFi Direct";
-            case BLUETOOTH:
-                return "Bluetooth";
-            default:
-                return "None";
+    public boolean isEncryptionEnabled() {
+        try {
+            return app.getSettings().LAMPP_P2P_ENCRYPTION_ENABLED.get();
+        } catch (Exception e) {
+            return true;
         }
     }
 
@@ -324,6 +320,9 @@ public class TransportManager implements TransportCallback {
     @Override
     public void onConnected(@NonNull DiscoveredPeer peer) {
         connectedPeer = peer;
+        LOG.info("P2P connected to " + peer.getDeviceName()
+                + " via " + getActiveTransportName()
+                + " (encryption=" + (isEncryptionEnabled() ? "ON" : "OFF") + ")");
         if (callback != null) {
             callback.onConnected(peer);
         }

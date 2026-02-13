@@ -1017,6 +1017,18 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> LAMPP_CHAT_ENCRYPTION_ENABLED =
 			new BooleanPreference(this, "lampp_chat_encryption_enabled", true).makeGlobal().makeShared();
 
+	// Rushlight P2P Transport Encryption (ECDH + ChaCha20-Poly1305)
+	public final CommonPreference<Boolean> LAMPP_P2P_ENCRYPTION_ENABLED =
+			new BooleanPreference(this, "lampp_p2p_encryption_enabled", true).makeGlobal().makeShared();
+
+	// Rushlight Dark Map Sync: stores original DayNightMode before Pip-Boy override
+	public final CommonPreference<String> LAMPP_ORIGINAL_DAY_NIGHT_MODE =
+			new StringPreference(this, "lampp_original_day_night_mode", "").makeGlobal().makeShared();
+
+	// Rushlight Onboarding: shown once on first launch
+	public final CommonPreference<Boolean> LAMPP_ONBOARDING_SHOWN =
+			new BooleanPreference(this, "lampp_onboarding_shown", false).makeGlobal().makeShared();
+
 	// Rushlight AI Behavior
 	public final CommonPreference<String> LAMPP_SYSTEM_PROMPT =
 			new StringPreference(this, "lampp_system_prompt",

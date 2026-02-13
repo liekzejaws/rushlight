@@ -146,7 +146,7 @@ public class MorseFragment extends LamppPanelFragment {
         currentWpm = MorseTimingManager.clampWpm(settings.LAMPP_MORSE_WPM.get());
         currentSensitivity = settings.LAMPP_MORSE_RECEIVE_SENSITIVITY.get();
 
-        historyManager = new MorseHistoryManager();
+        historyManager = new MorseHistoryManager(requireContext());
 
         // Phase 3: LLM helper (optional — may not have model loaded)
         llmManager = new LlmManager(app);

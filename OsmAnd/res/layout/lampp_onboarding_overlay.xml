@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 12: First-launch onboarding overlay -->
+<FrameLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/onboarding_root"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="#CC000000"
+	android:clickable="true"
+	android:focusable="true">
+
+	<!-- Center content: Welcome + feature list -->
+	<LinearLayout
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_gravity="center"
+		android:orientation="vertical"
+		android:paddingStart="32dp"
+		android:paddingEnd="32dp"
+		android:paddingTop="24dp"
+		android:paddingBottom="24dp"
+		android:gravity="center_horizontal">
+
+		<!-- App title -->
+		<TextView
+			android:id="@+id/onboarding_title"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_title"
+			android:textColor="@android:color/white"
+			android:textSize="24sp"
+			android:textStyle="bold"
+			android:layout_marginBottom="8dp" />
+
+		<!-- Subtitle -->
+		<TextView
+			android:id="@+id/onboarding_subtitle"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_subtitle"
+			android:textColor="#AAFFFFFF"
+			android:textSize="14sp"
+			android:layout_marginBottom="24dp" />
+
+		<!-- Tab descriptions -->
+		<TextView
+			android:id="@+id/onboarding_tab_ai"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_tab_ai"
+			android:textColor="#FF4CAF50"
+			android:textSize="15sp"
+			android:layout_marginBottom="12dp"
+			android:drawablePadding="12dp"
+			android:gravity="center_vertical" />
+
+		<TextView
+			android:id="@+id/onboarding_tab_wiki"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_tab_wiki"
+			android:textColor="#FF4CAF50"
+			android:textSize="15sp"
+			android:layout_marginBottom="12dp"
+			android:drawablePadding="12dp"
+			android:gravity="center_vertical" />
+
+		<TextView
+			android:id="@+id/onboarding_tab_p2p"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_tab_p2p"
+			android:textColor="#FF4CAF50"
+			android:textSize="15sp"
+			android:layout_marginBottom="12dp"
+			android:drawablePadding="12dp"
+			android:gravity="center_vertical" />
+
+		<TextView
+			android:id="@+id/onboarding_tab_morse"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_tab_morse"
+			android:textColor="#FF4CAF50"
+			android:textSize="15sp"
+			android:layout_marginBottom="12dp"
+			android:drawablePadding="12dp"
+			android:gravity="center_vertical" />
+
+		<TextView
+			android:id="@+id/onboarding_tab_tools"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/onboarding_tab_tools"
+			android:textColor="#FF4CAF50"
+			android:textSize="15sp"
+			android:layout_marginBottom="24dp"
+			android:drawablePadding="12dp"
+			android:gravity="center_vertical" />
+
+		<!-- Dismiss button -->
+		<Button
+			android:id="@+id/onboarding_dismiss"
+			android:layout_width="wrap_content"
+			android:layout_height="44dp"
+			android:minWidth="160dp"
+			android:text="@string/onboarding_got_it"
+			android:textColor="#FF000000"
+			android:backgroundTint="#FF4CAF50"
+			android:textStyle="bold" />
+
+	</LinearLayout>
+
+</FrameLayout>

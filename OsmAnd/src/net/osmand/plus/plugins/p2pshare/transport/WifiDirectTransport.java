@@ -719,8 +719,37 @@ public class WifiDirectTransport {
     }
 
     private void setupStreams() throws IOException {
-        inputStream = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream(), BUFFER_SIZE));
-        outputStream = new DataOutputStream(new BufferedOutputStream(clientSocket.getOutputStream(), BUFFER_SIZE));
+        java.io.InputStream rawIn = clientSocket.getInputStream();
+        java.io.OutputStream rawOut = clientSocket.getOutputStream();
+
+        // Phase 12: P2P transport encryption via ECDH + ChaCha20-Poly1305
+        if (isEncryptionEnabled()) {
+            try {
+                LOG.info("Starting encrypted handshake (WiFi Direct)...");
+                CryptoHandshake.HandshakeResult handshake = CryptoHandshake.perform(rawIn, rawOut);
+                EncryptedStreamPair encryptedPair = new EncryptedStreamPair(
+                        handshake.sendKey, handshake.receiveKey);
+                rawIn = encryptedPair.wrapInput(rawIn);
+                rawOut = encryptedPair.wrapOutput(rawOut);
+                LOG.info("Encrypted P2P stream established (WiFi Direct), fingerprint=" + handshake.fingerprint);
+            } catch (IOException e) {
+                LOG.error("Encryption handshake failed (WiFi Direct): " + e.getMessage());
+                throw new IOException("Encryption handshake failed: " + e.getMessage(), e);
+            }
+        } else {
+            LOG.warn("P2P encryption DISABLED — data sent in plaintext (WiFi Direct)");
+        }
+
+        inputStream = new DataInputStream(new BufferedInputStream(rawIn, BUFFER_SIZE));
+        outputStream = new DataOutputStream(new BufferedOutputStream(rawOut, BUFFER_SIZE));
+    }
+
+    private boolean isEncryptionEnabled() {
+        try {
+            return app.getSettings().LAMPP_P2P_ENCRYPTION_ENABLED.get();
+        } catch (Exception e) {
+            return true; // Default to encrypted if setting unavailable
+        }
     }
 
     private void handleConnectionEstablished() {

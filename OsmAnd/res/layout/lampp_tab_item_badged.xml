@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 12: Tab icon with badge overlay for notification dots -->
+<FrameLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="@dimen/lampp_tab_icon_size"
+	android:layout_height="@dimen/lampp_tab_icon_size"
+	android:clipChildren="false"
+	android:clipToPadding="false">
+
+	<!-- Tab icon (same as original lampp_tab_item) -->
+	<ImageView
+		android:id="@+id/tab_icon"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:padding="@dimen/lampp_tab_icon_padding"
+		android:scaleType="centerInside"
+		android:background="@drawable/bg_lampp_tab_inactive"
+		android:clickable="true"
+		android:focusable="true"
+		tools:src="@drawable/ic_action_map_dark"
+		tools:tint="@color/lampp_tab_inactive" />
+
+	<!-- Badge dot: small circle at top-right corner -->
+	<TextView
+		android:id="@+id/tab_badge"
+		android:layout_width="16dp"
+		android:layout_height="16dp"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="-2dp"
+		android:layout_marginEnd="-2dp"
+		android:gravity="center"
+		android:textColor="@android:color/white"
+		android:textSize="9sp"
+		android:textStyle="bold"
+		android:visibility="gone"
+		tools:text="3"
+		tools:visibility="visible" />
+
+</FrameLayout>

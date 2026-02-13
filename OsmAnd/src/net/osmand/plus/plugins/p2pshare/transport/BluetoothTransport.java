@@ -501,8 +501,37 @@ public class BluetoothTransport {
     }
 
     private void setupStreams(@NonNull BluetoothSocket socket) throws IOException {
-        inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream(), BUFFER_SIZE));
-        outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), BUFFER_SIZE));
+        java.io.InputStream rawIn = socket.getInputStream();
+        java.io.OutputStream rawOut = socket.getOutputStream();
+
+        // Phase 12: P2P transport encryption via ECDH + ChaCha20-Poly1305
+        if (isEncryptionEnabled()) {
+            try {
+                LOG.info("Starting encrypted handshake (Bluetooth)...");
+                CryptoHandshake.HandshakeResult handshake = CryptoHandshake.perform(rawIn, rawOut);
+                EncryptedStreamPair encryptedPair = new EncryptedStreamPair(
+                        handshake.sendKey, handshake.receiveKey);
+                rawIn = encryptedPair.wrapInput(rawIn);
+                rawOut = encryptedPair.wrapOutput(rawOut);
+                LOG.info("Encrypted P2P stream established (Bluetooth), fingerprint=" + handshake.fingerprint);
+            } catch (IOException e) {
+                LOG.error("Encryption handshake failed (Bluetooth): " + e.getMessage());
+                throw new IOException("Encryption handshake failed: " + e.getMessage(), e);
+            }
+        } else {
+            LOG.warn("P2P encryption DISABLED — data sent in plaintext (Bluetooth)");
+        }
+
+        inputStream = new DataInputStream(new BufferedInputStream(rawIn, BUFFER_SIZE));
+        outputStream = new DataOutputStream(new BufferedOutputStream(rawOut, BUFFER_SIZE));
+    }
+
+    private boolean isEncryptionEnabled() {
+        try {
+            return app.getSettings().LAMPP_P2P_ENCRYPTION_ENABLED.get();
+        } catch (Exception e) {
+            return true; // Default to encrypted if setting unavailable
+        }
     }
 
     private void handleConnectionEstablished() {
