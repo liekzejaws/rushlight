@@ -3,6 +3,7 @@ package net.osmand.plus.plugins.p2pshare.ui;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -17,6 +18,7 @@ import net.osmand.plus.R;
 import net.osmand.plus.lampp.LamppPanelFragment;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
+import net.osmand.plus.plugins.p2pshare.P2pPermissionHelper;
 import net.osmand.plus.plugins.p2pshare.P2pShareManager;
 import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
@@ -55,6 +57,7 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
     private ProgressBar transferProgressBar;
     private TextView transferProgressText;
     private Button transferCancelButton;
+    private ImageButton historyButton;
 
     // State
     private P2pShareManager shareManager;
@@ -129,6 +132,13 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
             transferProgressCard.setVisibility(View.GONE);
         });
 
+        // History button
+        historyButton = view.findViewById(R.id.history_button);
+        if (historyButton != null) {
+            historyButton.setOnClickListener(v ->
+                    TransferHistoryBottomSheet.showInstance(getChildFragmentManager()));
+        }
+
         // Setup RecyclerView
         peersAdapter = new NearbyPeersAdapter(peers, this::onPeerClicked);
         peersRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -141,7 +151,7 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
                 if (shareManager.isScanning()) {
                     shareManager.stopScanning();
                 } else {
-                    shareManager.startScanning();
+                    startScanWithPermissionCheck();
                 }
             }
         });
@@ -149,6 +159,33 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
         configureContentButton.setOnClickListener(v -> {
             showContentConfigDialog();
         });
+    }
+
+    /**
+     * Check permissions before starting scan.
+     * Shows rationale dialog if permissions aren't granted.
+     */
+    private void startScanWithPermissionCheck() {
+        if (getActivity() == null || shareManager == null) return;
+
+        if (P2pPermissionHelper.hasAllPermissions(requireContext())) {
+            shareManager.startScanning();
+        } else {
+            P2pPermissionHelper.requestPermissionsWithRationale(
+                    getActivity(),
+                    getChildFragmentManager(),
+                    new P2pPermissionHelper.PermissionCallback() {
+                        @Override
+                        public void onPermissionsGranted() {
+                            shareManager.startScanning();
+                        }
+
+                        @Override
+                        public void onPermissionsDenied(@NonNull String message) {
+                            LOG.warn("P2P permissions denied: " + message);
+                        }
+                    });
+        }
     }
 
     private void updateUI() {
@@ -273,7 +310,17 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
     public void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {
         requireActivity().runOnUiThread(() -> {
             transferProgressCard.setVisibility(View.VISIBLE);
-            transferFilename.setText(filename);
+
+            // Show queue status if multiple files
+            String queueStatus = "";
+            if (shareManager != null) {
+                net.osmand.plus.plugins.p2pshare.TransferQueue queue = shareManager.getTransferQueue();
+                if (queue.getTotalJobs() > 1) {
+                    queueStatus = queue.getStatusString() + " · ";
+                }
+            }
+
+            transferFilename.setText(queueStatus + filename);
             transferProgressBar.setProgress(progress);
 
             String transferred = formatSize(bytesTransferred);
@@ -285,18 +332,27 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
     @Override
     public void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {
         requireActivity().runOnUiThread(() -> {
+            // Check if more files in queue
+            boolean moreInQueue = shareManager != null && !shareManager.getTransferQueue().isEmpty();
+
             if (success) {
                 transferFilename.setText(getString(R.string.p2p_share_transfer_complete) + ": " + filename);
                 transferProgressBar.setProgress(100);
                 transferProgressText.setText("");
-                // Hide after 3 seconds
-                transferProgressCard.postDelayed(() ->
-                        transferProgressCard.setVisibility(View.GONE), 3000);
+
+                if (!moreInQueue) {
+                    // Hide after 3 seconds only if queue is done
+                    transferProgressCard.postDelayed(() ->
+                            transferProgressCard.setVisibility(View.GONE), 3000);
+                }
             } else {
                 String errorMsg = error != null ? error : "Unknown";
                 transferFilename.setText(getString(R.string.p2p_share_transfer_failed, errorMsg));
-                transferProgressCard.postDelayed(() ->
-                        transferProgressCard.setVisibility(View.GONE), 5000);
+
+                if (!moreInQueue) {
+                    transferProgressCard.postDelayed(() ->
+                            transferProgressCard.setVisibility(View.GONE), 5000);
+                }
             }
         });
     }

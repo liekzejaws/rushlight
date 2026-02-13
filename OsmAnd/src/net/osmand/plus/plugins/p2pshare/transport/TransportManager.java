@@ -189,6 +189,28 @@ public class TransportManager implements TransportCallback {
     }
 
     /**
+     * Request a file with resume from offset.
+     * Used when a .tmp file exists from a previous interrupted transfer.
+     */
+    public void requestFileResume(@NonNull ShareableContent content, long offset) {
+        if (!isConnected()) {
+            LOG.warn("Cannot resume file: not connected");
+            return;
+        }
+
+        LOG.info("Requesting file resume: " + content.getFilename() + " from offset " + offset);
+
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.requestFileResume(content, offset);
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.requestFileResume(content, offset);
+                break;
+        }
+    }
+
+    /**
      * Cancel an ongoing file transfer.
      */
     public void cancelTransfer() {
@@ -217,6 +239,21 @@ public class TransportManager implements TransportCallback {
     @Nullable
     public DiscoveredPeer getConnectedPeer() {
         return connectedPeer;
+    }
+
+    /**
+     * Get the name of the currently active transport (for logging/history).
+     */
+    @NonNull
+    public String getActiveTransportName() {
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                return "wifi_direct";
+            case BLUETOOTH:
+                return "bluetooth";
+            default:
+                return "none";
+        }
     }
 
     /**

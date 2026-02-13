@@ -6,13 +6,30 @@
     android:orientation="vertical"
     android:background="?attr/list_background_color">
 
-    <!-- Toolbar -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
+    <!-- Toolbar with history button -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        app:titleTextColor="?attr/app_bar_primary_item_color" />
+        android:background="?attr/colorPrimary">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:titleTextColor="?attr/app_bar_primary_item_color" />
+
+        <ImageButton
+            android:id="@+id/history_button"
+            style="@style/Widget.AppCompat.ActionButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="@string/p2p_share_transfer_history"
+            app:srcCompat="@drawable/ic_action_history"
+            app:tint="?attr/app_bar_primary_item_color" />
+
+    </FrameLayout>
 
     <!-- Scanning indicator -->
     <LinearLayout

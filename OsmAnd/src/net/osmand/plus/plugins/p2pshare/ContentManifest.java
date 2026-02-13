@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Manages the list of content available for P2P sharing from this device.
@@ -77,6 +79,47 @@ public class ContentManifest {
         }
 
         LOG.info("Content manifest updated: " + contentList.size() + " items");
+
+        // Compute checksums asynchronously so manifest is usable immediately
+        computeChecksumsAsync();
+    }
+
+    /**
+     * Compute SHA-256 checksums for all content items in a background thread.
+     * Updates each ShareableContent's checksum field as computed.
+     * The manifest JSON will include checksums once they're available.
+     */
+    private void computeChecksumsAsync() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            LOG.info("Computing checksums for " + contentList.size() + " items");
+            long startTime = System.currentTimeMillis();
+            int computed = 0;
+
+            for (ShareableContent content : contentList) {
+                if (content.getFilePath().isEmpty()) {
+                    continue; // Remote content, no local file
+                }
+                File file = new File(content.getFilePath());
+                if (!file.exists()) {
+                    continue;
+                }
+                try {
+                    String sha256 = ShareableContent.computeSha256(file);
+                    content.setChecksum(sha256);
+                    computed++;
+                    LOG.debug("Checksum computed: " + content.getFilename()
+                            + " → " + sha256.substring(0, 12) + "...");
+                } catch (Exception e) {
+                    LOG.error("Failed to compute checksum for " + content.getFilename()
+                            + ": " + e.getMessage());
+                }
+            }
+
+            long elapsed = System.currentTimeMillis() - startTime;
+            LOG.info("Checksums computed for " + computed + " items in " + elapsed + "ms");
+        });
+        executor.shutdown();
     }
 
     /**

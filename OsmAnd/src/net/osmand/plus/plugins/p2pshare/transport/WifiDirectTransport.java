@@ -79,6 +79,7 @@ public class WifiDirectTransport {
     private static final int MSG_FILE_DATA = 3;
     private static final int MSG_FILE_COMPLETE = 4;
     private static final int MSG_ERROR = 5;
+    private static final int MSG_FILE_RESUME = 6;
 
     private final OsmandApplication app;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -367,6 +368,152 @@ public class WifiDirectTransport {
         });
     }
 
+    /**
+     * Request a file with resume from a given offset.
+     * Used when a .tmp file exists from a previous interrupted transfer.
+     * Falls back to full download if the remote peer doesn't support resume.
+     */
+    public void requestFileResume(@NonNull ShareableContent content, long offset) {
+        if (!isConnected || outputStream == null) {
+            LOG.warn("Cannot resume file: not connected");
+            return;
+        }
+
+        if (isTransferring.get()) {
+            LOG.warn("Transfer already in progress");
+            return;
+        }
+
+        executor.execute(() -> {
+            try {
+                isTransferring.set(true);
+                cancelRequested.set(false);
+
+                String filename = content.getFilename();
+                LOG.info("Requesting file resume: " + filename + " from offset " + offset);
+
+                // Send resume request
+                byte[] filenameBytes = filename.getBytes(StandardCharsets.UTF_8);
+                outputStream.writeInt(MSG_FILE_RESUME);
+                outputStream.writeLong(offset);
+                outputStream.writeInt(filenameBytes.length);
+                outputStream.write(filenameBytes);
+                outputStream.flush();
+
+                // Wait for response — may be FILE_DATA (resume) or ERROR (fallback)
+                receiveFileResume(content, offset);
+
+            } catch (IOException e) {
+                LOG.error("Failed to resume file", e);
+                notifyTransferComplete(content.getFilename(), false, e.getMessage());
+            } finally {
+                isTransferring.set(false);
+            }
+        });
+    }
+
+    private void receiveFileResume(@NonNull ShareableContent content, long offset) throws IOException {
+        String filename = content.getFilename();
+
+        int msgType = inputStream.readInt();
+        if (msgType == MSG_ERROR) {
+            int errorLen = inputStream.readInt();
+            byte[] errorBytes = new byte[errorLen];
+            inputStream.readFully(errorBytes);
+            String error = new String(errorBytes, StandardCharsets.UTF_8);
+            LOG.warn("Resume not supported by peer: " + error + ", falling back to full download");
+            // Fall back to regular request
+            byte[] filenameBytes = filename.getBytes(StandardCharsets.UTF_8);
+            outputStream.writeInt(MSG_FILE_REQUEST);
+            outputStream.writeInt(filenameBytes.length);
+            outputStream.write(filenameBytes);
+            outputStream.flush();
+            receiveFile(content);
+            return;
+        }
+
+        if (msgType != MSG_FILE_DATA) {
+            throw new IOException("Unexpected message type: " + msgType);
+        }
+
+        // Read remaining size
+        long remainingSize = inputStream.readLong();
+        long totalSize = offset + remainingSize;
+        LOG.info("Resuming file: " + filename + " from offset " + offset
+                + ", remaining " + remainingSize + " bytes");
+
+        File destFile = getDestinationFile(content);
+        File tempFile = new File(destFile.getParent(), destFile.getName() + ".tmp");
+
+        // Append to existing .tmp file
+        try (BufferedOutputStream fileOut = new BufferedOutputStream(
+                new FileOutputStream(tempFile, true), BUFFER_SIZE)) {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            long totalReceived = 0;
+            int lastProgress = 0;
+
+            while (totalReceived < remainingSize && !cancelRequested.get()) {
+                int toRead = (int) Math.min(buffer.length, remainingSize - totalReceived);
+                int bytesRead = inputStream.read(buffer, 0, toRead);
+
+                if (bytesRead == -1) {
+                    throw new IOException("Connection closed unexpectedly");
+                }
+
+                fileOut.write(buffer, 0, bytesRead);
+                totalReceived += bytesRead;
+
+                int progress = (int) (((offset + totalReceived) * 100) / totalSize);
+                if (progress > lastProgress) {
+                    lastProgress = progress;
+                    notifyTransferProgress(filename, progress, offset + totalReceived, totalSize);
+                }
+            }
+
+            if (cancelRequested.get()) {
+                throw new IOException("Transfer cancelled");
+            }
+
+            if (totalReceived != remainingSize) {
+                throw new IOException("Size mismatch: expected " + remainingSize + ", got " + totalReceived);
+            }
+        }
+
+        // Read completion
+        int completeMsg = inputStream.readInt();
+        if (completeMsg != MSG_FILE_COMPLETE) {
+            throw new IOException("Expected completion message");
+        }
+
+        // Move temp to final
+        if (destFile.exists()) {
+            destFile.delete();
+        }
+        if (!tempFile.renameTo(destFile)) {
+            throw new IOException("Failed to move temp file");
+        }
+
+        // Verify checksum
+        String expectedChecksum = content.getChecksum();
+        if (expectedChecksum != null && !expectedChecksum.isEmpty()) {
+            LOG.info("Verifying checksum after resume for: " + filename);
+            try {
+                String actualChecksum = ShareableContent.computeSha256(destFile);
+                if (!expectedChecksum.equals(actualChecksum)) {
+                    destFile.delete();
+                    notifyTransferComplete(filename, false, "Checksum mismatch after resume: file corrupted");
+                    return;
+                }
+                LOG.info("Checksum verified after resume: " + filename);
+            } catch (Exception e) {
+                LOG.warn("Checksum verification failed: " + e.getMessage());
+            }
+        }
+
+        LOG.info("File resumed successfully: " + filename);
+        notifyTransferComplete(filename, true, null);
+    }
+
     private void receiveFile(@NonNull ShareableContent content) throws IOException {
         String filename = content.getFilename();
         long expectedSize = content.getFileSize();
@@ -439,6 +586,27 @@ public class WifiDirectTransport {
         }
         if (!tempFile.renameTo(destFile)) {
             throw new IOException("Failed to move temp file");
+        }
+
+        // Verify checksum if provided by remote peer
+        String expectedChecksum = content.getChecksum();
+        if (expectedChecksum != null && !expectedChecksum.isEmpty()) {
+            LOG.info("Verifying checksum for: " + filename);
+            try {
+                String actualChecksum = ShareableContent.computeSha256(destFile);
+                if (!expectedChecksum.equals(actualChecksum)) {
+                    destFile.delete();
+                    LOG.error("Checksum mismatch for " + filename
+                            + ": expected " + expectedChecksum.substring(0, 12)
+                            + ", got " + actualChecksum.substring(0, 12));
+                    notifyTransferComplete(filename, false, "Checksum mismatch: file corrupted");
+                    return;
+                }
+                LOG.info("Checksum verified for: " + filename);
+            } catch (Exception e) {
+                LOG.warn("Checksum verification failed for " + filename + ": " + e.getMessage());
+                // Don't delete file — verification failure is non-fatal
+            }
         }
 
         LOG.info("File received successfully: " + filename);
@@ -585,6 +753,9 @@ public class WifiDirectTransport {
                     case MSG_FILE_REQUEST:
                         handleFileRequest();
                         break;
+                    case MSG_FILE_RESUME:
+                        handleFileResumeRequest();
+                        break;
                     default:
                         LOG.warn("Unknown message type: " + msgType);
                 }
@@ -629,6 +800,86 @@ public class WifiDirectTransport {
 
         // Send the file
         sendFile(content);
+    }
+
+    private void handleFileResumeRequest() throws IOException {
+        long offset = inputStream.readLong();
+        int filenameLen = inputStream.readInt();
+        byte[] filenameBytes = new byte[filenameLen];
+        inputStream.readFully(filenameBytes);
+
+        String requestedFilename = new String(filenameBytes, StandardCharsets.UTF_8);
+        LOG.info("File resume requested: " + requestedFilename + " from offset " + offset);
+
+        ShareableContent content = findContentByFilename(requestedFilename);
+        if (content == null || !content.isShared()) {
+            sendError("File not available: " + requestedFilename);
+            return;
+        }
+
+        sendFileFromOffset(content, offset);
+    }
+
+    private void sendFileFromOffset(@NonNull ShareableContent content, long offset) throws IOException {
+        File file = new File(content.getFilePath());
+        if (!file.exists()) {
+            sendError("File not found: " + content.getFilename());
+            return;
+        }
+
+        long fileSize = file.length();
+        if (offset < 0 || offset >= fileSize) {
+            sendError("Invalid resume offset: " + offset);
+            return;
+        }
+
+        long remainingSize = fileSize - offset;
+        LOG.info("Sending file from offset " + offset + ": " + content.getFilename()
+                + " (" + remainingSize + " remaining of " + fileSize + " bytes)");
+
+        isTransferring.set(true);
+        cancelRequested.set(false);
+
+        try {
+            // Send file data header with remaining size
+            outputStream.writeInt(MSG_FILE_DATA);
+            outputStream.writeLong(remainingSize);
+
+            // Send file content from offset
+            try (FileInputStream fis = new FileInputStream(file)) {
+                long skipped = fis.skip(offset);
+                if (skipped != offset) {
+                    throw new IOException("Failed to seek to offset " + offset);
+                }
+
+                BufferedInputStream fileIn = new BufferedInputStream(fis, BUFFER_SIZE);
+                byte[] buffer = new byte[BUFFER_SIZE];
+                long totalSent = 0;
+                int lastProgress = 0;
+                int bytesRead;
+
+                while ((bytesRead = fileIn.read(buffer)) != -1 && !cancelRequested.get()) {
+                    outputStream.write(buffer, 0, bytesRead);
+                    totalSent += bytesRead;
+
+                    int progress = (int) (((offset + totalSent) * 100) / fileSize);
+                    if (progress > lastProgress) {
+                        lastProgress = progress;
+                        notifyTransferProgress(content.getFilename(), progress, offset + totalSent, fileSize);
+                    }
+                }
+            }
+
+            outputStream.flush();
+            outputStream.writeInt(MSG_FILE_COMPLETE);
+            outputStream.flush();
+
+            LOG.info("File resume sent successfully: " + content.getFilename());
+            notifyTransferComplete(content.getFilename(), true, null);
+
+        } finally {
+            isTransferring.set(false);
+        }
     }
 
     private void sendFile(@NonNull ShareableContent content) throws IOException {

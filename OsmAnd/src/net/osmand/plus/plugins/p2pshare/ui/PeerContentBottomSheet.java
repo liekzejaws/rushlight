@@ -192,10 +192,16 @@ public class PeerContentBottomSheet extends BottomSheetDialogFragment
     private void downloadSelected() {
         if (shareManager == null) return;
 
+        // Collect all selected files and enqueue them
+        List<ShareableContent> selectedFiles = new ArrayList<>();
         for (ShareableContent content : contentList) {
             if (content.isShared()) {
-                shareManager.requestFile(content);
+                selectedFiles.add(content);
             }
+        }
+
+        if (!selectedFiles.isEmpty()) {
+            shareManager.enqueueFiles(selectedFiles);
         }
         dismiss();
     }

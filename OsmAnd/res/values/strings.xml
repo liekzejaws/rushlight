@@ -74,6 +74,20 @@
 	<string name="p2p_share_transfer_progress">%1$s of %2$s (%3$d%%)</string>
 	<string name="p2p_share_transfer_complete">Transfer complete</string>
 	<string name="p2p_share_transfer_failed">Transfer failed: %s</string>
+	<string name="p2p_share_checksum_mismatch">File corrupted: checksum mismatch. Please try again.</string>
+	<string name="p2p_share_checksum_verified">File integrity verified</string>
+	<string name="p2p_share_computing_checksums">Computing file checksums…</string>
+	<string name="p2p_share_transfer_history">Transfer History</string>
+	<string name="p2p_share_no_history">No transfers yet</string>
+	<string name="p2p_share_history_summary">%1$d transfers · %2$s total</string>
+	<string name="p2p_share_history_cleared">Transfer history cleared</string>
+	<string name="p2p_share_permission_title">Permissions Required</string>
+	<string name="p2p_share_permission_rationale_api31">P2P sharing needs Bluetooth and Nearby Devices permissions to discover and connect to other Rushlight devices nearby.</string>
+	<string name="p2p_share_permission_rationale_legacy">P2P sharing needs Bluetooth and Location permissions to discover nearby devices. Location is required by Android for Bluetooth scanning — your location is not transmitted.</string>
+	<string name="p2p_share_permission_details_api31">• Bluetooth Scan — find nearby devices\n• Bluetooth Connect — exchange data\n• Nearby Wi-Fi Devices — fast file transfer</string>
+	<string name="p2p_share_permission_details_legacy">• Bluetooth — find and connect to devices\n• Location — required by Android for Bluetooth scanning\n• Your location stays on your device</string>
+	<string name="p2p_share_grant_permissions">Grant Permissions</string>
+	<string name="p2p_share_permissions_settings_required">Permissions were permanently denied. Please enable them in Settings → Apps → Rushlight → Permissions.</string>
 
 	<!-- Rushlight: Morse Code strings -->
 	<string name="morse_panel_title">Morse Code</string>

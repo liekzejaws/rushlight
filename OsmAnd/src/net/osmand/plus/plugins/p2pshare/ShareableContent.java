@@ -4,6 +4,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 /**
@@ -16,7 +20,7 @@ public class ShareableContent {
     private final String filePath;
     private final long fileSize;
     private final ContentType contentType;
-    private final String checksum; // SHA-256 for verification
+    private String checksum; // SHA-256 for verification (computed async after scan)
 
     // For display
     private final String displayName;
@@ -98,6 +102,43 @@ public class ShareableContent {
 
     public void setShared(boolean shared) {
         isShared = shared;
+    }
+
+    /**
+     * Set the checksum after async computation.
+     */
+    public void setChecksum(@Nullable String checksum) {
+        this.checksum = checksum;
+    }
+
+    /**
+     * Compute SHA-256 checksum of a file.
+     * Should be called on a background thread — blocks until complete.
+     *
+     * @param file The file to hash
+     * @return Hex-encoded SHA-256 hash string
+     * @throws IOException if file cannot be read
+     */
+    @NonNull
+    public static String computeSha256(@NonNull File file) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[64 * 1024];
+            try (FileInputStream fis = new FileInputStream(file)) {
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    digest.update(buffer, 0, bytesRead);
+                }
+            }
+            byte[] hash = digest.digest();
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 not available", e);
+        }
     }
 
     /**

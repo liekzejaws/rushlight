@@ -9,11 +9,14 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import net.osmand.plus.plugins.p2pshare.discovery.PeerDiscoveryManager;
+import net.osmand.plus.plugins.p2pshare.history.TransferHistoryDatabase;
+import net.osmand.plus.plugins.p2pshare.history.TransferRecord;
 import net.osmand.plus.plugins.p2pshare.transport.TransportCallback;
 import net.osmand.plus.plugins.p2pshare.transport.TransportManager;
 
 import org.apache.commons.logging.Log;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,6 +44,14 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     private boolean isScanning = false;
     private boolean isTransferring = false;
 
+    // Transfer history
+    private TransferHistoryDatabase historyDb;
+    @Nullable
+    private TransferRecord activeTransferRecord;
+
+    // Transfer queue for multi-file downloads
+    private final TransferQueue transferQueue = new TransferQueue();
+
     // Activity reference for permission requests
     private Activity currentActivity;
 
@@ -65,6 +76,28 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
         transportManager = new TransportManager(app);
         transportManager.setCallback(this);
         transportManager.setLocalManifest(localManifest);
+
+        // Initialize transfer history database
+        historyDb = TransferHistoryDatabase.getInstance(app);
+
+        // Setup queue callback to auto-process next job
+        transferQueue.addCallback(new TransferQueue.QueueCallback() {
+            @Override
+            public void onQueueUpdated(@NonNull TransferQueue queue) {
+                // UI can query queue state
+            }
+
+            @Override
+            public void onJobStarted(@NonNull TransferJob job, int position, int total) {
+                LOG.info("Queue: starting job " + position + " of " + total + ": " + job.getFilename());
+            }
+
+            @Override
+            public void onQueueCompleted(int successful, int failed, int cancelled) {
+                LOG.info("Queue completed: " + successful + " ok, " + failed + " failed, " + cancelled + " cancelled");
+                isTransferring = false;
+            }
+        });
 
         LOG.info("P2pShareManager initialized");
     }
@@ -152,10 +185,126 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
 
         if (transportManager != null && transportManager.isConnected()) {
             isTransferring = true;
+
+            // Create transfer history record
+            activeTransferRecord = new TransferRecord(
+                    content.getFilename(), content.getFileSize(),
+                    TransferRecord.DIRECTION_RECEIVED);
+            activeTransferRecord.setContentType(content.getContentType().name());
+
+            DiscoveredPeer connectedPeer = transportManager.getConnectedPeer();
+            if (connectedPeer != null) {
+                activeTransferRecord.setPeerName(connectedPeer.getDeviceName());
+                activeTransferRecord.setPeerId(connectedPeer.getDeviceId());
+            }
+
+            String transport = transportManager.getActiveTransportName();
+            activeTransferRecord.setTransport(transport);
+
+            historyDb.insertRecord(activeTransferRecord);
+
             transportManager.requestFile(content);
         } else {
             app.showShortToastMessage("Not connected to peer");
         }
+    }
+
+    /**
+     * Request a file with resume support.
+     * Checks if a .tmp file exists from a previous interrupted transfer.
+     * If found, requests resume from offset; otherwise does full download.
+     */
+    public void requestFileWithResume(@NonNull ShareableContent content) {
+        if (transportManager == null || !transportManager.isConnected()) {
+            app.showShortToastMessage("Not connected to peer");
+            return;
+        }
+
+        // Check for existing .tmp file
+        File tempFile = getTempFileForContent(content);
+        if (tempFile != null && tempFile.exists() && tempFile.length() > 0) {
+            long offset = tempFile.length();
+            LOG.info("Found .tmp file for " + content.getFilename()
+                    + " with " + offset + " bytes, requesting resume");
+
+            isTransferring = true;
+
+            // Create history record
+            activeTransferRecord = new TransferRecord(
+                    content.getFilename(), content.getFileSize(),
+                    TransferRecord.DIRECTION_RECEIVED);
+            activeTransferRecord.setContentType(content.getContentType().name());
+            activeTransferRecord.setBytesTransferred(offset);
+
+            DiscoveredPeer connectedPeer = transportManager.getConnectedPeer();
+            if (connectedPeer != null) {
+                activeTransferRecord.setPeerName(connectedPeer.getDeviceName());
+                activeTransferRecord.setPeerId(connectedPeer.getDeviceId());
+            }
+            activeTransferRecord.setTransport(transportManager.getActiveTransportName());
+            historyDb.insertRecord(activeTransferRecord);
+
+            transportManager.requestFileResume(content, offset);
+        } else {
+            // No .tmp file — do regular download
+            requestFile(content);
+        }
+    }
+
+    /**
+     * Get the temp file path for a content item (mirrors transport getDestinationFile logic).
+     */
+    @Nullable
+    private File getTempFileForContent(@NonNull ShareableContent content) {
+        File destDir;
+        switch (content.getContentType()) {
+            case MAP:
+                destDir = app.getAppPath("");
+                break;
+            case ZIM:
+                destDir = app.getAppPath("wikipedia");
+                break;
+            case MODEL:
+                destDir = app.getAppPath("llm_models");
+                break;
+            case APK:
+            default:
+                destDir = app.getExternalFilesDir(null);
+                break;
+        }
+        if (destDir == null) return null;
+        return new File(destDir, content.getFilename() + ".tmp");
+    }
+
+    /**
+     * Enqueue multiple files for sequential download.
+     * Starts processing immediately if not already transferring.
+     */
+    public void enqueueFiles(@NonNull java.util.List<ShareableContent> files) {
+        transferQueue.enqueueAll(files);
+        if (!isTransferring) {
+            processNextInQueue();
+        }
+    }
+
+    /**
+     * Process the next job in the transfer queue.
+     */
+    private void processNextInQueue() {
+        TransferJob job = transferQueue.getNextJob();
+        if (job == null) {
+            return;
+        }
+
+        requestFileWithResume(job.getContent());
+    }
+
+    /**
+     * Get the transfer queue.
+     */
+    @NonNull
+    public TransferQueue getTransferQueue() {
+        return transferQueue;
     }
 
     /**
@@ -166,6 +315,36 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
             transportManager.cancelTransfer();
         }
         isTransferring = false;
+
+        // Update transfer queue
+        transferQueue.cancelCurrent();
+
+        // Update history record
+        if (activeTransferRecord != null) {
+            activeTransferRecord.markCancelled();
+            historyDb.updateRecord(activeTransferRecord);
+            activeTransferRecord = null;
+        }
+
+        // Auto-advance to next in queue
+        processNextInQueue();
+    }
+
+    /**
+     * Cancel all remaining files in the queue.
+     */
+    public void cancelAllTransfers() {
+        if (transportManager != null) {
+            transportManager.cancelTransfer();
+        }
+        isTransferring = false;
+        transferQueue.cancelAll();
+
+        if (activeTransferRecord != null) {
+            activeTransferRecord.markCancelled();
+            historyDb.updateRecord(activeTransferRecord);
+            activeTransferRecord = null;
+        }
     }
 
     /**
@@ -250,6 +429,14 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
             LOG.error("Failed to get own APK path", e);
             return null;
         }
+    }
+
+    /**
+     * Get the transfer history database.
+     */
+    @NonNull
+    public TransferHistoryDatabase getHistoryDatabase() {
+        return historyDb;
     }
 
     /**
@@ -375,6 +562,15 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
 
     @Override
     public void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {
+        // Update history record with progress (throttled to every 10%)
+        if (activeTransferRecord != null && progress % 10 == 0) {
+            activeTransferRecord.setBytesTransferred(bytesTransferred);
+            historyDb.updateRecord(activeTransferRecord);
+        }
+
+        // Update queue
+        transferQueue.onJobProgress(filename, progress, bytesTransferred);
+
         for (P2pShareListener listener : listeners) {
             listener.onTransferProgress(filename, progress, bytesTransferred, totalBytes);
         }
@@ -383,6 +579,30 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     @Override
     public void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {
         isTransferring = false;
+
+        // Finalize history record
+        if (activeTransferRecord != null) {
+            activeTransferRecord.markComplete(success);
+            if (!success && error != null) {
+                activeTransferRecord.setError(error);
+                // Detect checksum failure
+                if (error.contains("checksum") || error.contains("Checksum")) {
+                    activeTransferRecord.setChecksumOk(TransferRecord.CHECKSUM_FAILED);
+                }
+            } else if (success) {
+                activeTransferRecord.setBytesTransferred(activeTransferRecord.getFileSize());
+                activeTransferRecord.setChecksumOk(TransferRecord.CHECKSUM_PASSED);
+            }
+            historyDb.updateRecord(activeTransferRecord);
+            activeTransferRecord = null;
+        }
+
+        // Update queue and auto-advance to next job
+        transferQueue.onJobCompleted(filename, success, error);
+        if (!transferQueue.isEmpty()) {
+            processNextInQueue();
+        }
+
         for (P2pShareListener listener : listeners) {
             listener.onTransferComplete(filename, success, error);
         }
