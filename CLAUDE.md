@@ -1,17 +1,17 @@
-# CLAUDE.md - Lampp Project Context
+# CLAUDE.md - Rushlight Project Context
 
-> **READ THIS FIRST** - This file provides context for any AI assistant working on Lampp.
+> **READ THIS FIRST** - This file provides context for any AI assistant working on Rushlight.
 
 ---
 
-## Project: Lampp (Survival/Grid-Down App)
+## Project: Rushlight (Survival/Grid-Down App)
 
 **What is this?**
 An offline-first Android survival app forked from OsmAnd. A personal survival computer that works when networks fail, governments censor, or infrastructure collapses.
 
-**Package ID:** `io.lampp.app`
-**Branch:** `priceless-borg`
-**Worktree:** `C:/Users/ironf/.claude-worktrees/OsmAnd/priceless-borg`
+**Package ID:** `io.rushlight.app`
+**Branch:** `main`
+**Internal code name:** `lampp` (Java packages use `net.osmand.plus.lampp.*`)
 
 ---
 
@@ -24,75 +24,38 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 | 1-3 | Fork, rebrand, strip features | `cb273bdb32` |
 | 4 | Offline Wikipedia via ZIM/libkiwix | `9823752a4b` |
 | 5 | Local LLM AI assistant (llama.cpp) | `5738bd3864` |
+| 6 | P2P Content Sharing (BLE/WiFi Direct/BT) | `72fd2dc451` |
+| 7 | RAG pipeline (Wikipedia + POI + location) | `684e3e2b0d` |
+| 8 | Location-aware queries, map data integration | `c51d5b02b4` |
+| v0.1 | Panel system, Morse code, Pip-Boy themes | `e275941d2a` |
+| 9A | Rebrand from Lampp to Rushlight | *(current)* |
+| 9B | Security Suite (encrypted chat, panic wipe, biometric lock) | *(current)* |
 
 ### Working Features
 - **Offline maps** - Full OsmAnd mapping with offline vector maps
 - **Offline Wikipedia** - Browse ZIM files via libkiwix integration
-- **Local LLM** - TinyLlama chat via Ai-Core AAR (llama.cpp)
-- **AI Assistant** - Drawer menu item for chat interface
+- **Local LLM** - GGUF model chat via Ai-Core AAR (llama.cpp) with RAG
+- **P2P Sharing** - BLE discovery, WiFi Direct transfer, Bluetooth fallback
+- **Morse Code** - Send/receive via flashlight and audio, DSP decoding
+- **Panel System** - Side panel with 5 tabs, 3 themes (Pip-Boy/Modern/Classic)
+- **Security Suite** - Encrypted chat (SQLCipher), panic wipe, biometric lock
 
 ### Known Issues
-- Chat UI scroll behavior (messages run off top of screen)
 - Requires Android 11+ (API 30) for AI features
-
----
-
-## Phase 6: P2P Content Sharing (IN PROGRESS)
-
-Share maps, Wikipedia, models between phones without internet.
-
-### Technical Approach
-1. **BLE Beaconing** - Fast peer discovery (10-50m)
-2. **WiFi Direct** - High-speed transfer (250 Mbps)
-3. **Bluetooth Classic** - Fallback (720 Kbps)
-
-### Plugin Structure
-```
-OsmAnd/src/net/osmand/plus/plugins/p2pshare/
-├── P2pSharePlugin.java           # Main plugin
-├── P2pShareManager.java          # Core logic
-├── ContentManifest.java          # Shareable content list
-├── discovery/                    # BLE peer discovery
-├── transport/                    # WiFi Direct + BT transfer
-├── protocol/                     # File transfer protocol
-└── ui/                           # Fragments and adapters
-```
-
-### Features
-- Share maps (.obf), ZIMs, LLM models (.gguf)
-- **APK self-spreading** - Share app to devices without it
-- Resume interrupted transfers
-- Checksum verification
-
-### Files to Modify
-- `PluginsHelper.java` - Register plugin
-- `OsmAndCustomizationConstants.java` - Add drawer ID
-- `AndroidManifest.xml` - Add WiFi Direct permissions
-
----
-
-## Future Phases
-
-### Phase 7: Security Features
-- Panic wipe, stealth mode, duress PIN
-- Encrypted storage (SQLCipher)
-
-### Phase 8: AI Terrain Navigator
-- "I see a hill to my north" → estimated location
+- Package rename from io.lampp.app requires fresh install
 
 ---
 
 ## Build Instructions
 
 ```bash
-# Navigate to worktree
-cd C:/Users/ironf/.claude-worktrees/OsmAnd/priceless-borg
+cd D:/OsmAnd/OsmAnd
 
 # Set Java (Android Studio JBR)
 export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 
 # Build debug APK
-./gradlew :OsmAnd:assembleNightlyFreeLegacyArm64Debug
+./gradlew assembleNightlyFreeLegacyArm64Debug
 
 # APK output location
 # OsmAnd/build/outputs/apk/nightlyFreeLegacyArm64/debug/OsmAnd-nightlyFree-legacy-arm64-debug.apk
@@ -102,33 +65,30 @@ export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 ```bash
 ADB="/c/Users/ironf/AppData/Local/Android/Sdk/platform-tools/adb.exe"
 $ADB install -r OsmAnd/build/outputs/apk/nightlyFreeLegacyArm64/debug/OsmAnd-nightlyFree-legacy-arm64-debug.apk
-$ADB shell monkey -p io.lampp.app -c android.intent.category.LAUNCHER 1
+$ADB shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 ```
 
 ---
 
 ## Key Files
 
-### Lampp Custom Code
+### Rushlight Custom Code
 | Path | Purpose |
 |------|---------|
-| `OsmAnd/src/net/osmand/plus/ai/` | LLM integration (LlmManager, LlmChatFragment) |
+| `OsmAnd/src/net/osmand/plus/ai/` | LLM + RAG integration (16 files) |
+| `OsmAnd/src/net/osmand/plus/lampp/` | Panel system + theming (12 files) |
+| `OsmAnd/src/net/osmand/plus/morse/` | Morse code comms (14 files) |
+| `OsmAnd/src/net/osmand/plus/plugins/p2pshare/` | P2P sharing (16 files) |
+| `OsmAnd/src/net/osmand/plus/security/` | Security suite (4 files) |
 | `OsmAnd/src/net/osmand/plus/wikipedia/Zim*.java` | ZIM/Wikipedia integration |
 | `OsmAnd/libs/ai-core-release.aar` | llama.cpp native library (43 MB) |
-| `OsmAnd/build.gradle` | Package ID: `io.lampp.app` |
-
-### OsmAnd Core
-| Path | Purpose |
-|------|---------|
-| `OsmAnd/src/net/osmand/plus/plugins/` | Plugin system |
-| `OsmAnd/src/net/osmand/plus/activities/MapActivity*.java` | Main map activity |
-| `OsmAnd/src/net/osmand/plus/activities/MapActivityActions.java` | Drawer menu items |
+| `OsmAnd/build.gradle` | Package ID: `io.rushlight.app` |
 
 ### Configuration
 | Path | Purpose |
 |------|---------|
 | `OsmAnd/AndroidManifest.xml` | Permissions, SDK requirements |
-| `OsmAnd/build-common.gradle` | Dependencies |
+| `OsmAnd/build-common.gradle` | Dependencies (libkiwix, SQLCipher, biometric) |
 | `gradle.properties` | Build settings |
 
 ---
@@ -136,20 +96,35 @@ $ADB shell monkey -p io.lampp.app -c android.intent.category.LAUNCHER 1
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  Lampp App                       │
-├────────────────────┬────────────────────────────┤
-│  FROM OSMAND       │  LAMPP ADDITIONS           │
-│  ────────────      │  ───────────────           │
-│  • Offline maps    │  • Local LLM (llama.cpp)   │
-│  • GPS/compass     │  • Full Wikipedia (ZIM)    │
-│  • Navigation      │  • AI Assistant UI         │
-│  • Waypoints       │                            │
-│  • Track recording │  PLANNED:                  │
-│  • Elevation data  │  • P2P sharing (Phase 6)   │
-│  • Plugin system   │  • Security (Phase 7)      │
-│                    │  • AI Navigator (Phase 8)  │
-└────────────────────┴────────────────────────────┘
++------------------------------------------------------------------+
+|                   Rushlight (io.rushlight.app)                     |
++------------------------------------------------------------------+
+|                                                                    |
+|  +---------------------------+  +------------------------------+  |
+|  |     Panel System          |  |    Stock OsmAnd (Modified)   |  |
+|  |  Tab Bar + 5 Panels      |  |  Offline Maps    Navigation  |  |
+|  |  AI Chat | Wiki | P2P    |  |  GPS/Compass     Waypoints   |  |
+|  |  Morse   | Tools         |  |  Track Record    Elevation   |  |
+|  |  3 Theme Presets          |  |  Sensors         Star Map    |  |
+|  +---------------------------+  +------------------------------+  |
+|                                                                    |
+|  +---------------------------+  +------------------------------+  |
+|  |     AI / LLM Engine      |  |     Security Suite           |  |
+|  |  llama.cpp + RAG Pipeline |  |  Encrypted Chat (SQLCipher)  |  |
+|  |  Wikipedia + POI Context  |  |  Panic Wipe                  |  |
+|  |  Location-Aware Queries   |  |  Biometric Panel Lock        |  |
+|  +---------------------------+  +------------------------------+  |
+|                                                                    |
+|  +---------------------------+  +------------------------------+  |
+|  |     P2P Share System      |  |     Morse Code Comms         |  |
+|  |  BLE Discovery            |  |  Flashlight + Audio TX/RX    |  |
+|  |  WiFi Direct + BT         |  |  DSP Decoding (Goertzel)     |  |
+|  |  APK Self-Spreading       |  |  LLM Error Correction        |  |
+|  +---------------------------+  +------------------------------+  |
+|                                                                    |
++------------------------------------------------------------------+
+|  Android (API 30+)  |  ARM64  |  No internet required           |
++------------------------------------------------------------------+
 ```
 
 ---
@@ -158,19 +133,18 @@ $ADB shell monkey -p io.lampp.app -c android.intent.category.LAUNCHER 1
 
 | File | Location |
 |------|----------|
-| Original fork plan | `D:\OsmAnd\OsmAnd\osmand_fork_plan.md` |
-| Project overview | `D:\OsmAnd\OsmAnd\claude.md` |
-| Briar (for P2P) | https://github.com/briar/briar |
+| Design document | `D:\OsmAnd\OsmAnd\LAMPP_DESIGN_DOC.md` |
+| Morse code spec | `D:\OsmAnd\OsmAnd\MORSE-CODE-SPEC.md` |
 
 ---
 
 ## Important Notes
 
-1. **Always use this worktree** - `priceless-borg` branch has all Lampp work
-2. **Don't use practical-johnson** - That was abandoned, branch deleted
-3. **AI requires API 30+** - Ai-Core AAR has minSdk 30 requirement
-4. **Test on Pixel 9a** - Physical device for realistic performance
+1. **Internal code uses `lampp`** - Java packages (`net.osmand.plus.lampp.*`), preference keys (`LAMPP_*`), resource filenames (`lampp_*.xml`) all use the original codename. Only user-facing strings say "Rushlight".
+2. **AI requires API 30+** - Ai-Core AAR has minSdk 30 requirement
+3. **Test on Pixel 9a** - Physical device for realistic performance
+4. **Security dependencies** - SQLCipher 4.5.4, AndroidX Biometric 1.2.0-alpha05
 
 ---
 
-*Last updated: February 5, 2026*
+*Last updated: February 13, 2026*

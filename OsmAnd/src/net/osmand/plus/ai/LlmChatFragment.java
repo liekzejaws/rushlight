@@ -33,6 +33,8 @@ import net.osmand.plus.ai.rag.PoiSource;
 import net.osmand.plus.ai.rag.RagCallback;
 import net.osmand.plus.ai.rag.RagManager;
 import net.osmand.plus.ai.rag.RagResponse;
+import net.osmand.plus.security.EncryptedChatStorage;
+import net.osmand.plus.security.SecurityManager;
 import net.osmand.plus.lampp.LamppPanelFragment;
 import net.osmand.plus.lampp.LamppStylePreset;
 import net.osmand.plus.lampp.LamppThemeUtils;
@@ -75,6 +77,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private final List<ChatMessage> messages = new ArrayList<>();
 	@Nullable
 	private TerminalCursorBlinker cursorBlinker;
+	@Nullable
+	private EncryptedChatStorage chatStorage;
 
 	@Override
 	protected int getPanelLayoutId() {
@@ -93,6 +97,18 @@ public class LlmChatFragment extends LamppPanelFragment {
 		llmManager = new LlmManager(app);
 		ragManager = new RagManager(app, llmManager);
 		cursorBlinker = new TerminalCursorBlinker();
+
+		// Initialize encrypted chat storage and load persisted messages
+		try {
+			SecurityManager secMgr = app.getSecurityManager();
+			chatStorage = secMgr.getChatStorage();
+			List<ChatMessage> saved = chatStorage.loadAllMessages();
+			if (!saved.isEmpty()) {
+				messages.addAll(saved);
+			}
+		} catch (Exception e) {
+			LOG.error("Failed to initialize chat storage: " + e.getMessage());
+		}
 
 		// Setup UI
 		toolbar = view.findViewById(R.id.toolbar);
@@ -259,6 +275,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 		// Add user message
 		ChatMessage userMessage = new ChatMessage(ChatMessage.ROLE_USER, text);
 		messages.add(userMessage);
+		persistMessage(userMessage);
 		chatAdapter.notifyItemInserted(messages.size() - 1);
 		chatMessagesRecycler.scrollToPosition(messages.size() - 1);
 
@@ -331,6 +348,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 					if (changed) {
 						chatAdapter.notifyItemChanged(lastIndex);
 					}
+					// Persist completed AI response
+					persistMessage(aiMessage);
 				}
 
 				LOG.info("RAG complete: " + response.getPerformanceSummary());
@@ -383,58 +402,29 @@ public class LlmChatFragment extends LamppPanelFragment {
 				&& app.getSettings().LAMPP_PIPBOY_CURSOR_BLINK.get();
 	}
 
-	// Chat message data class
-	static class ChatMessage {
-		static final int ROLE_USER = 0;
-		static final int ROLE_AI = 1;
-		static final int ROLE_SYSTEM = 2;
-
-		int role;
-		String content;
-		List<ArticleSource> sources; // Wikipedia sources used (for AI messages)
-		List<PoiSource> poiSources;  // POI sources used (Phase 8)
-
-		ChatMessage(int role, String content) {
-			this.role = role;
-			this.content = content;
-		}
-
-		boolean hasSources() {
-			return sources != null && !sources.isEmpty();
-		}
-
-		boolean hasPoiSources() {
-			return poiSources != null && !poiSources.isEmpty();
-		}
-
-		boolean hasAnySources() {
-			return hasSources() || hasPoiSources();
-		}
-
-		String getSourcesText() {
-			StringBuilder sb = new StringBuilder();
-
-			// Wikipedia sources
-			if (hasSources()) {
-				sb.append("Sources: ");
-				for (int i = 0; i < sources.size(); i++) {
-					if (i > 0) sb.append(", ");
-					sb.append(sources.get(i).getTitle());
-				}
+	private void persistMessage(@NonNull ChatMessage message) {
+		if (chatStorage != null) {
+			try {
+				chatStorage.saveMessage(message);
+			} catch (Exception e) {
+				LOG.error("Failed to persist message: " + e.getMessage());
 			}
-
-			// POI sources
-			if (hasPoiSources()) {
-				if (sb.length() > 0) sb.append("\n");
-				sb.append("Nearby: ");
-				for (int i = 0; i < poiSources.size(); i++) {
-					if (i > 0) sb.append(", ");
-					sb.append(poiSources.get(i).toChatString());
-				}
-			}
-
-			return sb.length() > 0 ? sb.toString() : "";
 		}
+	}
+
+	/**
+	 * Clear all messages from memory and storage.
+	 * Called by SecurityManager during panic wipe.
+	 */
+	public void clearAllMessages() {
+		messages.clear();
+		if (chatAdapter != null) {
+			chatAdapter.notifyDataSetChanged();
+		}
+		if (chatStorage != null) {
+			chatStorage.clearMessages();
+		}
+		updateUI();
 	}
 
 	// RecyclerView Adapter

@@ -161,6 +161,9 @@ public class OsmandApplication extends MultiDexApplication {
 	private final LocaleHelper localeHelper = new LocaleHelper(this);
 	private final ToastHelper toastHelper = new ToastHelper(this);
 
+	// Rushlight: Security manager for encrypted storage and panic wipe
+	private net.osmand.plus.security.SecurityManager securityManager;
+
 	// start variables
 	ResourceManager resourceManager;
 	OsmAndLocationProvider locationProvider;
@@ -436,6 +439,18 @@ public class OsmandApplication extends MultiDexApplication {
 	public void setSettings(OsmandSettings settings) {
 		this.settings = settings;
 		PluginsHelper.initPlugins(this);
+	}
+
+	/**
+	 * Rushlight: Security manager for encrypted chat storage and panic wipe.
+	 * Lazily initialized on first access.
+	 */
+	@androidx.annotation.NonNull
+	public net.osmand.plus.security.SecurityManager getSecurityManager() {
+		if (securityManager == null) {
+			securityManager = new net.osmand.plus.security.SecurityManager(this);
+		}
+		return securityManager;
 	}
 
 	public SavingTrackHelper getSavingTrackHelper() {

@@ -4,6 +4,7 @@ import androidx.preference.Preference;
 
 import net.osmand.plus.R;
 import net.osmand.plus.ai.LlmModelsFragment;
+import net.osmand.plus.security.BiometricHelper;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.preferences.ListPreferenceEx;
 import net.osmand.plus.settings.preferences.SwitchPreferenceEx;
@@ -64,6 +65,28 @@ public class LamppSettingsFragment extends BaseSettingsFragment {
 				R.string.lampp_pipboy_retro_font_desc);
 		setupSwitchPref(settings.LAMPP_PIPBOY_CURSOR_BLINK.getId(),
 				R.string.lampp_pipboy_cursor_blink_desc);
+
+		// Security
+		setupScreenLockPref();
+		setupSwitchPref(settings.LAMPP_CHAT_ENCRYPTION_ENABLED.getId(),
+				R.string.rushlight_chat_encryption_desc);
+	}
+
+	private void setupScreenLockPref() {
+		SwitchPreferenceEx pref = findPreference(settings.LAMPP_SCREEN_LOCK_ENABLED.getId());
+		if (pref != null) {
+			pref.setIconSpaceReserved(false);
+			pref.setDescription(R.string.rushlight_screen_lock_desc);
+			pref.setOnPreferenceChangeListener((preference, newValue) -> {
+				boolean enabled = (Boolean) newValue;
+				if (enabled && getContext() != null
+						&& !BiometricHelper.isBiometricAvailable(getContext())) {
+					app.showShortToastMessage(R.string.rushlight_biometric_unavailable);
+					return false;
+				}
+				return true;
+			});
+		}
 	}
 
 	private void setupManageModelsPref() {

@@ -448,15 +448,20 @@ dependencies {
 	implementation 'org.bouncycastle:bcpkix-jdk15on:1.56'
 	implementation 'com.google.android.play:review:2.0.1'
 
-	// ===== LAMPP: Kiwix ZIM file support for offline Wikipedia =====
+	// ===== Rushlight: Kiwix ZIM file support for offline Wikipedia =====
 	// Using official libkiwix for zstd compression support (zimdroid is obsolete)
 	implementation 'org.kiwix:libkiwix:2.4.1'
 	implementation 'com.getkeepsafe.relinker:relinker:1.4.5'
 
-	// ===== LAMPP: Local LLM support for offline AI assistance =====
+	// ===== Rushlight: Local LLM support for offline AI assistance =====
 	// Using llama.cpp via Ai-Core AAR for flexible GGUF model support
 	// Supports Deepseek, Phi, Qwen, Llama, Mistral, etc.
 	implementation fileTree(dir: 'libs', include: ['*.aar'])
+
+	// ===== Rushlight: Security suite (encrypted storage + biometric lock) =====
+	implementation "net.zetetic:android-database-sqlcipher:4.5.4@aar"
+	implementation "androidx.sqlite:sqlite:2.3.1"
+	implementation "androidx.biometric:biometric:1.2.0-alpha05"
 
 	implementation "androidx.car.app:app:1.7.0"
 	implementation "androidx.car.app:app-projected:1.7.0"

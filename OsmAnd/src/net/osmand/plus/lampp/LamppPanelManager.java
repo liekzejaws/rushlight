@@ -9,6 +9,7 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.security.PanelLockManager;
 
 import org.apache.commons.logging.Log;
 
@@ -22,6 +23,7 @@ public class LamppPanelManager {
 	private static final Log LOG = PlatformUtil.getLog(LamppPanelManager.class);
 
 	private final MapActivity mapActivity;
+	private final PanelLockManager panelLockManager;
 	@Nullable
 	private LamppSideTabBar tabBar;
 	@Nullable
@@ -29,6 +31,8 @@ public class LamppPanelManager {
 
 	public LamppPanelManager(@NonNull MapActivity mapActivity) {
 		this.mapActivity = mapActivity;
+		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
+		this.panelLockManager = new PanelLockManager(app.getSettings());
 	}
 
 	public void setTabBar(@Nullable LamppSideTabBar tabBar) {
@@ -50,6 +54,17 @@ public class LamppPanelManager {
 			return;
 		}
 
+		// Authenticate before opening panel (if screen lock is enabled)
+		panelLockManager.authenticate(mapActivity,
+				() -> openPanelInternal(tab),
+				() -> {
+					OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
+					app.showToastMessage(R.string.rushlight_auth_required);
+					LOG.info("Panel access denied - authentication failed");
+				});
+	}
+
+	private void openPanelInternal(@NonNull LamppTab tab) {
 		// Close existing panel if any
 		closeActivePanel(false);
 
@@ -74,7 +89,7 @@ public class LamppPanelManager {
 
 		// Disable drawer while panel is open
 		mapActivity.disableDrawer();
-		LOG.info("LAMPP: Opened panel for tab " + tab.getTitle());
+		LOG.info("Rushlight: Opened panel for tab " + tab.getTitle());
 	}
 
 	public void closeActivePanel(boolean animated) {
@@ -170,6 +185,7 @@ public class LamppPanelManager {
 			tabBar.animateColorRefresh();
 		}
 		// Crossfade: fade out old content, swap fragment, fade in new content
+		// Use openPanelInternal to bypass auth (panel is already open)
 		if (activeTab != null) {
 			LamppTab current = activeTab;
 			FragmentManager fm = mapActivity.getSupportFragmentManager();
@@ -177,11 +193,11 @@ public class LamppPanelManager {
 			if (fragment instanceof LamppPanelFragment) {
 				((LamppPanelFragment) fragment).animatePresetTransition(() -> {
 					closeActivePanel(false);
-					openPanel(current);
+					openPanelInternal(current);
 				});
 			} else {
 				closeActivePanel(false);
-				openPanel(current);
+				openPanelInternal(current);
 			}
 		}
 	}

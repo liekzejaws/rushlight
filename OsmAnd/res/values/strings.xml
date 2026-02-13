@@ -10,8 +10,8 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
-	<!-- LAMPP: Settings screen strings -->
-	<string name="lampp_settings_title">LAMPP Settings</string>
+	<!-- Rushlight: Settings screen strings -->
+	<string name="lampp_settings_title">Rushlight Settings</string>
 	<string name="lampp_ai_model_category">AI Model</string>
 	<string name="lampp_manage_models">Manage models</string>
 	<string name="lampp_manage_models_desc">Download, delete, or view LLM model files</string>
@@ -35,7 +35,7 @@
 	<string name="lampp_rag_poi_radius_title">POI search radius</string>
 	<string name="lampp_rag_poi_radius_desc">Search radius in meters for nearby amenities.</string>
 
-	<!-- LAMPP: Pip-Boy Effects strings -->
+	<!-- Rushlight: Pip-Boy Effects strings -->
 	<string name="lampp_pipboy_effects_category">Pip-Boy Effects</string>
 	<string name="lampp_pipboy_scanlines_title">CRT scan lines</string>
 	<string name="lampp_pipboy_scanlines_desc">Overlay subtle horizontal scan lines for a retro CRT effect</string>
@@ -46,13 +46,13 @@
 	<string name="lampp_pipboy_cursor_blink_title">Terminal cursor</string>
 	<string name="lampp_pipboy_cursor_blink_desc">Blinking block cursor on AI chat responses</string>
 
-	<!-- LAMPP: P2P Share strings -->
+	<!-- Rushlight: P2P Share strings -->
 	<string name="p2p_share_name">P2P Share</string>
 	<string name="p2p_share_description">Share maps, Wikipedia, and AI models directly with nearby devices without internet. Includes app self-spreading.</string>
 	<string name="p2p_share_scanning">Scanning for nearby devices…</string>
 	<string name="p2p_share_nearby_devices">Nearby Devices</string>
 	<string name="p2p_share_no_devices">No devices found</string>
-	<string name="p2p_share_no_devices_desc">Make sure Bluetooth is enabled on both devices and they are running Lampp</string>
+	<string name="p2p_share_no_devices_desc">Make sure Bluetooth is enabled on both devices and they are running Rushlight</string>
 	<string name="p2p_share_scan">Scan for devices</string>
 	<string name="p2p_share_my_content">My Shared Content</string>
 	<string name="p2p_share_no_content">No content available</string>
@@ -75,7 +75,7 @@
 	<string name="p2p_share_transfer_complete">Transfer complete</string>
 	<string name="p2p_share_transfer_failed">Transfer failed: %s</string>
 
-	<!-- LAMPP: Morse Code strings -->
+	<!-- Rushlight: Morse Code strings -->
 	<string name="morse_panel_title">Morse Code</string>
 	<string name="morse_input_hint">Type message to transmit…</string>
 	<string name="morse_send">Send</string>
@@ -118,7 +118,23 @@
 	<string name="morse_ai_correction_label">AI corrected:</string>
 	<string name="morse_ai_unavailable">AI model not loaded</string>
 
-	<!-- LAMPP: ZIM Browser strings -->
+	<!-- Rushlight: Security Suite strings -->
+	<string name="rushlight_security_title">Security</string>
+	<string name="rushlight_panic_wipe">Emergency Wipe</string>
+	<string name="rushlight_panic_wipe_confirm_title">Emergency Wipe</string>
+	<string name="rushlight_panic_wipe_confirm_message">This will permanently delete all AI chat history. This action cannot be undone.</string>
+	<string name="rushlight_panic_wipe_success">Sensitive data wiped</string>
+	<string name="rushlight_security_category">Security</string>
+	<string name="rushlight_screen_lock_title">Panel screen lock</string>
+	<string name="rushlight_screen_lock_desc">Require biometric authentication to access panel</string>
+	<string name="rushlight_chat_encryption_title">Encrypt chat history</string>
+	<string name="rushlight_chat_encryption_desc">Store AI conversations in encrypted database</string>
+	<string name="rushlight_biometric_unavailable">Biometric authentication not available on this device</string>
+	<string name="rushlight_auth_required">Authentication required</string>
+	<string name="rushlight_unlock_panel">Unlock Rushlight Panel</string>
+	<string name="rushlight_auth_subtitle">Authenticate to access tools</string>
+
+	<!-- Rushlight: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>
 	<string name="select_zim_file_descr">Open a ZIM file from your device to browse offline Wikipedia articles</string>
 	<string name="shared_string_local">Local</string>

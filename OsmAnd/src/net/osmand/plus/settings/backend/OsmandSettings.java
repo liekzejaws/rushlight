@@ -1011,6 +1011,12 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> LAMPP_MORSE_GPS_APPEND =
 			new BooleanPreference(this, "lampp_morse_gps_append", true).makeGlobal().makeShared();
 
+	// Rushlight Security Suite
+	public final CommonPreference<Boolean> LAMPP_SCREEN_LOCK_ENABLED =
+			new BooleanPreference(this, "lampp_screen_lock_enabled", false).makeGlobal().makeShared();
+	public final CommonPreference<Boolean> LAMPP_CHAT_ENCRYPTION_ENABLED =
+			new BooleanPreference(this, "lampp_chat_encryption_enabled", true).makeGlobal().makeShared();
+
 	public final OsmandPreference<Boolean> SHOW_COMPASS_ON_RADIUS_RULER = new BooleanPreference(this, "show_compass_ruler", true).makeProfile();
 
 	public final OsmandPreference<Boolean> SHOW_DISTANCE_RULER = new BooleanPreference(this, "show_distance_ruler", false).makeProfile();

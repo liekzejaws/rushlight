@@ -103,4 +103,24 @@
 		android:summaryOn="@string/shared_string_enabled"
 		android:title="@string/lampp_pipboy_cursor_blink_title" />
 
+	<!-- Security -->
+	<PreferenceCategory
+		android:key="lampp_security"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/rushlight_security_category" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_screen_lock_enabled"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/rushlight_screen_lock_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_chat_encryption_enabled"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/rushlight_chat_encryption_title" />
+
 </PreferenceScreen>

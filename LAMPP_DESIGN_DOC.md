@@ -427,6 +427,26 @@ $ADB -s 5A081JEBF10683 shell am start -n io.lampp.app/net.osmand.plus.activities
 | *(uncommitted)* | — | LAMPP panel system, side tab bar, theming (3 presets), settings screen |
 | *(uncommitted)* | — | Pip-Boy visual effects (scan lines, glow, retro font, cursor blink) |
 | *(uncommitted)* | — | P2P Share completion (persistence, peer browsing, transfer progress) |
+| `e275941d2a` | v0.1 | Rushlight v0.1: panel system, morse code, Pip-Boy themes |
+| *(uncommitted)* | 9A | Rebrand from Lampp to Rushlight (io.rushlight.app) |
+| *(uncommitted)* | 9B | Security Suite: encrypted chat (SQLCipher), panic wipe, biometric panel lock |
+
+### New Files (Phase 9B)
+```
+OsmAnd/src/net/osmand/plus/security/
+├── SecurityManager.java          # Central coordinator, passphrase, panic wipe
+├── EncryptedChatStorage.java     # SQLCipher chat database
+├── PanelLockManager.java         # Biometric authentication for panel access
+└── BiometricHelper.java          # Biometric availability checks
+
+OsmAnd/src/net/osmand/plus/ai/
+└── ChatMessage.java              # Extracted from LlmChatFragment inner class
+```
+
+### Dependencies Added (Phase 9B)
+- `net.zetetic:android-database-sqlcipher:4.5.4` — AES-256 encrypted SQLite
+- `androidx.sqlite:sqlite:2.3.1` — SQLite support library
+- `androidx.biometric:biometric:1.2.0-alpha05` — Biometric authentication
 
 ---
 

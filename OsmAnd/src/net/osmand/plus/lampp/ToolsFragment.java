@@ -1,6 +1,7 @@
 package net.osmand.plus.lampp;
 
 import android.animation.ValueAnimator;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -13,6 +14,7 @@ import com.google.android.material.card.MaterialCardView;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.security.SecurityManager;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.fragments.SettingsScreenType;
 
@@ -72,8 +74,32 @@ public class ToolsFragment extends LamppPanelFragment {
 			});
 		}
 
+		// Panic wipe button
+		View panicWipeButton = contentView.findViewById(R.id.panic_wipe_button);
+		if (panicWipeButton != null) {
+			panicWipeButton.setOnClickListener(v -> showPanicWipeConfirmation());
+		}
+
 		// Show current selection
 		updateSelection();
+	}
+
+	private void showPanicWipeConfirmation() {
+		if (getContext() == null) return;
+		new AlertDialog.Builder(getContext())
+				.setTitle(R.string.rushlight_panic_wipe_confirm_title)
+				.setMessage(R.string.rushlight_panic_wipe_confirm_message)
+				.setPositiveButton(R.string.rushlight_panic_wipe, (dialog, which) -> {
+					OsmandApplication app = getMyApplication();
+					if (app != null) {
+						SecurityManager secMgr = app.getSecurityManager();
+						secMgr.executePanicWipe();
+						app.showShortToastMessage(R.string.rushlight_panic_wipe_success);
+					}
+				})
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.show();
 	}
 
 	private void applyPreset(@NonNull LamppStylePreset preset) {
