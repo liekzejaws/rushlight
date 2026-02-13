@@ -103,6 +103,17 @@
 		android:summaryOn="@string/shared_string_enabled"
 		android:title="@string/lampp_pipboy_cursor_blink_title" />
 
+	<!-- AI Behavior -->
+	<PreferenceCategory
+		android:key="lampp_ai_behavior"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/rushlight_ai_behavior_category" />
+
+	<EditTextPreference
+		android:key="lampp_system_prompt"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/rushlight_system_prompt_title" />
+
 	<!-- Security -->
 	<PreferenceCategory
 		android:key="lampp_security"

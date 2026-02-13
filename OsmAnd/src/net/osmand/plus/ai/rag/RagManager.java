@@ -87,6 +87,10 @@ public class RagManager {
         this.mainHandler = new Handler(Looper.getMainLooper());
 
         // Read configuration from user preferences
+        String customPrompt = app.getSettings().LAMPP_SYSTEM_PROMPT.get();
+        if (customPrompt != null && !customPrompt.isEmpty()) {
+            this.promptBuilder.setCustomSystemPrompt(customPrompt);
+        }
         this.wikipediaEnabled = app.getSettings().LAMPP_RAG_WIKIPEDIA_ENABLED.get();
         this.poiAmenitySearchEnabled = app.getSettings().LAMPP_RAG_POI_SEARCH_ENABLED.get();
         this.maxSources = app.getSettings().LAMPP_RAG_MAX_SOURCES.get();

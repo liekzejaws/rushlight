@@ -134,6 +134,12 @@
 	<string name="rushlight_unlock_panel">Unlock Rushlight Panel</string>
 	<string name="rushlight_auth_subtitle">Authenticate to access tools</string>
 
+	<!-- Rushlight: AI Chat Polish (Phase 10) -->
+	<string name="rushlight_ai_behavior_category">AI Behavior</string>
+	<string name="rushlight_system_prompt_title">System prompt</string>
+	<string name="rushlight_system_prompt_desc">Instructions given to the AI at the start of each query</string>
+	<string name="rushlight_copied_to_clipboard">Copied to clipboard</string>
+
 	<!-- Rushlight: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>
 	<string name="select_zim_file_descr">Open a ZIM file from your device to browse offline Wikipedia articles</string>

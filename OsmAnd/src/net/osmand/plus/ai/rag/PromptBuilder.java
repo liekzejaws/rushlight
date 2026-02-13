@@ -1,6 +1,7 @@
 package net.osmand.plus.ai.rag;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.List;
 
@@ -89,12 +90,20 @@ public class PromptBuilder {
             "Answer:";
 
     /**
-     * System prompt prefix for the assistant.
+     * Default system prompt prefix for the assistant.
+     * Can be overridden via LAMPP_SYSTEM_PROMPT setting.
      */
-    private static final String SYSTEM_PREFIX =
+    private static final String DEFAULT_SYSTEM_PREFIX =
             "You are a helpful assistant with access to offline Wikipedia. " +
             "When citing Wikipedia, use the format [Source: Article Title]. " +
-            "Be concise and accurate.\n\n";
+            "Be concise and accurate.";
+
+    /**
+     * Custom system prompt, set from user settings.
+     * If null, DEFAULT_SYSTEM_PREFIX is used.
+     */
+    @Nullable
+    private String customSystemPrompt;
 
     /**
      * Maximum context tokens to use (leaving room for response).
@@ -123,7 +132,7 @@ public class PromptBuilder {
                     source.getText()));
         }
 
-        return String.format(RAG_TEMPLATE, contextBuilder.toString(), query);
+        return getSystemPrefix() + String.format(RAG_TEMPLATE, contextBuilder.toString(), query);
     }
 
     /**
@@ -169,7 +178,7 @@ public class PromptBuilder {
             }
         }
 
-        return String.format(RAG_TEMPLATE, contextBuilder.toString(), query);
+        return getSystemPrefix() + String.format(RAG_TEMPLATE, contextBuilder.toString(), query);
     }
 
     /**
@@ -180,7 +189,7 @@ public class PromptBuilder {
      */
     @NonNull
     public String buildNoContextPrompt(@NonNull String query) {
-        return String.format(NO_CONTEXT_TEMPLATE, query);
+        return getSystemPrefix() + String.format(NO_CONTEXT_TEMPLATE, query);
     }
 
     /**
@@ -191,15 +200,23 @@ public class PromptBuilder {
      */
     @NonNull
     public String buildSimplePrompt(@NonNull String query) {
-        return query;
+        return getSystemPrefix() + query;
     }
 
     /**
-     * Get the system prompt prefix.
+     * Set a custom system prompt from user settings.
+     */
+    public void setCustomSystemPrompt(@Nullable String prompt) {
+        this.customSystemPrompt = prompt;
+    }
+
+    /**
+     * Get the active system prompt prefix (custom or default).
      */
     @NonNull
     public String getSystemPrefix() {
-        return SYSTEM_PREFIX;
+        String prompt = customSystemPrompt != null ? customSystemPrompt : DEFAULT_SYSTEM_PREFIX;
+        return prompt + "\n\n";
     }
 
     /**
@@ -269,7 +286,7 @@ public class PromptBuilder {
             poiContext.append(poi.toPromptString()).append("\n");
         }
 
-        return String.format(LOCATION_TEMPLATE,
+        return getSystemPrefix() + String.format(LOCATION_TEMPLATE,
                 location.getLocationString(),
                 poiContext.toString(),
                 query);
@@ -302,7 +319,7 @@ public class PromptBuilder {
             remainingTokens -= entryTokens;
         }
 
-        return String.format(LOCATION_TEMPLATE,
+        return getSystemPrefix() + String.format(LOCATION_TEMPLATE,
                 location.getLocationString(),
                 poiContext.toString(),
                 query);
@@ -327,7 +344,7 @@ public class PromptBuilder {
             poiContext.append(poi.toPromptString()).append("\n");
         }
 
-        return String.format(HYBRID_TEMPLATE,
+        return getSystemPrefix() + String.format(HYBRID_TEMPLATE,
                 wikiContext.toString(),
                 poiContext.toString(),
                 query);
@@ -381,7 +398,7 @@ public class PromptBuilder {
             remainingPoiTokens -= entryTokens;
         }
 
-        return String.format(HYBRID_TEMPLATE,
+        return getSystemPrefix() + String.format(HYBRID_TEMPLATE,
                 wikiContext.toString(),
                 poiContext.toString(),
                 query);
@@ -392,7 +409,7 @@ public class PromptBuilder {
      */
     @NonNull
     public String buildNoPoiPrompt(@NonNull String query) {
-        return "Note: No places were found nearby for this query.\n\n" +
+        return getSystemPrefix() + "Note: No places were found nearby for this query.\n\n" +
                 "Question: " + query + "\n\n" +
                 "Answer:";
     }
@@ -430,7 +447,7 @@ public class PromptBuilder {
             remainingTokens -= entryTokens;
         }
 
-        return String.format(DIRECTION_TEMPLATE,
+        return getSystemPrefix() + String.format(DIRECTION_TEMPLATE,
                 location.getLocationString(),
                 placeContext.toString(),
                 query);

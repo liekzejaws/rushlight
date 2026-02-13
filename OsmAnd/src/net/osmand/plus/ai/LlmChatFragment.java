@@ -1,8 +1,13 @@
 package net.osmand.plus.ai;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Spanned;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -15,15 +20,23 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import io.noties.markwon.AbstractMarkwonPlugin;
+import io.noties.markwon.Markwon;
+import io.noties.markwon.MarkwonPlugin;
+import io.noties.markwon.core.MarkwonTheme;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
@@ -79,6 +92,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private TerminalCursorBlinker cursorBlinker;
 	@Nullable
 	private EncryptedChatStorage chatStorage;
+	@Nullable
+	private Markwon markwon;
 
 	@Override
 	protected int getPanelLayoutId() {
@@ -97,6 +112,9 @@ public class LlmChatFragment extends LamppPanelFragment {
 		llmManager = new LlmManager(app);
 		ragManager = new RagManager(app, llmManager);
 		cursorBlinker = new TerminalCursorBlinker();
+
+		// Initialize Markwon with theme-aware styling
+		markwon = buildMarkwon(view.getContext());
 
 		// Initialize encrypted chat storage and load persisted messages
 		try {
@@ -427,6 +445,59 @@ public class LlmChatFragment extends LamppPanelFragment {
 		updateUI();
 	}
 
+	/**
+	 * Build a Markwon instance with theme-aware colors from the active LamppStylePreset.
+	 */
+	@NonNull
+	private Markwon buildMarkwon(@NonNull Context context) {
+		LamppStylePreset preset = LamppThemeUtils.getActivePreset(app);
+		@ColorInt int linkColor = preset.getPrimaryColor(context, nightMode);
+		@ColorInt int codeBgColor = preset.getAiMessageBgColor(context, nightMode);
+		@ColorInt int codeTextColor = preset.getAiMessageTextColor(context, nightMode);
+
+		return Markwon.builder(context)
+				.usePlugin(new AbstractMarkwonPlugin() {
+					@Override
+					public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
+						builder.linkColor(linkColor)
+								.codeTextColor(codeTextColor)
+								.codeBackgroundColor(codeBgColor)
+								.codeBlockTextColor(codeTextColor)
+								.codeBlockBackgroundColor(codeBgColor)
+								.codeTypeface(Typeface.MONOSPACE)
+								.headingBreakHeight(0);
+					}
+				})
+				.build();
+	}
+
+	/**
+	 * Rebuild Markwon when theme changes.
+	 */
+	private void rebuildMarkwon() {
+		View view = getView();
+		if (view != null) {
+			markwon = buildMarkwon(view.getContext());
+			if (chatAdapter != null) {
+				chatAdapter.notifyDataSetChanged();
+			}
+		}
+	}
+
+	/**
+	 * Copy text to clipboard and show toast.
+	 */
+	private void copyToClipboard(@NonNull String text) {
+		Context context = getContext();
+		if (context != null) {
+			ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+			if (clipboard != null) {
+				clipboard.setPrimaryClip(ClipData.newPlainText("AI Response", text));
+				Toast.makeText(context, R.string.rushlight_copied_to_clipboard, Toast.LENGTH_SHORT).show();
+			}
+		}
+	}
+
 	// RecyclerView Adapter
 	class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHolder> {
 
@@ -454,6 +525,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 			TextView roleText;
 			TextView contentText;
 			TextView sourcesText;
+			ImageButton copyButton;
 
 			MessageViewHolder(@NonNull View itemView) {
 				super(itemView);
@@ -461,22 +533,30 @@ public class LlmChatFragment extends LamppPanelFragment {
 				roleText = itemView.findViewById(R.id.message_role);
 				contentText = itemView.findViewById(R.id.message_content);
 				sourcesText = itemView.findViewById(R.id.message_sources);
+				copyButton = itemView.findViewById(R.id.copy_button);
 			}
 
 			void bind(ChatMessage message) {
-				contentText.setText(message.content);
+				boolean isAiMessage = message.role == ChatMessage.ROLE_AI;
+				boolean isStreaming = llmManager != null && llmManager.isGenerating();
+				int position = getAdapterPosition();
+				boolean isLastMessage = position == messages.size() - 1;
+				boolean isStreamingThisMessage = isAiMessage && isLastMessage && isStreaming;
+
+				// Render content: Markwon for AI messages, plain text for user/system
+				if (isAiMessage && markwon != null) {
+					markwon.setMarkdown(contentText, message.content);
+				} else {
+					contentText.setText(message.content);
+				}
 
 				// Pip-Boy terminal cursor blink effect on last AI message during generation
-				int position = getAdapterPosition();
-				if (message.role == ChatMessage.ROLE_AI
-						&& position == messages.size() - 1
-						&& llmManager != null && llmManager.isGenerating()
-						&& isPipBoyCursorEnabled()) {
+				if (isStreamingThisMessage && isPipBoyCursorEnabled()) {
 					cursorBlinker.attachTo(contentText, message.content);
 				}
 
 				// Show sources if available (for AI messages with Wikipedia/POI context)
-				if (message.role == ChatMessage.ROLE_AI && message.hasAnySources()) {
+				if (isAiMessage && message.hasAnySources()) {
 					if (sourcesText != null) {
 						sourcesText.setVisibility(View.VISIBLE);
 						sourcesText.setText(message.getSourcesText().trim());
@@ -487,11 +567,26 @@ public class LlmChatFragment extends LamppPanelFragment {
 					}
 				}
 
+				// Copy button: visible only for completed AI messages
+				if (copyButton != null) {
+					if (isAiMessage && !isStreamingThisMessage) {
+						copyButton.setVisibility(View.VISIBLE);
+						copyButton.setOnClickListener(v -> copyToClipboard(message.content));
+					} else {
+						copyButton.setVisibility(View.GONE);
+					}
+				}
+
+				// Long-press to copy for all messages
+				itemView.setOnLongClickListener(v -> {
+					copyToClipboard(message.content);
+					return true;
+				});
+
 				// Style based on role — use preset-aware colors
 				LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) messageCard.getLayoutParams();
-				net.osmand.plus.lampp.LamppStylePreset preset =
-						net.osmand.plus.lampp.LamppThemeUtils.getActivePreset(app);
-				android.content.Context ctx = itemView.getContext();
+				LamppStylePreset preset = LamppThemeUtils.getActivePreset(app);
+				Context ctx = itemView.getContext();
 
 				switch (message.role) {
 					case ChatMessage.ROLE_USER:
@@ -517,6 +612,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 				}
 
 				messageCard.setLayoutParams(params);
+
+				// Tint copy button to match theme
+				if (copyButton != null && isAiMessage) {
+					copyButton.setColorFilter(preset.getTextSecondaryColor(ctx, nightMode));
+				}
 			}
 		}
 	}

@@ -1017,6 +1017,13 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> LAMPP_CHAT_ENCRYPTION_ENABLED =
 			new BooleanPreference(this, "lampp_chat_encryption_enabled", true).makeGlobal().makeShared();
 
+	// Rushlight AI Behavior
+	public final CommonPreference<String> LAMPP_SYSTEM_PROMPT =
+			new StringPreference(this, "lampp_system_prompt",
+					"You are a helpful assistant with access to offline Wikipedia. " +
+					"When citing Wikipedia, use the format [Source: Article Title]. " +
+					"Be concise and accurate.").makeGlobal().makeShared();
+
 	public final OsmandPreference<Boolean> SHOW_COMPASS_ON_RADIUS_RULER = new BooleanPreference(this, "show_compass_ruler", true).makeProfile();
 
 	public final OsmandPreference<Boolean> SHOW_DISTANCE_RULER = new BooleanPreference(this, "show_distance_ruler", false).makeProfile();

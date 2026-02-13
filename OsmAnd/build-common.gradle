@@ -463,6 +463,9 @@ dependencies {
 	implementation "androidx.sqlite:sqlite:2.3.1"
 	implementation "androidx.biometric:biometric:1.2.0-alpha05"
 
+	// ===== Rushlight: Markdown rendering for AI chat responses =====
+	implementation "io.noties.markwon:core:4.6.2"
+
 	implementation "androidx.car.app:app:1.7.0"
 	implementation "androidx.car.app:app-projected:1.7.0"
 

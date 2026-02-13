@@ -1,5 +1,6 @@
 package net.osmand.plus.lampp;
 
+import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 
 import net.osmand.plus.R;
@@ -66,10 +67,29 @@ public class LamppSettingsFragment extends BaseSettingsFragment {
 		setupSwitchPref(settings.LAMPP_PIPBOY_CURSOR_BLINK.getId(),
 				R.string.lampp_pipboy_cursor_blink_desc);
 
+		// AI Behavior
+		setupSystemPromptPref();
+
 		// Security
 		setupScreenLockPref();
 		setupSwitchPref(settings.LAMPP_CHAT_ENCRYPTION_ENABLED.getId(),
 				R.string.rushlight_chat_encryption_desc);
+	}
+
+	private void setupSystemPromptPref() {
+		EditTextPreference pref = findPreference(settings.LAMPP_SYSTEM_PROMPT.getId());
+		if (pref != null) {
+			pref.setIconSpaceReserved(false);
+			pref.setSummary(R.string.rushlight_system_prompt_desc);
+			// Show current value as dialog default
+			String currentPrompt = settings.LAMPP_SYSTEM_PROMPT.get();
+			pref.setText(currentPrompt);
+			pref.setOnPreferenceChangeListener((preference, newValue) -> {
+				String value = (String) newValue;
+				settings.LAMPP_SYSTEM_PROMPT.set(value);
+				return true;
+			});
+		}
 	}
 
 	private void setupScreenLockPref() {

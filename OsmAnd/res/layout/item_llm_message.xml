@@ -32,7 +32,7 @@
                 android:textStyle="bold"
                 android:visibility="gone" />
 
-            <!-- Message content -->
+            <!-- Message content (supports Markwon markdown for AI messages) -->
             <TextView
                 android:id="@+id/message_content"
                 android:layout_width="wrap_content"
@@ -49,6 +49,20 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textStyle="italic"
                 android:textColor="?android:attr/textColorSecondary"
+                android:visibility="gone" />
+
+            <!-- Copy button (visible for completed AI messages only) -->
+            <ImageButton
+                android:id="@+id/copy_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="end"
+                android:layout_marginTop="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Copy"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_action_copy"
                 android:visibility="gone" />
 
         </LinearLayout>
