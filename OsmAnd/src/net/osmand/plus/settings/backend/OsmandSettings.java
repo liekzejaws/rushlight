@@ -998,6 +998,10 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> LAMPP_PIPBOY_CURSOR_BLINK =
 			new BooleanPreference(this, "lampp_pipboy_cursor_blink", true).makeGlobal().makeShared();
 
+	// LAMPP Chat Conversations (Phase 14)
+	public final CommonPreference<Long> LAMPP_ACTIVE_CONVERSATION_ID =
+			new LongPreference(this, "lampp_active_conversation_id", 1L).makeGlobal().makeShared();
+
 	// LAMPP Morse Code
 	public final CommonPreference<Integer> LAMPP_MORSE_WPM =
 			new IntPreference(this, "lampp_morse_wpm", 13).makeGlobal().makeShared();
@@ -1016,6 +1020,26 @@ public class OsmandSettings {
 			new BooleanPreference(this, "lampp_screen_lock_enabled", false).makeGlobal().makeShared();
 	public final CommonPreference<Boolean> LAMPP_CHAT_ENCRYPTION_ENABLED =
 			new BooleanPreference(this, "lampp_chat_encryption_enabled", true).makeGlobal().makeShared();
+
+	// Rushlight Duress PIN (Phase 15)
+	public final CommonPreference<String> LAMPP_REAL_PIN_HASH =
+			new StringPreference(this, "lampp_real_pin_hash", "").makeGlobal().makeShared();
+	public final CommonPreference<String> LAMPP_DURESS_PIN_HASH =
+			new StringPreference(this, "lampp_duress_pin_hash", "").makeGlobal().makeShared();
+	public final CommonPreference<String> LAMPP_PIN_SALT =
+			new StringPreference(this, "lampp_pin_salt", "").makeGlobal().makeShared();
+	public final CommonPreference<String> LAMPP_DURESS_WIPE_SCOPE =
+			new StringPreference(this, "lampp_duress_wipe_scope", "CHAT_ONLY").makeGlobal().makeShared();
+
+	// Rushlight Security: Fallback passphrase for devices without hardware keystore (Phase 16)
+	public final CommonPreference<String> LAMPP_FALLBACK_PASSPHRASE =
+			new StringPreference(this, "lampp_fallback_passphrase", "").makeGlobal().makeShared();
+
+	// Rushlight Stealth Mode (Phase 15 Session 2)
+	public final CommonPreference<Boolean> LAMPP_STEALTH_ENABLED =
+			new BooleanPreference(this, "lampp_stealth_enabled", false).makeGlobal().makeShared();
+	public final CommonPreference<String> LAMPP_STEALTH_DIALER_CODE =
+			new StringPreference(this, "lampp_stealth_dialer_code", "").makeGlobal().makeShared();
 
 	// Rushlight P2P Transport Encryption (ECDH + ChaCha20-Poly1305)
 	public final CommonPreference<Boolean> LAMPP_P2P_ENCRYPTION_ENABLED =

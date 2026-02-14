@@ -65,9 +65,10 @@ public class OnboardingOverlay {
 			dismiss(overlay, rootView, app);
 		});
 
-		// Also dismiss on tap anywhere on the overlay
+		// Consume taps on the overlay background to prevent map interaction,
+		// but only dismiss via the "Got it" button (Phase 16 fix)
 		overlay.setOnClickListener(v -> {
-			dismiss(overlay, rootView, app);
+			// Intentionally empty — prevents taps from falling through to map
 		});
 
 		// Add overlay with fade-in

@@ -33,6 +33,7 @@ public class LamppPanelManager {
 	private LamppSideTabBar tabBar;
 	@Nullable
 	private LamppTab activeTab = null;
+	private boolean p2pListenerRegistered = false;
 
 	public LamppPanelManager(@NonNull MapActivity mapActivity) {
 		this.mapActivity = mapActivity;
@@ -51,6 +52,10 @@ public class LamppPanelManager {
 			tabBadgeManager.setListener((tab, count) -> {
 				mapActivity.runOnUiThread(() -> tabBar.setBadgeCount(tab, count));
 			});
+
+			// Phase 16: Register P2P badge listener early so peer discoveries
+			// before first panel open are not missed
+			registerP2pBadgeListener();
 		}
 	}
 
@@ -94,6 +99,8 @@ public class LamppPanelManager {
 		LamppPanelFragment fragment = createFragmentForTab(tab);
 		if (fragment == null) {
 			LOG.error("Failed to create fragment for tab: " + tab);
+			OsmandApplication app2 = (OsmandApplication) mapActivity.getApplication();
+			app2.showShortToastMessage(R.string.panel_open_failed);
 			return;
 		}
 
@@ -174,6 +181,8 @@ public class LamppPanelManager {
 							"net.osmand.plus.plugins.p2pshare.ui.P2pShareFragment").newInstance();
 				case MORSE:
 					return new net.osmand.plus.morse.MorseFragment();
+				case GUIDES:
+					return new net.osmand.plus.guides.GuidesFragment();
 				case TOOLS:
 					return new ToolsFragment();
 				default:
@@ -233,6 +242,8 @@ public class LamppPanelManager {
 	 * when the P2P panel is not the active tab.
 	 */
 	private void registerP2pBadgeListener() {
+		if (p2pListenerRegistered) return;
+		p2pListenerRegistered = true;
 		P2pSharePlugin plugin = PluginsHelper.getPlugin(P2pSharePlugin.class);
 		if (plugin != null) {
 			P2pShareManager shareManager = plugin.getShareManager();

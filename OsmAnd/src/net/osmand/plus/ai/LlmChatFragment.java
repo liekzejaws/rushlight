@@ -80,6 +80,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private RecyclerView chatMessagesRecycler;
 	private View emptyState;
 	private View generatingIndicator;
+	private TextView generatingStatusText;
 	private EditText messageInput;
 	private ImageButton sendButton;
 
@@ -94,6 +95,9 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private EncryptedChatStorage chatStorage;
 	@Nullable
 	private Markwon markwon;
+
+	// Active conversation (Phase 14)
+	private long activeConversationId = EncryptedChatStorage.DEFAULT_CONVERSATION_ID;
 
 	@Override
 	protected int getPanelLayoutId() {
@@ -120,12 +124,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 		try {
 			SecurityManager secMgr = app.getSecurityManager();
 			chatStorage = secMgr.getChatStorage();
-			List<ChatMessage> saved = chatStorage.loadAllMessages();
-			if (!saved.isEmpty()) {
-				messages.addAll(saved);
-			}
+			// Restore last active conversation (default=1)
+			activeConversationId = app.getSettings().LAMPP_ACTIVE_CONVERSATION_ID.get();
+			loadConversationMessages(activeConversationId);
 		} catch (Exception e) {
 			LOG.error("Failed to initialize chat storage: " + e.getMessage());
+			app.showShortToastMessage(R.string.chat_storage_unavailable);
 		}
 
 		// Setup UI
@@ -134,8 +138,18 @@ public class LlmChatFragment extends LamppPanelFragment {
 			toolbar.setTitle("AI Assistant");
 			toolbar.inflateMenu(R.menu.menu_llm_chat);
 			toolbar.setOnMenuItemClickListener(item -> {
-				if (item.getItemId() == R.id.action_models) {
+				int id = item.getItemId();
+				if (id == R.id.action_models) {
 					showModelManagement();
+					return true;
+				} else if (id == R.id.action_conversations) {
+					showConversationPicker();
+					return true;
+				} else if (id == R.id.action_system_prompt) {
+					showSystemPromptEditor();
+					return true;
+				} else if (id == R.id.action_clear_chat) {
+					clearActiveConversation();
 					return true;
 				}
 				return false;
@@ -155,6 +169,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 		chatMessagesRecycler = view.findViewById(R.id.chat_messages);
 		emptyState = view.findViewById(R.id.empty_state);
 		generatingIndicator = view.findViewById(R.id.generating_indicator);
+		generatingStatusText = view.findViewById(R.id.generating_status_text);
 		messageInput = view.findViewById(R.id.message_input);
 		sendButton = view.findViewById(R.id.send_button);
 
@@ -263,6 +278,30 @@ public class LlmChatFragment extends LamppPanelFragment {
 		generatingIndicator.setVisibility(llmManager.isGenerating() ? View.VISIBLE : View.GONE);
 	}
 
+	/**
+	 * Phase 16: Update the generating indicator text with a RAG progress state.
+	 */
+	private void setGeneratingStatus(int stringResId) {
+		if (generatingStatusText != null) {
+			generatingStatusText.setText(stringResId);
+		}
+		if (generatingIndicator != null) {
+			generatingIndicator.setVisibility(View.VISIBLE);
+		}
+	}
+
+	/**
+	 * Phase 16: Update the generating indicator text with a pre-formatted string.
+	 */
+	private void setGeneratingStatus(@NonNull String text) {
+		if (generatingStatusText != null) {
+			generatingStatusText.setText(text);
+		}
+		if (generatingIndicator != null) {
+			generatingIndicator.setVisibility(View.VISIBLE);
+		}
+	}
+
 	private void loadModel(File modelFile) {
 		llmManager.loadModel(modelFile, new LlmManager.ModelLoadCallback() {
 			@Override
@@ -305,21 +344,33 @@ public class LlmChatFragment extends LamppPanelFragment {
 		updateSendButton();
 
 		// Generate response using RAG pipeline
+		// Phase 16: Show searching state immediately
+		setGeneratingStatus(R.string.rag_status_searching);
+
 		ragManager.queryAsync(text, new RagCallback() {
 			@Override
 			public void onSearchStarted(@NonNull List<String> searchTerms) {
-				// Could show "Searching Wikipedia..." indicator
 				LOG.debug("RAG: Searching for " + searchTerms);
+				if (getActivity() != null) {
+					getActivity().runOnUiThread(() -> setGeneratingStatus(R.string.rag_status_searching));
+				}
 			}
 
 			@Override
 			public void onSearchComplete(@NonNull List<ArticleSource> sources, long timeMs) {
 				LOG.debug("RAG: Found " + sources.size() + " sources in " + timeMs + "ms");
+				if (getActivity() != null) {
+					getActivity().runOnUiThread(() ->
+						setGeneratingStatus(getString(R.string.rag_status_sources_found, sources.size())));
+				}
 			}
 
 			@Override
 			public void onGenerationStarted(boolean usesWikipedia) {
 				LOG.debug("RAG: Generation started, usesWikipedia=" + usesWikipedia);
+				if (getActivity() != null) {
+					getActivity().runOnUiThread(() -> setGeneratingStatus(R.string.rag_status_generating));
+				}
 			}
 
 			@Override
@@ -423,11 +474,112 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private void persistMessage(@NonNull ChatMessage message) {
 		if (chatStorage != null) {
 			try {
-				chatStorage.saveMessage(message);
+				chatStorage.saveMessage(activeConversationId, message);
 			} catch (Exception e) {
 				LOG.error("Failed to persist message: " + e.getMessage());
 			}
 		}
+	}
+
+	/**
+	 * Load messages for a conversation and refresh the UI.
+	 */
+	private void loadConversationMessages(long conversationId) {
+		messages.clear();
+		if (chatStorage != null) {
+			List<ChatMessage> saved = chatStorage.getMessagesForConversation(conversationId);
+			if (!saved.isEmpty()) {
+				messages.addAll(saved);
+			}
+		}
+		if (chatAdapter != null) {
+			chatAdapter.notifyDataSetChanged();
+			if (!messages.isEmpty()) {
+				chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+			}
+		}
+	}
+
+	/**
+	 * Switch to a different conversation.
+	 */
+	private void switchConversation(long conversationId) {
+		activeConversationId = conversationId;
+		// Persist the active conversation preference
+		if (app != null) {
+			app.getSettings().LAMPP_ACTIVE_CONVERSATION_ID.set(conversationId);
+		}
+		loadConversationMessages(conversationId);
+
+		// Apply conversation's system prompt to RAG pipeline if available
+		if (chatStorage != null && ragManager != null) {
+			String systemPrompt = chatStorage.getConversationSystemPrompt(conversationId);
+			if (systemPrompt != null && !systemPrompt.isEmpty()) {
+				ragManager.setCustomSystemPrompt(systemPrompt);
+			} else {
+				ragManager.setCustomSystemPrompt(null);
+			}
+		}
+
+		updateUI();
+	}
+
+	/**
+	 * Show the conversation picker dialog.
+	 */
+	private void showConversationPicker() {
+		ConversationPickerDialog.showInstance(
+				getParentFragmentManager(),
+				activeConversationId,
+				new ConversationPickerDialog.OnConversationSelectedListener() {
+					@Override
+					public void onConversationSelected(long conversationId) {
+						switchConversation(conversationId);
+					}
+
+					@Override
+					public void onNewConversation(long conversationId) {
+						switchConversation(conversationId);
+					}
+
+					@Override
+					public void onConversationDeleted(long conversationId) {
+						if (conversationId == activeConversationId) {
+							switchConversation(EncryptedChatStorage.DEFAULT_CONVERSATION_ID);
+						}
+					}
+				}
+		);
+	}
+
+	/**
+	 * Show the system prompt editor for the active conversation.
+	 */
+	private void showSystemPromptEditor() {
+		SystemPromptEditorDialog.showInstance(
+				getParentFragmentManager(),
+				activeConversationId,
+				prompt -> {
+					// Apply the new system prompt to the RAG pipeline
+					if (ragManager != null) {
+						ragManager.setCustomSystemPrompt(prompt);
+					}
+				}
+		);
+	}
+
+	/**
+	 * Clear messages in the active conversation.
+	 */
+	private void clearActiveConversation() {
+		messages.clear();
+		if (chatAdapter != null) {
+			chatAdapter.notifyDataSetChanged();
+		}
+		if (chatStorage != null) {
+			chatStorage.clearMessagesForConversation(activeConversationId);
+		}
+		updateUI();
 	}
 
 	/**
@@ -513,6 +665,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 		public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
 			ChatMessage message = messages.get(position);
 			holder.bind(message);
+		}
+
+		@Override
+		public int getItemViewType(int position) {
+			return messages.get(position).role;
 		}
 
 		@Override

@@ -6,14 +6,18 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import net.osmand.PlatformUtil;
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.settings.backend.OsmandSettings;
 
 import org.apache.commons.logging.Log;
 
 /**
- * Rushlight: Manages biometric authentication for panel access.
- * When enabled, requires biometric auth before opening any panel tab.
+ * Rushlight: Manages authentication for panel access.
+ * Phase 15: Auth chain is PIN (if set) → Biometric (if enabled) → Unlock.
+ *
+ * When a real PIN is configured, the PIN dialog appears first. If the duress PIN
+ * is entered, data is silently wiped and the app appears to unlock normally.
  */
 public class PanelLockManager {
 
@@ -34,8 +38,11 @@ public class PanelLockManager {
 
 	/**
 	 * Authenticate the user before allowing panel access.
-	 * If lock is disabled, calls onSuccess immediately.
-	 * If biometric is unavailable, bypasses with warning.
+	 * Phase 15 auth chain: PIN → Biometric → Unlock.
+	 *
+	 * If lock is disabled AND no PIN set, calls onSuccess immediately.
+	 * If PIN is set, shows PIN dialog first. On DURESS, silently wipes then succeeds.
+	 * After PIN (or if no PIN), proceeds to biometric if enabled.
 	 *
 	 * @param activity  The host activity (must be FragmentActivity for BiometricPrompt)
 	 * @param onSuccess Called when authentication succeeds or lock is disabled
@@ -44,11 +51,71 @@ public class PanelLockManager {
 	public void authenticate(@NonNull FragmentActivity activity,
 	                         @NonNull Runnable onSuccess,
 	                         @NonNull Runnable onFailure) {
-		if (!isLockEnabled()) {
-			onSuccess.run();
-			return;
-		}
+		// Check if PIN is configured
+		OsmandApplication app = (OsmandApplication) activity.getApplication();
+		DuressManager duressManager = app.getSecurityManager().getDuressManager();
 
+		if (duressManager.isRealPinSet()) {
+			// PIN is set — show PIN dialog first
+			showPinDialog(activity, duressManager, onSuccess, onFailure);
+		} else if (!isLockEnabled()) {
+			// No PIN, no lock — proceed immediately
+			onSuccess.run();
+		} else {
+			// No PIN, but biometric lock enabled
+			proceedToBiometric(activity, onSuccess, onFailure);
+		}
+	}
+
+	/**
+	 * Show the PIN entry dialog. On success, proceed to biometric (if enabled).
+	 */
+	private void showPinDialog(@NonNull FragmentActivity activity,
+	                           @NonNull DuressManager duressManager,
+	                           @NonNull Runnable onSuccess,
+	                           @NonNull Runnable onFailure) {
+		PinEntryDialog.showInstance(
+				activity.getSupportFragmentManager(),
+				PinEntryDialog.PinMode.AUTHENTICATE,
+				new PinEntryDialog.OnPinEnteredListener() {
+					@Override
+					public void onPinResult(@NonNull DuressManager.PinResult result) {
+						switch (result) {
+							case DURESS:
+								// Silent wipe + appear to unlock normally
+								LOG.warn("DURESS PIN entered — executing silent wipe");
+								duressManager.executeDuressWipe();
+								onSuccess.run();
+								break;
+							case REAL:
+								// Correct PIN — proceed to biometric if enabled
+								if (isLockEnabled()) {
+									proceedToBiometric(activity, onSuccess, onFailure);
+								} else {
+									onSuccess.run();
+								}
+								break;
+							case INVALID:
+							default:
+								// Invalid — PinEntryDialog handles retry internally
+								break;
+						}
+					}
+
+					@Override
+					public void onPinCancelled() {
+						onFailure.run();
+					}
+				}
+		);
+	}
+
+	/**
+	 * Proceed to biometric authentication (existing flow).
+	 */
+	private void proceedToBiometric(@NonNull FragmentActivity activity,
+	                                @NonNull Runnable onSuccess,
+	                                @NonNull Runnable onFailure) {
 		if (!BiometricHelper.isBiometricAvailable(activity)) {
 			LOG.warn("Screen lock enabled but biometric unavailable, bypassing");
 			onSuccess.run();

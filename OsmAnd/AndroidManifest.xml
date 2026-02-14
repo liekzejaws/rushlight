@@ -48,6 +48,8 @@
 		android:maxSdkVersion="30" />
 	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
 		android:maxSdkVersion="30" />
+	<!-- Rushlight Stealth Mode: Intercept outgoing calls matching secret dialer code -->
+	<uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
 
 	<uses-feature android:name="android.hardware.camera" android:required="false" />
 	<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -151,9 +153,9 @@
 				<data android:mimeType="application/gpx+xml" />
 			</intent-filter>
 
+			<!-- Rushlight: LAUNCHER intent-filter moved to LauncherAlias for stealth mode support -->
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
 				<category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
 				<category android:name="android.intent.category.APP_MAPS" />
 			</intent-filter>
@@ -613,6 +615,30 @@
 			</intent-filter>
 
 		</activity>
+
+		<!-- Rushlight Stealth Mode: Launcher alias that can be enabled/disabled -->
+		<!-- When stealth mode is ON, this alias is disabled — app disappears from launcher -->
+		<!-- When stealth mode is OFF (default), this alias is enabled — app visible in launcher -->
+		<activity-alias
+			android:name="net.osmand.plus.activities.LauncherAlias"
+			android:targetActivity="net.osmand.plus.activities.MapActivity"
+			android:label="@string/app_name"
+			android:exported="true"
+			android:enabled="true">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity-alias>
+
+		<!-- Rushlight Stealth Mode: Intercepts outgoing calls matching the secret dialer code -->
+		<receiver
+			android:name="net.osmand.plus.security.StealthDialerReceiver"
+			android:exported="true">
+			<intent-filter android:priority="999">
+				<action android:name="android.intent.action.NEW_OUTGOING_CALL" />
+			</intent-filter>
+		</receiver>
 
 		<activity android:name="net.osmand.plus.help.HelpActivity" />
 		<activity android:name="net.osmand.plus.myplaces.MyPlacesActivity" android:windowSoftInputMode="adjustPan" />

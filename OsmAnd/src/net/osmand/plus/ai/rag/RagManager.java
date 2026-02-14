@@ -60,6 +60,7 @@ public class RagManager {
     private final LlmManager llmManager;
     private final ZimSearchAdapter zimAdapter;
     private final MapDataAdapter mapAdapter;    // Phase 8
+    private final GuideSearchAdapter guideAdapter;  // Phase 14
     private final QueryClassifier classifier;
     private final PromptBuilder promptBuilder;
     private final ExecutorService executor;
@@ -81,6 +82,7 @@ public class RagManager {
         this.llmManager = llmManager;
         this.zimAdapter = new ZimSearchAdapter(app);
         this.mapAdapter = new MapDataAdapter(app);   // Phase 8
+        this.guideAdapter = new GuideSearchAdapter(app);  // Phase 14
         this.classifier = new QueryClassifier();
         this.promptBuilder = new PromptBuilder();
         this.executor = Executors.newSingleThreadExecutor();
@@ -157,9 +159,13 @@ public class RagManager {
                 && mapAdapter.isAvailable()
                 && poiAmenitySearchEnabled;
 
+        // Check for survival guide search (Phase 14)
+        boolean shouldSearchGuides = queryType.needsGuideSearch();
+
         List<ArticleSource> wikiSources = new ArrayList<>();
         List<PoiSource> poiSources = new ArrayList<>();
         List<PlaceResult> placeResults = new ArrayList<>();  // Phase 8.2: Direction queries
+        String guideContext = "";  // Phase 14: Survival guide context
         long wikiSearchTimeMs = 0;
         long poiSearchTimeMs = 0;
         long placeSearchTimeMs = 0;
@@ -178,9 +184,16 @@ public class RagManager {
             wikiSources = zimAdapter.searchRelevant(searchTerms, maxSources);
             wikiSearchTimeMs = System.currentTimeMillis() - searchStart;
 
-            // Fit to token budget
+            // Fit to token budget (survival queries give guides 70%, wiki gets 30%)
             if (!wikiSources.isEmpty()) {
-                int wikiBudget = isHybridQuery ? (int)(contextTokenBudget * 0.6) : contextTokenBudget;
+                int wikiBudget;
+                if (shouldSearchGuides) {
+                    wikiBudget = (int)(contextTokenBudget * 0.3);
+                } else if (isHybridQuery) {
+                    wikiBudget = (int)(contextTokenBudget * 0.6);
+                } else {
+                    wikiBudget = contextTokenBudget;
+                }
                 wikiSources = zimAdapter.fitToBudget(wikiSources, wikiBudget);
             }
 
@@ -190,6 +203,14 @@ public class RagManager {
             mainHandler.post(() -> callback.onSearchComplete(finalWikiSources, finalWikiSearchTime));
 
             LOG.info("Wikipedia search: " + wikiSources.size() + " sources in " + wikiSearchTimeMs + "ms");
+        }
+
+        // Search survival guides if needed (Phase 14)
+        if (shouldSearchGuides) {
+            int guideBudget = (int)(contextTokenBudget * 0.7);
+            guideContext = guideAdapter.search(query, guideBudget);
+            LOG.info("Guide search: " + (guideContext.isEmpty() ? "no results" :
+                    guideContext.length() + " chars of context"));
         }
 
         // Search POIs if needed (Phase 8)
@@ -266,7 +287,14 @@ public class RagManager {
 
         // Build prompt based on what data we have
         String prompt;
-        if (!placeResults.isEmpty()) {
+        if (!guideContext.isEmpty()) {
+            // Survival query with guide context (Phase 14)
+            String wikiContext = "";
+            if (!wikiSources.isEmpty()) {
+                wikiContext = promptBuilder.formatWikiSources(wikiSources);
+            }
+            prompt = promptBuilder.buildSurvivalPrompt(query, guideContext, wikiContext, contextTokenBudget);
+        } else if (!placeResults.isEmpty()) {
             // Direction query about a place (Phase 8.2)
             LocationContext location = mapAdapter.getCurrentLocation(MAX_SEARCH_RADIUS);
             prompt = promptBuilder.buildDirectionPrompt(query, placeResults, location, contextTokenBudget);
@@ -385,6 +413,14 @@ public class RagManager {
      */
     public void stopGeneration() {
         llmManager.stopGeneration();
+    }
+
+    /**
+     * Set a custom system prompt for the current conversation (Phase 14).
+     * Pass null to revert to the default system prompt.
+     */
+    public void setCustomSystemPrompt(@Nullable String prompt) {
+        promptBuilder.setCustomSystemPrompt(prompt);
     }
 
     /**

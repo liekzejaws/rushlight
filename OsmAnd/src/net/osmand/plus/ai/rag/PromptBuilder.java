@@ -76,6 +76,23 @@ public class PromptBuilder {
             "Answer:";
 
     /**
+     * Template for survival guide queries (Phase 14).
+     * Prioritizes safety and actionable step-by-step instructions.
+     */
+    private static final String SURVIVAL_TEMPLATE =
+            "You are a survival expert assistant with access to offline survival guides.\n" +
+            "Use the following survival guide excerpts to provide accurate, actionable advice.\n" +
+            "Prioritize safety - when in doubt, recommend the most conservative approach.\n\n" +
+            "=== Survival Guides ===\n" +
+            "%s" +
+            "=== End Guides ===\n\n" +
+            "%s" +
+            "Question: %s\n\n" +
+            "Provide clear, step-by-step instructions when applicable. " +
+            "Cite guides as [Guide: Title]. Be specific about quantities, times, and measurements.\n\n" +
+            "Answer:";
+
+    /**
      * Template for a single article in the context.
      */
     private static final String ARTICLE_TEMPLATE =
@@ -461,6 +478,44 @@ public class PromptBuilder {
                                         @NonNull List<PlaceResult> placeResults,
                                         @NonNull LocationContext location) {
         return buildDirectionPrompt(query, placeResults, location, DEFAULT_CONTEXT_BUDGET);
+    }
+
+    /**
+     * Build a prompt for survival queries with guide context (Phase 14).
+     *
+     * @param query User's survival-related question
+     * @param guideContext Formatted survival guide context from GuideSearchAdapter
+     * @param wikiContext Optional Wikipedia context (may be empty)
+     * @param maxContextTokens Maximum tokens for context
+     * @return Complete prompt for LLM
+     */
+    @NonNull
+    public String buildSurvivalPrompt(@NonNull String query,
+                                       @NonNull String guideContext,
+                                       @NonNull String wikiContext,
+                                       int maxContextTokens) {
+        String wikiSection = "";
+        if (!wikiContext.isEmpty()) {
+            wikiSection = "=== Wikipedia Context ===\n" + wikiContext + "=== End Wikipedia ===\n\n";
+        }
+
+        return getSystemPrefix() + String.format(SURVIVAL_TEMPLATE,
+                guideContext,
+                wikiSection,
+                query);
+    }
+
+    /**
+     * Format Wikipedia sources into a context string (Phase 14).
+     * Used when building survival prompts that combine guide + wiki context.
+     */
+    @NonNull
+    public String formatWikiSources(@NonNull List<ArticleSource> sources) {
+        StringBuilder sb = new StringBuilder();
+        for (ArticleSource source : sources) {
+            sb.append(String.format(ARTICLE_TEMPLATE, source.getTitle(), source.getText()));
+        }
+        return sb.toString();
     }
 
     /**

@@ -164,6 +164,9 @@ public class OsmandApplication extends MultiDexApplication {
 	// Rushlight: Security manager for encrypted storage and panic wipe
 	private net.osmand.plus.security.SecurityManager securityManager;
 
+	// Rushlight: Survival guide manager for offline knowledge base
+	private net.osmand.plus.guides.GuideManager guideManager;
+
 	// start variables
 	ResourceManager resourceManager;
 	OsmAndLocationProvider locationProvider;
@@ -451,6 +454,18 @@ public class OsmandApplication extends MultiDexApplication {
 			securityManager = new net.osmand.plus.security.SecurityManager(this);
 		}
 		return securityManager;
+	}
+
+	/**
+	 * Get the survival guide manager for offline knowledge base.
+	 * Lazily initialized on first access.
+	 */
+	@androidx.annotation.NonNull
+	public net.osmand.plus.guides.GuideManager getGuideManager() {
+		if (guideManager == null) {
+			guideManager = new net.osmand.plus.guides.GuideManager(this);
+		}
+		return guideManager;
 	}
 
 	public SavingTrackHelper getSavingTrackHelper() {

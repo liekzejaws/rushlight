@@ -103,6 +103,54 @@
 		android:summaryOn="@string/shared_string_enabled"
 		android:title="@string/lampp_pipboy_cursor_blink_title" />
 
+	<!-- Morse Code -->
+	<PreferenceCategory
+		android:key="lampp_morse_settings"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/lampp_morse_settings_category" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_morse_wpm"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_morse_wpm_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_morse_audio_freq"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_morse_audio_freq_title" />
+
+	<net.osmand.plus.settings.preferences.ListPreferenceEx
+		android:key="lampp_morse_receive_sensitivity"
+		android:layout="@layout/preference_with_descr"
+		android:title="@string/lampp_morse_sensitivity_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_morse_ai_correct"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_morse_ai_correct_title" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_morse_gps_append"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_morse_gps_append_title" />
+
+	<!-- P2P Sharing -->
+	<PreferenceCategory
+		android:key="lampp_p2p_settings"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/lampp_p2p_settings_category" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="lampp_p2p_encryption_enabled"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/lampp_p2p_encryption_title" />
+
 	<!-- AI Behavior -->
 	<PreferenceCategory
 		android:key="lampp_ai_behavior"

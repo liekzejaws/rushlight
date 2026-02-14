@@ -148,6 +148,24 @@
 	<string name="rushlight_unlock_panel">Unlock Rushlight Panel</string>
 	<string name="rushlight_auth_subtitle">Authenticate to access tools</string>
 
+	<!-- Rushlight: Morse Code Settings (Phase 16) -->
+	<string name="lampp_morse_settings_category">Morse Code</string>
+	<string name="lampp_morse_wpm_title">Transmission speed</string>
+	<string name="lampp_morse_wpm_desc">Words per minute for Morse code transmission</string>
+	<string name="lampp_morse_audio_freq_title">Audio frequency</string>
+	<string name="lampp_morse_audio_freq_desc">Tone frequency in Hz for audio mode</string>
+	<string name="lampp_morse_sensitivity_title">Receive sensitivity</string>
+	<string name="lampp_morse_sensitivity_desc">Signal detection threshold for incoming Morse code (0–100)</string>
+	<string name="lampp_morse_ai_correct_title">AI error correction</string>
+	<string name="lampp_morse_ai_correct_desc">Use local LLM to correct garbled Morse code transmissions</string>
+	<string name="lampp_morse_gps_append_title">Append GPS coordinates</string>
+	<string name="lampp_morse_gps_append_desc">Automatically add current coordinates to outgoing messages</string>
+
+	<!-- Rushlight: P2P Settings (Phase 16) -->
+	<string name="lampp_p2p_settings_category">P2P Sharing</string>
+	<string name="lampp_p2p_encryption_title">Encrypt transfers</string>
+	<string name="lampp_p2p_encryption_desc">Use ECDH + ChaCha20-Poly1305 encryption for peer-to-peer transfers</string>
+
 	<!-- Rushlight: Onboarding (Phase 12) -->
 	<string name="onboarding_title">Welcome to Rushlight</string>
 	<string name="onboarding_subtitle">Your offline survival computer. Tap the tabs on the right to explore:</string>
@@ -163,6 +181,85 @@
 	<string name="rushlight_system_prompt_title">System prompt</string>
 	<string name="rushlight_system_prompt_desc">Instructions given to the AI at the start of each query</string>
 	<string name="rushlight_copied_to_clipboard">Copied to clipboard</string>
+	<string name="chat_storage_unavailable">Chat storage unavailable — messages will not be saved</string>
+	<string name="panel_open_failed">Failed to open panel</string>
+	<string name="rag_status_searching">Searching knowledge base…</string>
+	<string name="rag_status_sources_found">Found %d sources — generating…</string>
+	<string name="rag_status_generating">Generating response…</string>
+
+	<!-- Rushlight: Survival Guides (Phase 14) -->
+	<string name="survival_guides">Survival Guides</string>
+	<string name="search_guides_hint">Search guides…</string>
+	<string name="guide_categories">Categories</string>
+	<string name="guide_reader_title">Guide</string>
+	<string name="no_guides_found">No guides found</string>
+	<string name="guides_loading">Loading guides…</string>
+	<string name="category_first_aid">First Aid</string>
+	<string name="category_water">Water</string>
+	<string name="category_fire">Fire &amp; Heat</string>
+	<string name="category_shelter">Shelter</string>
+	<string name="category_navigation">Navigation</string>
+	<string name="category_signaling">Signaling</string>
+	<string name="category_food">Food</string>
+	<string name="category_security">Security</string>
+
+	<!-- Rushlight: Conversations (Phase 14) -->
+	<string name="conversations">Conversations</string>
+	<string name="new_conversation">New Conversation</string>
+	<string name="conversation_name_hint">Conversation name</string>
+	<string name="rename_conversation">Rename Conversation</string>
+	<string name="delete_conversation">Delete Conversation</string>
+	<string name="delete_conversation_confirm">Delete \"%s\" and all its messages? This cannot be undone.</string>
+	<string name="no_conversations">No conversations yet</string>
+	<string name="clear_conversation">Clear Messages</string>
+
+	<!-- Rushlight: System prompt editor strings -->
+	<string name="system_prompt">System Prompt</string>
+	<string name="clear_prompt">Clear prompt</string>
+	<string name="preset_prompts">PRESETS</string>
+	<string name="preset_survival_expert">Survival Expert</string>
+	<string name="preset_medical">Medical</string>
+	<string name="preset_navigation">Navigation</string>
+	<string name="preset_radio">Radio Operator</string>
+	<string name="preset_general">General</string>
+	<string name="custom_prompt">CUSTOM PROMPT</string>
+	<string name="custom_prompt_hint">Enter a custom system prompt to shape the AI\'s behavior…</string>
+
+	<!-- Rushlight: Duress PIN strings (Phase 15) -->
+	<string name="set_unlock_pin">Set Unlock PIN</string>
+	<string name="set_duress_pin">Set Duress PIN</string>
+	<string name="enter_pin">Enter PIN</string>
+	<string name="confirm_pin">Confirm PIN</string>
+	<string name="pins_dont_match">PINs don\'t match — try again</string>
+	<string name="pin_must_be_4_digits">PIN must be 4 digits</string>
+	<string name="pin_invalid">Invalid PIN</string>
+	<string name="pin_lockout">Too many attempts. Try again in %d seconds</string>
+	<string name="clear_pins">Clear PINs</string>
+	<string name="clear_pins_confirm">Remove unlock and duress PINs? You will need to set them up again.</string>
+	<string name="duress_pin">Duress PIN</string>
+	<string name="duress_pin_same_as_real">Duress PIN cannot be the same as unlock PIN</string>
+	<string name="duress_wipe_scope">Wipe Scope</string>
+	<string name="wipe_chat_only">Chat Only</string>
+	<string name="wipe_chat_and_models">Chat + Models</string>
+	<string name="wipe_everything">Everything</string>
+	<string name="security_pin_section">Security PIN</string>
+	<string name="pin_set_success">PIN set successfully</string>
+	<string name="pins_cleared">PINs cleared</string>
+
+	<!-- Rushlight Phase 15 Session 2: Stealth Mode strings -->
+	<string name="stealth_mode">Stealth Mode</string>
+	<string name="stealth_enable">Enable Stealth Mode</string>
+	<string name="stealth_deactivate">Deactivate Stealth Mode</string>
+	<string name="stealth_active">Stealth mode is ACTIVE — app hidden from launcher</string>
+	<string name="stealth_inactive">Stealth mode is inactive</string>
+	<string name="stealth_enable_warning">The app will be hidden from the launcher. The ONLY way to open it will be dialing %s from your phone. Make sure you remember this code!</string>
+	<string name="dialer_code">Dialer Code</string>
+	<string name="stealth_code_hint">e.g. *#73784#</string>
+	<string name="stealth_test_code">Test Code</string>
+	<string name="stealth_code_saved">Dialer code saved</string>
+	<string name="stealth_code_invalid">Invalid code. Must start with *#, end with #, and be 6–12 characters.</string>
+	<string name="stealth_no_dialer">No phone dialer available</string>
+	<string name="stealth_settings">Stealth Settings</string>
 
 	<!-- Rushlight: ZIM Browser strings -->
 	<string name="no_file_selected">No ZIM file selected</string>

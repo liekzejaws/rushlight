@@ -2,6 +2,19 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_conversations"
+        android:icon="@drawable/ic_action_message"
+        android:title="@string/conversations"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/action_system_prompt"
+        android:title="@string/system_prompt"
+        app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_clear_chat"
+        android:title="@string/clear_conversation"
+        app:showAsAction="never"/>
+    <item
         android:id="@+id/action_models"
         android:icon="@drawable/ic_action_settings"
         android:title="Manage Models"

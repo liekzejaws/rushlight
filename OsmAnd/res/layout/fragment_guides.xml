@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+
+	<!-- Header: Title + search bar -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:paddingStart="16dp"
+		android:paddingEnd="16dp"
+		android:paddingTop="16dp"
+		android:paddingBottom="8dp">
+
+		<!-- Title row with back button -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:gravity="center_vertical"
+			android:layout_marginBottom="8dp">
+
+			<ImageView
+				android:id="@+id/guides_back_button"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:padding="4dp"
+				android:src="@drawable/ic_arrow_back"
+				android:visibility="gone"
+				android:contentDescription="Back"
+				app:tint="?attr/main_font_color_basic" />
+
+			<TextView
+				android:id="@+id/guides_title"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/survival_guides"
+				android:textSize="20sp"
+				android:textStyle="bold"
+				android:textColor="?attr/main_font_color_basic" />
+		</LinearLayout>
+
+		<!-- Search input -->
+		<EditText
+			android:id="@+id/guides_search_input"
+			android:layout_width="match_parent"
+			android:layout_height="40dp"
+			android:background="@drawable/bg_rounded_edittext"
+			android:hint="@string/search_guides_hint"
+			android:inputType="text"
+			android:maxLines="1"
+			android:paddingStart="12dp"
+			android:paddingEnd="12dp"
+			android:textSize="14sp"
+			android:textColor="?attr/main_font_color_basic"
+			android:textColorHint="@color/lampp_text_secondary" />
+	</LinearLayout>
+
+	<!-- Content: Category grid or guide list -->
+	<androidx.recyclerview.widget.RecyclerView
+		android:id="@+id/guides_recycler"
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1"
+		android:clipToPadding="false"
+		android:paddingStart="16dp"
+		android:paddingEnd="16dp"
+		android:paddingBottom="16dp" />
+
+</LinearLayout>

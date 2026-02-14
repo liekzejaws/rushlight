@@ -16,6 +16,7 @@ public enum LamppTab {
 	WIKI("Wikipedia", R.drawable.ic_action_read_from_file, "ZimBrowserFragment"),
 	P2P("P2P Share", R.drawable.ic_action_bluetooth, "P2pShareFragment"),
 	MORSE("Morse", R.drawable.ic_action_signal, "MorseFragment"),
+	GUIDES("Guides", R.drawable.ic_action_book_info, "GuidesFragment"),
 	TOOLS("Tools", R.drawable.ic_action_settings, "ToolsFragment");
 
 	private final String title;
@@ -59,6 +60,6 @@ public enum LamppTab {
 	 * Returns only the tabs that should be displayed in the side tab bar.
 	 */
 	public static LamppTab[] visibleTabs() {
-		return new LamppTab[]{AI_CHAT, WIKI, P2P, MORSE, TOOLS};
+		return new LamppTab[]{AI_CHAT, WIKI, P2P, MORSE, GUIDES, TOOLS};
 	}
 }

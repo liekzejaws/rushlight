@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="vertical"
+	android:background="?attr/list_background_color"
+	android:padding="24dp">
+
+	<!-- Title -->
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/stealth_mode"
+		android:textSize="20sp"
+		android:textStyle="bold"
+		android:textColor="?attr/main_font_color_basic"
+		android:layout_marginBottom="8dp" />
+
+	<!-- Status indicator -->
+	<TextView
+		android:id="@+id/stealth_status_text"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/stealth_inactive"
+		android:textSize="14sp"
+		android:textColor="@color/lampp_text_secondary"
+		android:layout_marginBottom="16dp" />
+
+	<!-- Enable/Disable toggle -->
+	<Button
+		android:id="@+id/stealth_toggle_button"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:text="@string/stealth_enable"
+		android:layout_marginBottom="16dp" />
+
+	<!-- Dialer code section -->
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/dialer_code"
+		android:textSize="14sp"
+		android:textStyle="bold"
+		android:textColor="?attr/main_font_color_basic"
+		android:layout_marginBottom="4dp" />
+
+	<EditText
+		android:id="@+id/stealth_code_input"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:hint="@string/stealth_code_hint"
+		android:inputType="phone"
+		android:textSize="16sp"
+		android:layout_marginBottom="4dp" />
+
+	<!-- Warning / error text -->
+	<TextView
+		android:id="@+id/stealth_warning_text"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textSize="12sp"
+		android:textColor="@color/color_warning"
+		android:visibility="gone"
+		android:layout_marginBottom="8dp" />
+
+	<!-- Save and Test buttons row -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:layout_marginBottom="16dp">
+
+		<Button
+			android:id="@+id/stealth_save_code_button"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:text="@string/shared_string_save"
+			android:layout_marginEnd="4dp"
+			style="@style/Widget.AppCompat.Button.Borderless" />
+
+		<Button
+			android:id="@+id/stealth_test_code_button"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:text="@string/stealth_test_code"
+			android:layout_marginStart="4dp"
+			style="@style/Widget.AppCompat.Button.Borderless" />
+	</LinearLayout>
+
+	<!-- Close button -->
+	<Button
+		android:id="@+id/stealth_close_button"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:text="@string/shared_string_close"
+		style="@style/Widget.AppCompat.Button.Borderless" />
+
+</LinearLayout>

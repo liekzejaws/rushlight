@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:background="?attr/list_background_color">
+
+	<!-- Toolbar -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:gravity="center_vertical"
+		android:padding="12dp"
+		android:background="?attr/list_background_color"
+		android:elevation="4dp">
+
+		<ImageView
+			android:id="@+id/reader_back_button"
+			android:layout_width="32dp"
+			android:layout_height="32dp"
+			android:padding="4dp"
+			android:src="@drawable/ic_arrow_back"
+			android:contentDescription="Back" />
+
+		<LinearLayout
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:layout_marginStart="12dp"
+			android:orientation="vertical">
+
+			<TextView
+				android:id="@+id/reader_title"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textSize="16sp"
+				android:textStyle="bold"
+				android:maxLines="1"
+				android:ellipsize="end" />
+
+			<TextView
+				android:id="@+id/reader_category"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textSize="12sp"
+				android:textColor="@color/lampp_text_secondary" />
+		</LinearLayout>
+	</LinearLayout>
+
+	<!-- Guide content (Markdown rendered) -->
+	<ScrollView
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1">
+
+		<TextView
+			android:id="@+id/reader_body"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:padding="16dp"
+			android:textSize="15sp"
+			android:lineSpacingExtra="4dp"
+			android:textColor="?attr/main_font_color_basic" />
+	</ScrollView>
+</LinearLayout>

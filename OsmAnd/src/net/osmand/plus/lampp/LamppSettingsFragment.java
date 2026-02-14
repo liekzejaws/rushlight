@@ -67,6 +67,28 @@ public class LamppSettingsFragment extends BaseSettingsFragment {
 		setupSwitchPref(settings.LAMPP_PIPBOY_CURSOR_BLINK.getId(),
 				R.string.lampp_pipboy_cursor_blink_desc);
 
+		// Morse Code (Phase 16)
+		setupListPref(settings.LAMPP_MORSE_WPM.getId(),
+				R.string.lampp_morse_wpm_desc,
+				new String[]{"5", "8", "10", "13", "15", "18", "20", "25"},
+				new Integer[]{5, 8, 10, 13, 15, 18, 20, 25});
+		setupListPref(settings.LAMPP_MORSE_AUDIO_FREQ.getId(),
+				R.string.lampp_morse_audio_freq_desc,
+				new String[]{"400 Hz", "550 Hz", "700 Hz", "800 Hz", "1000 Hz", "1200 Hz"},
+				new Integer[]{400, 550, 700, 800, 1000, 1200});
+		setupListPref(settings.LAMPP_MORSE_RECEIVE_SENSITIVITY.getId(),
+				R.string.lampp_morse_sensitivity_desc,
+				new String[]{"10", "25", "50", "75", "90"},
+				new Integer[]{10, 25, 50, 75, 90});
+		setupSwitchPref(settings.LAMPP_MORSE_AI_CORRECT.getId(),
+				R.string.lampp_morse_ai_correct_desc);
+		setupSwitchPref(settings.LAMPP_MORSE_GPS_APPEND.getId(),
+				R.string.lampp_morse_gps_append_desc);
+
+		// P2P Sharing (Phase 16)
+		setupSwitchPref(settings.LAMPP_P2P_ENCRYPTION_ENABLED.getId(),
+				R.string.lampp_p2p_encryption_desc);
+
 		// AI Behavior
 		setupSystemPromptPref();
 

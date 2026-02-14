@@ -120,10 +120,11 @@
             android:indeterminate="true" />
 
         <TextView
+            android:id="@+id/generating_status_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/content_padding_half"
-            android:text="Generating response..."
+            android:text="@string/rag_status_generating"
             android:textAppearance="@style/TextAppearance.AppCompat.Caption"
             android:textStyle="italic" />
 

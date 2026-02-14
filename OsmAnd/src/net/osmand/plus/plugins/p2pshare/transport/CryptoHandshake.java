@@ -185,8 +185,9 @@ public class CryptoHandshake {
 
 	/**
 	 * HKDF-Extract: PRK = HMAC-SHA256(salt, IKM)
+	 * Package-private for unit testing.
 	 */
-	private static byte[] hkdfExtract(byte[] salt, byte[] ikm) throws Exception {
+	static byte[] hkdfExtract(byte[] salt, byte[] ikm) throws Exception {
 		Mac mac = Mac.getInstance("HmacSHA256");
 		mac.init(new SecretKeySpec(salt, "HmacSHA256"));
 		return mac.doFinal(ikm);
@@ -194,8 +195,9 @@ public class CryptoHandshake {
 
 	/**
 	 * HKDF-Expand: OKM = T(1) || T(2) || ... where T(i) = HMAC-SHA256(PRK, T(i-1) || info || i)
+	 * Package-private for unit testing.
 	 */
-	private static byte[] hkdfExpand(byte[] prk, byte[] info, int length) throws Exception {
+	static byte[] hkdfExpand(byte[] prk, byte[] info, int length) throws Exception {
 		Mac mac = Mac.getInstance("HmacSHA256");
 		mac.init(new SecretKeySpec(prk, "HmacSHA256"));
 

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:background="?attr/list_background_color">
+
+	<!-- Header -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:gravity="center_vertical"
+		android:paddingHorizontal="16dp"
+		android:paddingVertical="12dp">
+
+		<TextView
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:text="@string/system_prompt"
+			android:textSize="18sp"
+			android:textStyle="bold"
+			android:textColor="?attr/main_font_color_basic" />
+
+		<ImageButton
+			android:id="@+id/btn_clear_prompt"
+			style="@style/Widget.AppCompat.ActionButton"
+			android:layout_width="40dp"
+			android:layout_height="40dp"
+			android:contentDescription="@string/clear_prompt"
+			android:src="@drawable/ic_action_delete_dark"
+			android:tint="@color/lampp_text_secondary" />
+	</LinearLayout>
+
+	<View
+		android:layout_width="match_parent"
+		android:layout_height="1dp"
+		android:background="?attr/divider_color" />
+
+	<!-- Preset label -->
+	<TextView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingHorizontal="16dp"
+		android:paddingTop="12dp"
+		android:paddingBottom="4dp"
+		android:text="@string/preset_prompts"
+		android:textSize="13sp"
+		android:textStyle="bold"
+		android:textColor="@color/lampp_text_secondary" />
+
+	<!-- Preset chips -->
+	<com.google.android.material.chip.ChipGroup
+		android:id="@+id/preset_chip_group"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingHorizontal="12dp"
+		android:paddingVertical="4dp"
+		app:singleSelection="true">
+
+		<com.google.android.material.chip.Chip
+			android:id="@+id/chip_survival"
+			style="@style/Widget.MaterialComponents.Chip.Choice"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/preset_survival_expert" />
+
+		<com.google.android.material.chip.Chip
+			android:id="@+id/chip_medical"
+			style="@style/Widget.MaterialComponents.Chip.Choice"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/preset_medical" />
+
+		<com.google.android.material.chip.Chip
+			android:id="@+id/chip_navigation"
+			style="@style/Widget.MaterialComponents.Chip.Choice"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/preset_navigation" />
+
+		<com.google.android.material.chip.Chip
+			android:id="@+id/chip_radio"
+			style="@style/Widget.MaterialComponents.Chip.Choice"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/preset_radio" />
+
+		<com.google.android.material.chip.Chip
+			android:id="@+id/chip_general"
+			style="@style/Widget.MaterialComponents.Chip.Choice"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/preset_general" />
+	</com.google.android.material.chip.ChipGroup>
+
+	<!-- Custom prompt label -->
+	<TextView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingHorizontal="16dp"
+		android:paddingTop="12dp"
+		android:paddingBottom="4dp"
+		android:text="@string/custom_prompt"
+		android:textSize="13sp"
+		android:textStyle="bold"
+		android:textColor="@color/lampp_text_secondary" />
+
+	<!-- Custom prompt input -->
+	<EditText
+		android:id="@+id/prompt_input"
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1"
+		android:layout_marginHorizontal="16dp"
+		android:layout_marginBottom="8dp"
+		android:padding="12dp"
+		android:background="@drawable/bg_rounded_edittext"
+		android:gravity="top"
+		android:hint="@string/custom_prompt_hint"
+		android:inputType="textMultiLine"
+		android:minLines="4"
+		android:textSize="14sp"
+		android:textColor="?attr/main_font_color_basic"
+		android:textColorHint="@color/lampp_text_secondary" />
+
+	<!-- Action buttons -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:gravity="end"
+		android:paddingHorizontal="16dp"
+		android:paddingVertical="8dp">
+
+		<Button
+			android:id="@+id/btn_cancel"
+			style="@style/Widget.AppCompat.Button.Borderless"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/shared_string_cancel"
+			android:textAllCaps="false" />
+
+		<Button
+			android:id="@+id/btn_save"
+			style="@style/Widget.AppCompat.Button.Colored"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="8dp"
+			android:text="@string/shared_string_save"
+			android:textAllCaps="false" />
+	</LinearLayout>
+
+</LinearLayout>

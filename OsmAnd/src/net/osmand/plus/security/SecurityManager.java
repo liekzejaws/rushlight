@@ -1,6 +1,5 @@
 package net.osmand.plus.security;
 
-import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -14,6 +13,7 @@ import net.osmand.plus.OsmandApplication;
 import org.apache.commons.logging.Log;
 
 import java.security.KeyStore;
+import java.security.SecureRandom;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -33,9 +33,35 @@ public class SecurityManager {
 	private EncryptedChatStorage chatStorage;
 	@Nullable
 	private String cachedPassphrase;
+	@Nullable
+	private DuressManager duressManager;
+	@Nullable
+	private StealthManager stealthManager;
 
 	public SecurityManager(@NonNull OsmandApplication app) {
 		this.app = app;
+	}
+
+	/**
+	 * Get the duress PIN manager (Phase 15).
+	 */
+	@NonNull
+	public DuressManager getDuressManager() {
+		if (duressManager == null) {
+			duressManager = new DuressManager(app);
+		}
+		return duressManager;
+	}
+
+	/**
+	 * Get the stealth mode manager (Phase 15).
+	 */
+	@NonNull
+	public StealthManager getStealthManager() {
+		if (stealthManager == null) {
+			stealthManager = new StealthManager(app);
+		}
+		return stealthManager;
 	}
 
 	/**
@@ -52,10 +78,8 @@ public class SecurityManager {
 			cachedPassphrase = getOrCreateKeystoreKey();
 		} catch (Exception e) {
 			LOG.error("Keystore unavailable, using fallback passphrase: " + e.getMessage());
-			// Fallback: derive from package name + installation ID
-			// Less secure than hardware keystore but functional
-			cachedPassphrase = "rushlight_" + app.getPackageName().hashCode()
-					+ "_" + Build.FINGERPRINT.hashCode();
+			// Fallback: SecureRandom 32-byte key persisted in preferences
+			cachedPassphrase = getOrCreateFallbackPassphrase();
 		}
 
 		return cachedPassphrase;
@@ -87,6 +111,24 @@ public class SecurityManager {
 	}
 
 	/**
+	 * Get or create a SecureRandom-based fallback passphrase for devices
+	 * without hardware keystore. Stored in SharedPreferences.
+	 * Provides 256-bit entropy vs. the old Build.FINGERPRINT.hashCode() (32-bit).
+	 */
+	@NonNull
+	private String getOrCreateFallbackPassphrase() {
+		String existing = app.getSettings().LAMPP_FALLBACK_PASSPHRASE.get();
+		if (existing != null && !existing.isEmpty()) {
+			return existing;
+		}
+		byte[] random = new byte[32];
+		new SecureRandom().nextBytes(random);
+		String passphrase = Base64.encodeToString(random, Base64.NO_WRAP);
+		app.getSettings().LAMPP_FALLBACK_PASSPHRASE.set(passphrase);
+		return passphrase;
+	}
+
+	/**
 	 * Get or create the encrypted chat storage instance.
 	 */
 	@NonNull
@@ -102,33 +144,83 @@ public class SecurityManager {
 	 * Destroys chat database and clears encryption key.
 	 */
 	public void executePanicWipe() {
-		LOG.warn("PANIC WIPE: Executing emergency data wipe");
+		executePanicWipe(DuressManager.DuressWipeScope.EVERYTHING);
+	}
 
-		// Wipe chat database
+	/**
+	 * Execute panic wipe with a specific scope (Phase 15).
+	 * CHAT_ONLY: Wipe chat/conversations only.
+	 * CHAT_AND_MODELS: Chat + delete GGUF model files.
+	 * EVERYTHING: All data, PINs, keystore key.
+	 */
+	public void executePanicWipe(@NonNull DuressManager.DuressWipeScope scope) {
+		LOG.warn("PANIC WIPE: Executing with scope " + scope);
+
+		// Always wipe chat database (all scopes)
 		if (chatStorage != null) {
 			chatStorage.wipeAll();
 			chatStorage = null;
 		} else {
-			// Create temporary instance just to wipe
 			EncryptedChatStorage tempStorage = new EncryptedChatStorage(app, getChatPassphrase());
 			tempStorage.wipeAll();
 		}
 
-		// Remove Keystore key
-		try {
-			KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-			keyStore.load(null);
-			if (keyStore.containsAlias(KEYSTORE_ALIAS)) {
-				keyStore.deleteEntry(KEYSTORE_ALIAS);
-			}
-		} catch (Exception e) {
-			LOG.error("Failed to delete keystore entry: " + e.getMessage());
+		if (scope == DuressManager.DuressWipeScope.CHAT_AND_MODELS
+				|| scope == DuressManager.DuressWipeScope.EVERYTHING) {
+			// Delete GGUF model files from the models directory
+			deleteModelFiles();
 		}
 
-		// Clear cached passphrase
-		cachedPassphrase = null;
+		if (scope == DuressManager.DuressWipeScope.EVERYTHING) {
+			// Remove Keystore key
+			try {
+				KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
+				keyStore.load(null);
+				if (keyStore.containsAlias(KEYSTORE_ALIAS)) {
+					keyStore.deleteEntry(KEYSTORE_ALIAS);
+				}
+			} catch (Exception e) {
+				LOG.error("Failed to delete keystore entry: " + e.getMessage());
+			}
 
-		LOG.warn("PANIC WIPE: Complete");
+			// Clear PINs
+			if (duressManager != null) {
+				duressManager.clearPins();
+			}
+
+			// Disable stealth mode — restore launcher icon so user isn't locked out
+			if (stealthManager != null && stealthManager.isStealthEnabled()) {
+				stealthManager.disableStealthMode();
+			}
+
+			// Clear cached passphrase
+			cachedPassphrase = null;
+		}
+
+		LOG.warn("PANIC WIPE: Complete (scope=" + scope + ")");
+	}
+
+	/**
+	 * Delete GGUF model files from the app's files directory.
+	 */
+	private void deleteModelFiles() {
+		try {
+			java.io.File modelsDir = new java.io.File(app.getFilesDir(), "models");
+			if (modelsDir.exists() && modelsDir.isDirectory()) {
+				java.io.File[] files = modelsDir.listFiles();
+				if (files != null) {
+					for (java.io.File file : files) {
+						if (file.getName().endsWith(".gguf")) {
+							if (file.delete()) {
+								LOG.info("Deleted model file: " + file.getName());
+							}
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOG.error("Failed to delete model files: " + e.getMessage());
+		}
 	}
 
 	/**

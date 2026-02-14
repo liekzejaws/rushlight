@@ -4,17 +4,24 @@ import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.material.card.MaterialCardView;
 
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.security.DuressManager;
+import net.osmand.plus.security.PinEntryDialog;
 import net.osmand.plus.security.SecurityManager;
+import net.osmand.plus.security.StealthManager;
+import net.osmand.plus.security.StealthSettingsDialog;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.fragments.SettingsScreenType;
 
@@ -80,8 +87,188 @@ public class ToolsFragment extends LamppPanelFragment {
 			panicWipeButton.setOnClickListener(v -> showPanicWipeConfirmation());
 		}
 
+		// Phase 15: PIN setup buttons
+		setupPinSection(contentView);
+
+		// Phase 15 Session 2: Stealth mode section
+		setupStealthSection(contentView);
+
 		// Show current selection
 		updateSelection();
+	}
+
+	// ==================== Phase 15: Duress PIN UI ====================
+
+	private void setupPinSection(@NonNull View contentView) {
+		View setRealPinBtn = contentView.findViewById(R.id.set_real_pin_button);
+		View setDuressPinBtn = contentView.findViewById(R.id.set_duress_pin_button);
+		View clearPinsBtn = contentView.findViewById(R.id.clear_pins_button);
+		TextView wipeScopeText = contentView.findViewById(R.id.wipe_scope_text);
+
+		if (setRealPinBtn != null) {
+			setRealPinBtn.setOnClickListener(v -> showPinSetup(PinEntryDialog.PinMode.SET_REAL_PIN));
+		}
+		if (setDuressPinBtn != null) {
+			setDuressPinBtn.setOnClickListener(v -> showPinSetup(PinEntryDialog.PinMode.SET_DURESS_PIN));
+			// Only show duress PIN button if real PIN is set
+			updateDuressButtonVisibility(setDuressPinBtn);
+		}
+		if (clearPinsBtn != null) {
+			clearPinsBtn.setOnClickListener(v -> showClearPinsConfirmation());
+			// Only show clear button if real PIN is set
+			updateClearButtonVisibility(clearPinsBtn);
+		}
+		if (wipeScopeText != null) {
+			updateWipeScopeText(wipeScopeText);
+			wipeScopeText.setOnClickListener(v -> cycleWipeScope(wipeScopeText));
+		}
+	}
+
+	private void showPinSetup(@NonNull PinEntryDialog.PinMode mode) {
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		PinEntryDialog.showInstance(
+				activity.getSupportFragmentManager(),
+				mode,
+				new PinEntryDialog.OnPinEnteredListener() {
+					@Override
+					public void onPinResult(@NonNull DuressManager.PinResult result) {}
+
+					@Override
+					public void onPinSet(@NonNull PinEntryDialog.PinMode setMode) {
+						OsmandApplication app = getMyApplication();
+						if (app != null) {
+							app.showShortToastMessage(R.string.pin_set_success);
+						}
+						// Refresh button visibility
+						View contentView = getView();
+						if (contentView != null) {
+							View duressPinBtn = contentView.findViewById(R.id.set_duress_pin_button);
+							View clearPinsBtn = contentView.findViewById(R.id.clear_pins_button);
+							if (duressPinBtn != null) updateDuressButtonVisibility(duressPinBtn);
+							if (clearPinsBtn != null) updateClearButtonVisibility(clearPinsBtn);
+						}
+					}
+
+					@Override
+					public void onPinCancelled() {}
+				}
+		);
+	}
+
+	private void showClearPinsConfirmation() {
+		if (getContext() == null) return;
+		new AlertDialog.Builder(getContext())
+				.setTitle(R.string.clear_pins)
+				.setMessage(R.string.clear_pins_confirm)
+				.setPositiveButton(R.string.clear_pins, (dialog, which) -> {
+					OsmandApplication app = getMyApplication();
+					if (app != null) {
+						app.getSecurityManager().getDuressManager().clearPins();
+						app.showShortToastMessage(R.string.pins_cleared);
+						// Refresh button visibility
+						View contentView = getView();
+						if (contentView != null) {
+							View duressPinBtn = contentView.findViewById(R.id.set_duress_pin_button);
+							View clearPinsBtn = contentView.findViewById(R.id.clear_pins_button);
+							if (duressPinBtn != null) updateDuressButtonVisibility(duressPinBtn);
+							if (clearPinsBtn != null) updateClearButtonVisibility(clearPinsBtn);
+						}
+					}
+				})
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.show();
+	}
+
+	private void updateDuressButtonVisibility(@NonNull View button) {
+		OsmandApplication app = getMyApplication();
+		if (app != null) {
+			boolean realPinSet = app.getSecurityManager().getDuressManager().isRealPinSet();
+			button.setVisibility(realPinSet ? View.VISIBLE : View.GONE);
+		}
+	}
+
+	private void updateClearButtonVisibility(@NonNull View button) {
+		OsmandApplication app = getMyApplication();
+		if (app != null) {
+			boolean realPinSet = app.getSecurityManager().getDuressManager().isRealPinSet();
+			button.setVisibility(realPinSet ? View.VISIBLE : View.GONE);
+		}
+	}
+
+	private void updateWipeScopeText(@NonNull TextView textView) {
+		OsmandApplication app = getMyApplication();
+		if (app == null) return;
+		DuressManager.DuressWipeScope scope = app.getSecurityManager().getDuressManager().getWipeScope();
+		switch (scope) {
+			case CHAT_ONLY:
+				textView.setText(R.string.wipe_chat_only);
+				break;
+			case CHAT_AND_MODELS:
+				textView.setText(R.string.wipe_chat_and_models);
+				break;
+			case EVERYTHING:
+				textView.setText(R.string.wipe_everything);
+				break;
+		}
+	}
+
+	private void cycleWipeScope(@NonNull TextView textView) {
+		OsmandApplication app = getMyApplication();
+		if (app == null) return;
+		DuressManager dm = app.getSecurityManager().getDuressManager();
+		DuressManager.DuressWipeScope current = dm.getWipeScope();
+		DuressManager.DuressWipeScope next;
+		switch (current) {
+			case CHAT_ONLY:
+				next = DuressManager.DuressWipeScope.CHAT_AND_MODELS;
+				break;
+			case CHAT_AND_MODELS:
+				next = DuressManager.DuressWipeScope.EVERYTHING;
+				break;
+			default:
+				next = DuressManager.DuressWipeScope.CHAT_ONLY;
+				break;
+		}
+		dm.setWipeScope(next);
+		updateWipeScopeText(textView);
+	}
+
+	// ==================== Phase 15 Session 2: Stealth Mode UI ====================
+
+	private void setupStealthSection(@NonNull View contentView) {
+		View stealthSettingsBtn = contentView.findViewById(R.id.stealth_settings_button);
+		TextView stealthStatusText = contentView.findViewById(R.id.stealth_status_indicator);
+
+		if (stealthStatusText != null) {
+			updateStealthStatus(stealthStatusText);
+		}
+
+		if (stealthSettingsBtn != null) {
+			stealthSettingsBtn.setOnClickListener(v -> {
+				FragmentActivity activity = getActivity();
+				if (activity == null) return;
+				StealthSettingsDialog.showInstance(
+						activity.getSupportFragmentManager(),
+						enabled -> {
+							// Refresh status on stealth state change
+							View cv = getView();
+							if (cv != null) {
+								TextView statusText = cv.findViewById(R.id.stealth_status_indicator);
+								if (statusText != null) updateStealthStatus(statusText);
+							}
+						}
+				);
+			});
+		}
+	}
+
+	private void updateStealthStatus(@NonNull TextView textView) {
+		OsmandApplication app = getMyApplication();
+		if (app == null) return;
+		boolean enabled = app.getSecurityManager().getStealthManager().isStealthEnabled();
+		textView.setText(enabled ? R.string.stealth_active : R.string.stealth_inactive);
 	}
 
 	private void showPanicWipeConfirmation() {

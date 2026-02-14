@@ -38,6 +38,7 @@ android {
 
 	testOptions {
 		animationsDisabled = true
+		unitTests.returnDefaultValues = true
 	}
 
 	sourceSets {
@@ -50,6 +51,9 @@ android {
 			resources.srcDirs = ["src"]
 			res.srcDirs = ["res"]
 			assets.srcDirs = ["assets"]
+		}
+		test {
+			java.srcDirs = ["test-unit/java"]
 		}
 		androidTest {
 			java.srcDirs = ["test/java"]
@@ -459,7 +463,7 @@ dependencies {
 	implementation fileTree(dir: 'libs', include: ['*.aar'])
 
 	// ===== Rushlight: Security suite (encrypted storage + biometric lock) =====
-	implementation "net.zetetic:android-database-sqlcipher:4.5.4@aar"
+	implementation "net.zetetic:sqlcipher-android:4.6.1@aar"
 	implementation "androidx.sqlite:sqlite:2.3.1"
 	implementation "androidx.biometric:biometric:1.2.0-alpha05"
 
@@ -483,4 +487,9 @@ dependencies {
 	}
 	implementation 'net.sf.marineapi:marineapi:0.12.0'
 	implementation 'com.facebook.shimmer:shimmer:0.5.0@aar'
+
+	// ===== Rushlight: Unit test dependencies =====
+	testImplementation "junit:junit:4.13.2"
+	testImplementation "org.mockito:mockito-core:5.8.0"
+	testImplementation "org.json:json:20231013"
 }

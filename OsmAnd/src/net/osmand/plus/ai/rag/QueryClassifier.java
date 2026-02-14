@@ -76,6 +76,12 @@ public class QueryClassifier {
         TECHNICAL(false, false, 20),
 
         /**
+         * Survival/emergency queries — needs offline survival guides + Wikipedia background
+         * "How do I purify water?", "First aid for burns", "Build a shelter"
+         */
+        SURVIVAL_QUERY(true, false, 95),
+
+        /**
          * Default: Try Wikipedia if available
          */
         UNKNOWN(true, false, 50);
@@ -98,10 +104,31 @@ public class QueryClassifier {
             return needsPoiSearch;
         }
 
+        /**
+         * Whether this query type should search the offline survival guide database.
+         */
+        public boolean needsGuideSearch() {
+            return this == SURVIVAL_QUERY;
+        }
+
         public int getPriority() {
             return priority;
         }
     }
+
+    // Survival/emergency query pattern - Phase 14
+    private static final Pattern SURVIVAL_PATTERN = Pattern.compile(
+            "(first\\s*aid|cpr|wound|bleed(ing)?|fracture|splint|tourniquet|bandage|suture" +
+            "|burn\\s*(treatment|care)|hypotherm|heatstroke|frostbite|dehydration" +
+            "|purif(y|ication)|filter.*water|boil.*water|safe.*drink|water\\s*source|solar\\s*still" +
+            "|fire\\s*start|ferro\\s*rod|bow\\s*drill|tinder|kindling|flint" +
+            "|shelter|lean[\\s-]?to|debris\\s*hut|quinzhee|bivouac" +
+            "|compass|navigate.*without|dead\\s*reckon|star.*navigation|shadow\\s*stick" +
+            "|signal.*rescue|sos|distress\\s*signal|signal\\s*mirror|signal\\s*fire" +
+            "|forag(e|ing)|edib(le|ility)\\s*test|wild.*food|insect.*eat|snare|trap" +
+            "|surviv(al|e)|emergency\\s*(prep|kit|supply)|grid[\\s-]?down|bug[\\s-]?out" +
+            "|gray\\s*man|opsec|situational\\s*awareness|panic\\s*wipe)",
+            Pattern.CASE_INSENSITIVE);
 
     // Patterns for different query types
     private static final Pattern WHAT_IS_PATTERN = Pattern.compile(
@@ -237,6 +264,11 @@ public class QueryClassifier {
         // Check real-time queries
         if (REALTIME_PATTERN.matcher(normalized).find()) {
             return QueryType.REALTIME;
+        }
+
+        // Check survival/emergency queries (Phase 14)
+        if (SURVIVAL_PATTERN.matcher(normalized).find()) {
+            return QueryType.SURVIVAL_QUERY;
         }
 
         // Check factual lookup patterns
