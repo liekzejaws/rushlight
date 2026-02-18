@@ -14,14 +14,21 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.lampp.LamppPanelManager;
+import net.osmand.plus.lampp.LamppTab;
+import net.osmand.plus.lampp.LamppThemeUtils;
 
 import io.noties.markwon.Markwon;
 
 /**
  * Full-screen dialog fragment for reading a survival guide.
  * Uses Markwon to render Markdown body content.
+ * Phase 17: Includes "Ask AI" FAB to send guide title as AI query.
  */
 public class GuideReaderDialogFragment extends DialogFragment {
 
@@ -69,6 +76,7 @@ public class GuideReaderDialogFragment extends DialogFragment {
 		TextView titleView = view.findViewById(R.id.reader_title);
 		TextView categoryView = view.findViewById(R.id.reader_category);
 		TextView bodyView = view.findViewById(R.id.reader_body);
+		ExtendedFloatingActionButton askAiFab = view.findViewById(R.id.ask_ai_fab);
 
 		backButton.setOnClickListener(v -> dismiss());
 
@@ -88,12 +96,26 @@ public class GuideReaderDialogFragment extends DialogFragment {
 		titleView.setText(guide.getTitle());
 		categoryView.setText(guide.getCategory().getDisplayName());
 
-		// Render Markdown body using Markwon
+		// Render Markdown body using shared themed Markwon instance (Phase 17)
 		if (guide.hasBody()) {
-			Markwon markwon = Markwon.create(requireContext());
+			Markwon markwon = LamppThemeUtils.getMarkwon(requireContext(), app);
 			markwon.setMarkdown(bodyView, guide.getBody());
 		} else {
 			bodyView.setText(guide.getSummary());
+		}
+
+		// Phase 17: "Ask AI" FAB — taps switch to AI Chat with prefilled query
+		if (askAiFab != null) {
+			askAiFab.setOnClickListener(v -> {
+				String query = "Tell me more about " + guide.getTitle();
+				dismiss(); // Close the reader dialog first
+
+				if (getActivity() instanceof MapActivity) {
+					MapActivity mapActivity = (MapActivity) getActivity();
+					LamppPanelManager panelManager = mapActivity.getLamppPanelManager();
+					panelManager.openPanelWithQuery(LamppTab.AI_CHAT, query);
+				}
+			});
 		}
 	}
 }

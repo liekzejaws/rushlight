@@ -149,11 +149,15 @@ public class StealthManager {
 	 * Uses DONT_KILL_APP to avoid terminating the running app.
 	 */
 	private void setLauncherAliasEnabled(boolean enabled) {
-		PackageManager pm = app.getPackageManager();
-		ComponentName alias = new ComponentName(app, LAUNCHER_ALIAS_CLASS);
-		int newState = enabled
-				? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-				: PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-		pm.setComponentEnabledSetting(alias, newState, PackageManager.DONT_KILL_APP);
+		try {
+			PackageManager pm = app.getPackageManager();
+			ComponentName alias = new ComponentName(app, LAUNCHER_ALIAS_CLASS);
+			int newState = enabled
+					? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+					: PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+			pm.setComponentEnabledSetting(alias, newState, PackageManager.DONT_KILL_APP);
+		} catch (Exception e) {
+			LOG.error("Failed to toggle launcher alias", e);
+		}
 	}
 }

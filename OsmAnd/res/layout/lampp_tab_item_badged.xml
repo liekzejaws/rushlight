@@ -16,8 +16,6 @@
 		android:padding="@dimen/lampp_tab_icon_padding"
 		android:scaleType="centerInside"
 		android:background="@drawable/bg_lampp_tab_inactive"
-		android:clickable="true"
-		android:focusable="true"
 		tools:src="@drawable/ic_action_map_dark"
 		tools:tint="@color/lampp_tab_inactive" />
 

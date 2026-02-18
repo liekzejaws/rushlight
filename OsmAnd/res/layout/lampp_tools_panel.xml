@@ -69,7 +69,8 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Retro-futuristic terminal"
-						android:textSize="12sp"
+						android:textSize="13sp"
+			android:textAllCaps="false"
 						android:textColor="@color/lampp_text_secondary" />
 
 				</LinearLayout>
@@ -134,7 +135,8 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Sleek teal and grey"
-						android:textSize="12sp"
+						android:textSize="13sp"
+			android:textAllCaps="false"
 						android:textColor="@color/lampp_modern_text_secondary" />
 
 				</LinearLayout>
@@ -199,7 +201,8 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Default OsmAnd look"
-						android:textSize="12sp"
+						android:textSize="13sp"
+			android:textAllCaps="false"
 						android:textColor="@color/lampp_classic_text_secondary_light" />
 
 				</LinearLayout>
@@ -230,6 +233,8 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="More settings..."
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_text_secondary"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
@@ -260,6 +265,8 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/rushlight_panic_wipe"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@android:color/white"
 			android:backgroundTint="@color/lampp_accent_red"
 			app:cornerRadius="8dp"
@@ -290,6 +297,8 @@
 			android:layout_height="wrap_content"
 			android:layout_marginBottom="4dp"
 			android:text="@string/set_unlock_pin"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_text_secondary"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
@@ -303,6 +312,8 @@
 			android:layout_height="wrap_content"
 			android:layout_marginBottom="4dp"
 			android:text="@string/set_duress_pin"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_accent_red"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			android:visibility="gone"
@@ -343,6 +354,8 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/clear_pins"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_text_secondary"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			android:visibility="gone"
@@ -371,7 +384,8 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/stealth_inactive"
-			android:textSize="12sp"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_text_secondary"
 			android:layout_marginBottom="8dp" />
 
@@ -380,6 +394,8 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/stealth_settings"
+			android:textSize="13sp"
+			android:textAllCaps="false"
 			android:textColor="@color/lampp_text_secondary"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"

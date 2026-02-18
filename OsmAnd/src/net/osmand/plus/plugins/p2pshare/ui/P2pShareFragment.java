@@ -255,9 +255,16 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     // P2pShareListener callbacks
 
+    private void runOnUiIfAttached(@NonNull Runnable action) {
+        if (isAdded() && getActivity() != null) {
+            getActivity().runOnUiThread(action);
+        }
+    }
+
     @Override
     public void onPeerDiscovered(@NonNull DiscoveredPeer peer) {
-        requireActivity().runOnUiThread(() -> {
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || peersAdapter == null) return;
             if (!peers.contains(peer)) {
                 peers.add(peer);
                 peersAdapter.notifyItemInserted(peers.size() - 1);
@@ -268,7 +275,8 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     @Override
     public void onPeerLost(@NonNull DiscoveredPeer peer) {
-        requireActivity().runOnUiThread(() -> {
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || peersAdapter == null) return;
             int index = peers.indexOf(peer);
             if (index >= 0) {
                 peers.remove(index);
@@ -280,8 +288,8 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     @Override
     public void onPeerConnected(@NonNull DiscoveredPeer peer) {
-        requireActivity().runOnUiThread(() -> {
-            // Update the peer's visual state in the list
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || peersAdapter == null) return;
             int index = peers.indexOf(peer);
             if (index >= 0) {
                 peers.set(index, peer);
@@ -292,15 +300,16 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     @Override
     public void onManifestReceived(@NonNull DiscoveredPeer peer) {
-        requireActivity().runOnUiThread(() -> {
-            // Show the peer content browsing bottom sheet
+        runOnUiIfAttached(() -> {
+            if (!isAdded()) return;
             PeerContentBottomSheet.showInstance(getChildFragmentManager(), peer);
         });
     }
 
     @Override
     public void onScanningStateChanged(boolean isScanning) {
-        requireActivity().runOnUiThread(() -> {
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || scanningIndicator == null) return;
             scanningIndicator.setVisibility(isScanning ? View.VISIBLE : View.GONE);
             startScanButton.setText(isScanning ? R.string.shared_string_cancel : R.string.p2p_share_scan);
         });
@@ -308,14 +317,15 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     @Override
     public void onTransferProgress(@NonNull String filename, int progress, long bytesTransferred, long totalBytes) {
-        requireActivity().runOnUiThread(() -> {
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || transferProgressCard == null) return;
             transferProgressCard.setVisibility(View.VISIBLE);
 
             // Show queue status if multiple files
             String queueStatus = "";
             if (shareManager != null) {
                 net.osmand.plus.plugins.p2pshare.TransferQueue queue = shareManager.getTransferQueue();
-                if (queue.getTotalJobs() > 1) {
+                if (queue != null && queue.getTotalJobs() > 1) {
                     queueStatus = queue.getStatusString() + " · ";
                 }
             }
@@ -331,9 +341,11 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     @Override
     public void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {
-        requireActivity().runOnUiThread(() -> {
+        runOnUiIfAttached(() -> {
+            if (!isAdded() || transferProgressCard == null) return;
             // Check if more files in queue
-            boolean moreInQueue = shareManager != null && !shareManager.getTransferQueue().isEmpty();
+            boolean moreInQueue = shareManager != null && shareManager.getTransferQueue() != null
+                    && !shareManager.getTransferQueue().isEmpty();
 
             if (success) {
                 transferFilename.setText(getString(R.string.p2p_share_transfer_complete) + ": " + filename);
@@ -341,17 +353,22 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
                 transferProgressText.setText("");
 
                 if (!moreInQueue) {
-                    // Hide after 3 seconds only if queue is done
-                    transferProgressCard.postDelayed(() ->
-                            transferProgressCard.setVisibility(View.GONE), 3000);
+                    transferProgressCard.postDelayed(() -> {
+                        if (transferProgressCard != null) {
+                            transferProgressCard.setVisibility(View.GONE);
+                        }
+                    }, 3000);
                 }
             } else {
                 String errorMsg = error != null ? error : "Unknown";
                 transferFilename.setText(getString(R.string.p2p_share_transfer_failed, errorMsg));
 
                 if (!moreInQueue) {
-                    transferProgressCard.postDelayed(() ->
-                            transferProgressCard.setVisibility(View.GONE), 5000);
+                    transferProgressCard.postDelayed(() -> {
+                        if (transferProgressCard != null) {
+                            transferProgressCard.setVisibility(View.GONE);
+                        }
+                    }, 5000);
                 }
             }
         });

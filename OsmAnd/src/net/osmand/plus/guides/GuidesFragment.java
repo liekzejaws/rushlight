@@ -138,6 +138,15 @@ public class GuidesFragment extends LamppPanelFragment {
 		showCategories();
 	}
 
+	@Override
+	public boolean onBackPressed() {
+		if (currentMode == MODE_LIST) {
+			onBackToCategories();
+			return true;
+		}
+		return false;
+	}
+
 	private void openGuideReader(@NonNull GuideEntry guide) {
 		// Open guide reader as a dialog/overlay within the panel
 		if (getActivity() != null) {

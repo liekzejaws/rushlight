@@ -178,8 +178,9 @@ public class LamppSideTabBar extends LinearLayout {
 		bgAnimator.setInterpolator(new DecelerateInterpolator());
 		bgAnimator.addUpdateListener(anim -> {
 			int color = (int) anim.getAnimatedValue();
-			if (getBackground() instanceof GradientDrawable) {
-				((GradientDrawable) getBackground()).setColor(color);
+			android.graphics.drawable.Drawable bg = getBackground();
+			if (bg instanceof GradientDrawable) {
+				((GradientDrawable) bg).setColor(color);
 			}
 		});
 		bgAnimator.addListener(new AnimatorListenerAdapter() {

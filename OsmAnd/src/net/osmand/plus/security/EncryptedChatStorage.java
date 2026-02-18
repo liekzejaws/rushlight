@@ -53,11 +53,25 @@ public class EncryptedChatStorage extends SQLiteOpenHelper {
 
 	private final Context context;
 
+	private static boolean sqlCipherLoaded;
+
+	static {
+		try {
+			System.loadLibrary("sqlcipher");
+			sqlCipherLoaded = true;
+		} catch (UnsatisfiedLinkError e) {
+			LOG.error("Failed to load SQLCipher native library", e);
+			sqlCipherLoaded = false;
+		}
+	}
+
+	public static boolean isSqlCipherAvailable() {
+		return sqlCipherLoaded;
+	}
+
 	public EncryptedChatStorage(@NonNull Context context, @NonNull String passphrase) {
 		super(context, DB_NAME, passphrase, null, DB_VERSION, 0, null, null, true);
 		this.context = context;
-		// Load native SQLCipher libs
-		System.loadLibrary("sqlcipher");
 	}
 
 	@Override

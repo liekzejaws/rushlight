@@ -3,7 +3,6 @@ package net.osmand.plus.ai;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Editable;
@@ -19,10 +18,10 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
@@ -33,10 +32,10 @@ import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import io.noties.markwon.AbstractMarkwonPlugin;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+
 import io.noties.markwon.Markwon;
-import io.noties.markwon.MarkwonPlugin;
-import io.noties.markwon.core.MarkwonTheme;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
@@ -73,12 +72,16 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 	// UI Components
 	private Toolbar toolbar;
+	private com.google.android.material.card.MaterialCardView modelStatusCard; // Phase 17
 	private LinearLayout modelStatusBar;
 	private ImageView modelStatusIcon;
+	private ProgressBar modelLoadingProgress; // Phase 17: loading spinner
 	private TextView modelStatusText;
+	private TextView modelStatusDetail; // Phase 17: secondary detail line
 	private Button modelActionButton;
 	private RecyclerView chatMessagesRecycler;
 	private View emptyState;
+	private ChipGroup suggestionChipGroup; // Phase 17: suggestion chips in empty state
 	private View generatingIndicator;
 	private TextView generatingStatusText;
 	private EditText messageInput;
@@ -95,6 +98,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private EncryptedChatStorage chatStorage;
 	@Nullable
 	private Markwon markwon;
+	@Nullable
+	private TokenBatcher tokenBatcher; // Phase 17: batched streaming renderer
 
 	// Active conversation (Phase 14)
 	private long activeConversationId = EncryptedChatStorage.DEFAULT_CONVERSATION_ID;
@@ -117,8 +122,17 @@ public class LlmChatFragment extends LamppPanelFragment {
 		ragManager = new RagManager(app, llmManager);
 		cursorBlinker = new TerminalCursorBlinker();
 
-		// Initialize Markwon with theme-aware styling
-		markwon = buildMarkwon(view.getContext());
+		// Initialize Markwon with shared theme-aware instance (Phase 17)
+		markwon = LamppThemeUtils.getMarkwon(view.getContext(), app);
+
+		// Phase 17: Initialize token batcher for smooth streaming
+		tokenBatcher = new TokenBatcher(markwon, null);
+		tokenBatcher.setCallback(() -> {
+			// Scroll to bottom after each batch render
+			if (chatMessagesRecycler != null && !messages.isEmpty()) {
+				chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+			}
+		});
 
 		// Initialize encrypted chat storage and load persisted messages
 		try {
@@ -159,15 +173,29 @@ public class LlmChatFragment extends LamppPanelFragment {
 		setupListeners();
 		updateModelStatus();
 		updateUI();
+
+		// Phase 17: Check for pending query from "Ask AI" button
+		MapActivity mapActivity = getMapActivity();
+		if (mapActivity != null) {
+			String pendingQuery = mapActivity.getLamppPanelManager().consumePendingQuery();
+			if (pendingQuery != null && !pendingQuery.isEmpty()) {
+				// Delay slightly to let the panel animate in
+				view.postDelayed(() -> prefillQuery(pendingQuery), 300);
+			}
+		}
 	}
 
 	private void initViews(View view) {
+		modelStatusCard = view.findViewById(R.id.model_status_card);
 		modelStatusBar = view.findViewById(R.id.model_status_bar);
 		modelStatusIcon = view.findViewById(R.id.model_status_icon);
+		modelLoadingProgress = view.findViewById(R.id.model_loading_progress);
 		modelStatusText = view.findViewById(R.id.model_status_text);
+		modelStatusDetail = view.findViewById(R.id.model_status_detail);
 		modelActionButton = view.findViewById(R.id.model_action_button);
 		chatMessagesRecycler = view.findViewById(R.id.chat_messages);
 		emptyState = view.findViewById(R.id.empty_state);
+		suggestionChipGroup = view.findViewById(R.id.suggestion_chip_group);
 		generatingIndicator = view.findViewById(R.id.generating_indicator);
 		generatingStatusText = view.findViewById(R.id.generating_status_text);
 		messageInput = view.findViewById(R.id.message_input);
@@ -177,6 +205,9 @@ public class LlmChatFragment extends LamppPanelFragment {
 		chatAdapter = new ChatAdapter();
 		chatMessagesRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
 		chatMessagesRecycler.setAdapter(chatAdapter);
+
+		// Phase 17: Populate suggestion chips
+		buildSuggestionChips();
 	}
 
 	private void setupListeners() {
@@ -201,11 +232,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 			}
 		};
 
-		// Make both the button AND the entire status bar clickable
+		// Make both the button AND the entire status card clickable
 		modelActionButton.setOnClickListener(modelClickListener);
+		if (modelStatusCard != null) {
+			modelStatusCard.setOnClickListener(modelClickListener);
+		}
 		modelStatusBar.setOnClickListener(modelClickListener);
-		modelStatusBar.setClickable(true);
-		modelStatusBar.setFocusable(true);
 
 		// Message input text watcher
 		messageInput.addTextChangedListener(new TextWatcher() {
@@ -225,35 +257,91 @@ public class LlmChatFragment extends LamppPanelFragment {
 		sendButton.setOnClickListener(v -> sendMessage());
 	}
 
+	/**
+	 * Phase 17: Redesigned model status bar with distinct visual states.
+	 * - Red card: No model installed → download CTA
+	 * - Amber card: Model available → tap to load
+	 * - Loading: Progress ring animation
+	 * - Green card: Model loaded → compact status with data sources
+	 */
 	private void updateModelStatus() {
+		LamppStylePreset preset = LamppThemeUtils.getActivePreset(app);
+		Context ctx = modelStatusText.getContext();
+
 		if (llmManager.isLoading()) {
-			modelStatusIcon.setImageResource(R.drawable.ic_action_time);
-			modelStatusText.setText("Loading model...");
+			// Loading state: progress ring + amber card
+			modelStatusIcon.setVisibility(View.GONE);
+			modelLoadingProgress.setVisibility(View.VISIBLE);
+			modelStatusText.setText("Loading model\u2026");
+			modelStatusText.setTextColor(preset.getStatusAvailableTextColor(ctx, nightMode));
+			modelStatusDetail.setVisibility(View.GONE);
 			modelActionButton.setVisibility(View.GONE);
+			if (modelStatusCard != null) {
+				modelStatusCard.setCardBackgroundColor(preset.getStatusAvailableBgColor(ctx, nightMode));
+			}
 		} else if (llmManager.isModelLoaded()) {
+			// Loaded state: green card with compact model + data source info
+			modelStatusIcon.setVisibility(View.VISIBLE);
+			modelLoadingProgress.setVisibility(View.GONE);
 			modelStatusIcon.setImageResource(R.drawable.ic_action_done);
-			// Show model name and data source status
-			StringBuilder status = new StringBuilder();
-			status.append("Model: ").append(llmManager.getCurrentModelName());
+			modelStatusIcon.setColorFilter(preset.getStatusLoadedTextColor(ctx, nightMode));
+			modelStatusText.setText(llmManager.getCurrentModelName());
+			modelStatusText.setTextColor(preset.getStatusLoadedTextColor(ctx, nightMode));
+
+			// Build data source detail line
+			StringBuilder detail = new StringBuilder();
 			if (ragManager.isWikipediaAvailable()) {
-				status.append(" | Wiki: ").append(ragManager.getWikipediaTitle());
+				detail.append("Wiki: ").append(ragManager.getWikipediaTitle());
 			}
 			if (ragManager.isMapDataAvailable()) {
-				status.append(" | POI: On");
+				if (detail.length() > 0) detail.append("  \u2022  ");
+				detail.append("POI: On");
 			}
-			modelStatusText.setText(status.toString());
+			if (detail.length() > 0) {
+				modelStatusDetail.setText(detail.toString());
+				modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
+				modelStatusDetail.setVisibility(View.VISIBLE);
+			} else {
+				modelStatusDetail.setVisibility(View.GONE);
+			}
+
 			modelActionButton.setText("Unload");
 			modelActionButton.setVisibility(View.VISIBLE);
+			if (modelStatusCard != null) {
+				modelStatusCard.setCardBackgroundColor(preset.getStatusLoadedBgColor(ctx, nightMode));
+			}
 		} else if (llmManager.hasDownloadedModels()) {
+			// Available state: amber card — tap to load
+			modelStatusIcon.setVisibility(View.VISIBLE);
+			modelLoadingProgress.setVisibility(View.GONE);
 			modelStatusIcon.setImageResource(R.drawable.ic_action_info_outlined);
-			modelStatusText.setText("Model available - tap to load");
+			modelStatusIcon.setColorFilter(preset.getStatusAvailableTextColor(ctx, nightMode));
+			modelStatusText.setText("Model ready");
+			modelStatusText.setTextColor(preset.getStatusAvailableTextColor(ctx, nightMode));
+			modelStatusDetail.setText("Tap to load into memory");
+			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
+			modelStatusDetail.setVisibility(View.VISIBLE);
 			modelActionButton.setText("Load");
 			modelActionButton.setVisibility(View.VISIBLE);
+			if (modelStatusCard != null) {
+				modelStatusCard.setCardBackgroundColor(preset.getStatusAvailableBgColor(ctx, nightMode));
+			}
 		} else {
+			// No model state: red card — download CTA
+			modelStatusIcon.setVisibility(View.VISIBLE);
+			modelLoadingProgress.setVisibility(View.GONE);
 			modelStatusIcon.setImageResource(R.drawable.ic_action_alert);
-			modelStatusText.setText("No model installed");
+			modelStatusIcon.setColorFilter(preset.getStatusNoModelTextColor(ctx, nightMode));
+			modelStatusText.setText("No AI model");
+			modelStatusText.setTextColor(preset.getStatusNoModelTextColor(ctx, nightMode));
+			modelStatusDetail.setText("Download a model to enable AI");
+			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
+			modelStatusDetail.setVisibility(View.VISIBLE);
 			modelActionButton.setText(R.string.shared_string_download);
 			modelActionButton.setVisibility(View.VISIBLE);
+			if (modelStatusCard != null) {
+				modelStatusCard.setCardBackgroundColor(preset.getStatusNoModelBgColor(ctx, nightMode));
+			}
 		}
 
 		updateSendButton();
@@ -276,6 +364,46 @@ public class LlmChatFragment extends LamppPanelFragment {
 		}
 
 		generatingIndicator.setVisibility(llmManager.isGenerating() ? View.VISIBLE : View.GONE);
+	}
+
+	/**
+	 * Phase 17: Build suggestion chips in the empty state from SuggestionChipProvider.
+	 */
+	private void buildSuggestionChips() {
+		if (suggestionChipGroup == null || ragManager == null) return;
+		suggestionChipGroup.removeAllViews();
+
+		List<SuggestionChipProvider.Suggestion> suggestions =
+				SuggestionChipProvider.getSuggestions(app, ragManager);
+
+		LamppStylePreset preset = LamppThemeUtils.getActivePreset(app);
+		Context ctx = suggestionChipGroup.getContext();
+		int chipTextColor = preset.getTextPrimaryColor(ctx, nightMode);
+		int chipIconColor = preset.getPrimaryColor(ctx, nightMode);
+
+		for (SuggestionChipProvider.Suggestion suggestion : suggestions) {
+			Chip chip = new Chip(ctx);
+			chip.setText(suggestion.text);
+			chip.setChipIconResource(suggestion.iconRes);
+			chip.setChipIconVisible(true);
+			chip.setTextSize(13);
+			chip.setChipIconTint(android.content.res.ColorStateList.valueOf(chipIconColor));
+			chip.setTextColor(chipTextColor);
+			chip.setChipBackgroundColorResource(android.R.color.transparent);
+			chip.setChipStrokeColorResource(R.color.lampp_text_secondary);
+			chip.setChipStrokeWidth(1f);
+			chip.setClickable(true);
+
+			chip.setOnClickListener(v -> {
+				// Prefill the message input and send
+				messageInput.setText(suggestion.text);
+				if (llmManager.isModelLoaded()) {
+					sendMessage();
+				}
+			});
+
+			suggestionChipGroup.addView(chip);
+		}
 	}
 
 	/**
@@ -324,8 +452,9 @@ public class LlmChatFragment extends LamppPanelFragment {
 	}
 
 	private void sendMessage() {
+		if (messageInput == null) return;
 		String text = messageInput.getText().toString().trim();
-		if (text.isEmpty() || !llmManager.isModelLoaded()) {
+		if (text.isEmpty() || llmManager == null || !llmManager.isModelLoaded()) {
 			return;
 		}
 
@@ -333,8 +462,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 		ChatMessage userMessage = new ChatMessage(ChatMessage.ROLE_USER, text);
 		messages.add(userMessage);
 		persistMessage(userMessage);
-		chatAdapter.notifyItemInserted(messages.size() - 1);
-		chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+		if (chatAdapter != null) chatAdapter.notifyItemInserted(messages.size() - 1);
+		if (chatMessagesRecycler != null) chatMessagesRecycler.scrollToPosition(messages.size() - 1);
 
 		// Clear input
 		messageInput.setText("");
@@ -346,6 +475,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 		// Generate response using RAG pipeline
 		// Phase 16: Show searching state immediately
 		setGeneratingStatus(R.string.rag_status_searching);
+
+		// Phase 17: Reset token batcher for new generation
+		if (tokenBatcher != null) {
+			tokenBatcher.reset();
+		}
 
 		ragManager.queryAsync(text, new RagCallback() {
 			@Override
@@ -375,18 +509,29 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 			@Override
 			public void onPartialResult(@NonNull String partialText) {
-				// Update the last AI message with partial response
+				if (!isAdded()) return;
+				// Update the data model
 				int lastIndex = messages.size() - 1;
 				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
 					messages.get(lastIndex).content = partialText;
-					chatAdapter.notifyItemChanged(lastIndex);
 				} else {
-					// Add new AI message
+					// Add new AI message placeholder
 					ChatMessage aiMessage = new ChatMessage(ChatMessage.ROLE_AI, partialText);
 					messages.add(aiMessage);
-					chatAdapter.notifyItemInserted(messages.size() - 1);
+					if (chatAdapter != null) chatAdapter.notifyItemInserted(messages.size() - 1);
 				}
-				chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+
+				// Phase 17: Use TokenBatcher for efficient rendering
+				// The batcher renders every 5 tokens or 100ms instead of every token
+				if (tokenBatcher != null) {
+					tokenBatcher.onToken(partialText);
+				} else if (chatAdapter != null) {
+					// Fallback: direct Markwon render (pre-Phase 17 behavior)
+					chatAdapter.notifyItemChanged(messages.size() - 1);
+				}
+				if (chatMessagesRecycler != null) {
+					chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+				}
 
 				// Update cursor blinker base text for Pip-Boy effect
 				if (cursorBlinker != null && cursorBlinker.isRunning()) {
@@ -396,27 +541,31 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 			@Override
 			public void onComplete(@NonNull RagResponse response) {
+				// Phase 17: Flush batcher for final rich render
+				if (tokenBatcher != null) {
+					tokenBatcher.flush();
+					tokenBatcher.stop();
+				}
+
 				// Stop cursor blinker
 				if (cursorBlinker != null) {
 					cursorBlinker.stop();
 				}
 
+				if (!isAdded()) return;
+
 				// Update the final message with sources if available
 				int lastIndex = messages.size() - 1;
 				if (lastIndex >= 0 && messages.get(lastIndex).role == ChatMessage.ROLE_AI) {
 					ChatMessage aiMessage = messages.get(lastIndex);
-					boolean changed = false;
 					if (response.hasSources()) {
 						aiMessage.sources = response.getSources();
-						changed = true;
 					}
 					if (response.hasPoiSources()) {
 						aiMessage.poiSources = response.getPoiSources();
-						changed = true;
 					}
-					if (changed) {
-						chatAdapter.notifyItemChanged(lastIndex);
-					}
+					// Always do a final full render to ensure Markwon formatting
+					if (chatAdapter != null) chatAdapter.notifyItemChanged(lastIndex);
 					// Persist completed AI response
 					persistMessage(aiMessage);
 				}
@@ -428,11 +577,18 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 			@Override
 			public void onError(@NonNull String error) {
+				// Phase 17: Stop batcher on error
+				if (tokenBatcher != null) {
+					tokenBatcher.stop();
+				}
+
+				if (!isAdded()) return;
+
 				// Add error message
 				ChatMessage errorMessage = new ChatMessage(ChatMessage.ROLE_SYSTEM, "Error: " + error);
 				messages.add(errorMessage);
-				chatAdapter.notifyItemInserted(messages.size() - 1);
-				chatMessagesRecycler.scrollToPosition(messages.size() - 1);
+				if (chatAdapter != null) chatAdapter.notifyItemInserted(messages.size() - 1);
+				if (chatMessagesRecycler != null) chatMessagesRecycler.scrollToPosition(messages.size() - 1);
 
 				updateUI();
 				updateSendButton();
@@ -444,7 +600,10 @@ public class LlmChatFragment extends LamppPanelFragment {
 	}
 
 	private void showModelManagement() {
-		LlmModelsFragment.showInstance(getParentFragmentManager());
+		// Use activity's fragment manager for full-screen model management dialog
+		if (getActivity() != null) {
+			LlmModelsFragment.showInstance(getActivity().getSupportFragmentManager());
+		}
 	}
 
 	@Override
@@ -456,6 +615,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 		// Shutdown RAG manager to release executor resources
 		if (ragManager != null) {
 			ragManager.shutdown();
+		}
+
+		// Phase 17: Stop token batcher
+		if (tokenBatcher != null) {
+			tokenBatcher.stop();
+			tokenBatcher = null;
 		}
 
 		// Stop cursor blinker
@@ -598,38 +763,30 @@ public class LlmChatFragment extends LamppPanelFragment {
 	}
 
 	/**
-	 * Build a Markwon instance with theme-aware colors from the active LamppStylePreset.
+	 * Phase 17: Prefill the message input with a query from external source
+	 * (e.g., "Ask AI" button from Guides or Wikipedia).
+	 * If a model is loaded, sends the message immediately.
 	 */
-	@NonNull
-	private Markwon buildMarkwon(@NonNull Context context) {
-		LamppStylePreset preset = LamppThemeUtils.getActivePreset(app);
-		@ColorInt int linkColor = preset.getPrimaryColor(context, nightMode);
-		@ColorInt int codeBgColor = preset.getAiMessageBgColor(context, nightMode);
-		@ColorInt int codeTextColor = preset.getAiMessageTextColor(context, nightMode);
-
-		return Markwon.builder(context)
-				.usePlugin(new AbstractMarkwonPlugin() {
-					@Override
-					public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
-						builder.linkColor(linkColor)
-								.codeTextColor(codeTextColor)
-								.codeBackgroundColor(codeBgColor)
-								.codeBlockTextColor(codeTextColor)
-								.codeBlockBackgroundColor(codeBgColor)
-								.codeTypeface(Typeface.MONOSPACE)
-								.headingBreakHeight(0);
-					}
-				})
-				.build();
+	public void prefillQuery(@NonNull String query) {
+		if (messageInput != null) {
+			messageInput.setText(query);
+			messageInput.setSelection(query.length());
+			if (llmManager != null && llmManager.isModelLoaded()) {
+				sendMessage();
+			}
+		}
 	}
 
+	// buildMarkwon() removed in Phase 17 — uses LamppThemeUtils.getMarkwon() shared instance
+
 	/**
-	 * Rebuild Markwon when theme changes.
+	 * Rebuild Markwon when theme changes (Phase 17: uses shared instance).
 	 */
 	private void rebuildMarkwon() {
 		View view = getView();
 		if (view != null) {
-			markwon = buildMarkwon(view.getContext());
+			LamppThemeUtils.invalidateMarkwon();
+			markwon = LamppThemeUtils.getMarkwon(view.getContext(), app);
 			if (chatAdapter != null) {
 				chatAdapter.notifyDataSetChanged();
 			}
@@ -700,8 +857,14 @@ public class LlmChatFragment extends LamppPanelFragment {
 				boolean isLastMessage = position == messages.size() - 1;
 				boolean isStreamingThisMessage = isAiMessage && isLastMessage && isStreaming;
 
-				// Render content: Markwon for AI messages, plain text for user/system
-				if (isAiMessage && markwon != null) {
+				// Phase 17: Wire the TokenBatcher to the streaming message's TextView
+				if (isStreamingThisMessage && tokenBatcher != null) {
+					tokenBatcher.setTextView(contentText);
+					tokenBatcher.setMarkwon(markwon);
+					// Don't do a full Markwon render here — the batcher handles it
+					contentText.setText(message.content);
+				} else if (isAiMessage && markwon != null) {
+					// Non-streaming AI messages: full Markwon render
 					markwon.setMarkdown(contentText, message.content);
 				} else {
 					contentText.setText(message.content);

@@ -34,6 +34,8 @@ public class LamppPanelManager {
 	@Nullable
 	private LamppTab activeTab = null;
 	private boolean p2pListenerRegistered = false;
+	@Nullable
+	private String pendingQuery = null; // Phase 17: query to pass to next opened panel
 
 	public LamppPanelManager(@NonNull MapActivity mapActivity) {
 		this.mapActivity = mapActivity;
@@ -166,6 +168,54 @@ public class LamppPanelManager {
 		return activeTab;
 	}
 
+	/**
+	 * Phase 17: Open a panel tab with a prefilled query.
+	 * Used by "Ask AI" buttons in guides and Wikipedia to switch to AI Chat
+	 * with a pre-composed question.
+	 */
+	public void openPanelWithQuery(@NonNull LamppTab tab, @NonNull String query) {
+		pendingQuery = query;
+		// If the target panel is already open, deliver query directly
+		if (tab.equals(activeTab)) {
+			deliverPendingQuery();
+			return;
+		}
+		openPanel(tab);
+	}
+
+	/**
+	 * Phase 17: Retrieve and clear the pending query.
+	 * Called by LlmChatFragment.onPanelViewCreated() to check for a pending query.
+	 */
+	@Nullable
+	public String consumePendingQuery() {
+		String query = pendingQuery;
+		pendingQuery = null;
+		return query;
+	}
+
+	/**
+	 * Phase 17: Deliver a pending query to the active AI Chat fragment.
+	 */
+	private void deliverPendingQuery() {
+		if (pendingQuery == null || activeTab != LamppTab.AI_CHAT) return;
+		FragmentManager fm = mapActivity.getSupportFragmentManager();
+		String tag = activeTab.getFragmentTag();
+		if (tag != null) {
+			Fragment fragment = fm.findFragmentByTag(tag);
+			if (fragment != null) {
+				try {
+					java.lang.reflect.Method prefill = fragment.getClass()
+							.getMethod("prefillQuery", String.class);
+					prefill.invoke(fragment, pendingQuery);
+				} catch (Exception e) {
+					LOG.warn("Failed to deliver query to AI panel: " + e.getMessage());
+				}
+			}
+		}
+		pendingQuery = null;
+	}
+
 	@Nullable
 	private LamppPanelFragment createFragmentForTab(@NonNull LamppTab tab) {
 		try {
@@ -200,6 +250,18 @@ public class LamppPanelManager {
 	 */
 	public boolean onBackPressed() {
 		if (isPanelOpen()) {
+			// First, let the active fragment handle internal back navigation
+			if (activeTab != null) {
+				FragmentManager fm = mapActivity.getSupportFragmentManager();
+				String tag = activeTab.getFragmentTag();
+				if (tag != null) {
+					Fragment fragment = fm.findFragmentByTag(tag);
+					if (fragment instanceof LamppPanelFragment
+							&& ((LamppPanelFragment) fragment).onBackPressed()) {
+						return true;
+					}
+				}
+			}
 			closeActivePanel(true);
 			return true;
 		}

@@ -130,11 +130,21 @@ public class SecurityManager {
 
 	/**
 	 * Get or create the encrypted chat storage instance.
+	 * Returns null if SQLCipher is not available on this device.
 	 */
-	@NonNull
+	@Nullable
 	public EncryptedChatStorage getChatStorage() {
 		if (chatStorage == null) {
-			chatStorage = new EncryptedChatStorage(app, getChatPassphrase());
+			if (!EncryptedChatStorage.isSqlCipherAvailable()) {
+				LOG.warn("SQLCipher not available, encrypted chat storage disabled");
+				return null;
+			}
+			try {
+				chatStorage = new EncryptedChatStorage(app, getChatPassphrase());
+			} catch (Exception e) {
+				LOG.error("Failed to create encrypted chat storage", e);
+				return null;
+			}
 		}
 		return chatStorage;
 	}

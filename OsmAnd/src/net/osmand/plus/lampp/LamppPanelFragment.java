@@ -353,6 +353,7 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 		panelAnimator.setDuration(ANIMATION_DURATION);
 		panelAnimator.setInterpolator(new DecelerateInterpolator());
 		panelAnimator.addUpdateListener(anim -> {
+			if (panelContainer == null) return;
 			float val = (float) anim.getAnimatedValue();
 			panelContainer.setTranslationX(val);
 			updateScrimAlpha();
@@ -396,6 +397,16 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 
 	protected void onStateChanged(int oldState, int newState) {
 		// Override in subclasses for state change handling
+	}
+
+	/**
+	 * Called when the hardware back button is pressed while this panel is active.
+	 * Subclasses can override to handle internal navigation (e.g. going back
+	 * from a detail view to a list view).
+	 * @return true if the back press was consumed, false to let the panel close
+	 */
+	public boolean onBackPressed() {
+		return false;
 	}
 
 	/**
@@ -443,8 +454,9 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 
 	@Nullable
 	public MapActivity getMapActivity() {
-		if (getActivity() instanceof MapActivity) {
-			return (MapActivity) getActivity();
+		android.app.Activity activity = getActivity();
+		if (activity instanceof MapActivity) {
+			return (MapActivity) activity;
 		}
 		return null;
 	}

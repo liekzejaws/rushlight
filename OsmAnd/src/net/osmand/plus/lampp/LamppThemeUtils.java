@@ -11,6 +11,10 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.core.content.res.ResourcesCompat;
 
+import io.noties.markwon.AbstractMarkwonPlugin;
+import io.noties.markwon.Markwon;
+import io.noties.markwon.core.MarkwonTheme;
+
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
@@ -174,5 +178,60 @@ public class LamppThemeUtils {
 	public static int getPrimaryColor(@NonNull Context context, @NonNull OsmandApplication app) {
 		LamppStylePreset preset = getActivePreset(app);
 		return preset.getPrimaryColor(context, isNightMode(app));
+	}
+
+	// ---- Shared Markwon instance (Phase 17) ----
+
+	/**
+	 * Cached Markwon instance key: preset ordinal + nightMode flag.
+	 * Invalidated when the theme changes.
+	 */
+	private static Markwon cachedMarkwon;
+	private static int cachedMarkwonKey = -1;
+
+	/**
+	 * Returns a shared Markwon instance themed to the active preset.
+	 * The instance is cached and only rebuilt when the theme preset or night mode changes.
+	 * Use this instead of creating per-fragment Markwon builders.
+	 */
+	@NonNull
+	public static Markwon getMarkwon(@NonNull Context context, @NonNull OsmandApplication app) {
+		LamppStylePreset preset = getActivePreset(app);
+		boolean night = isNightMode(app);
+		int key = preset.ordinal() * 2 + (night ? 1 : 0);
+
+		if (cachedMarkwon != null && cachedMarkwonKey == key) {
+			return cachedMarkwon;
+		}
+
+		@ColorInt int linkColor = preset.getPrimaryColor(context, night);
+		@ColorInt int codeBgColor = preset.getAiMessageBgColor(context, night);
+		@ColorInt int codeTextColor = preset.getAiMessageTextColor(context, night);
+
+		cachedMarkwon = Markwon.builder(context)
+				.usePlugin(new AbstractMarkwonPlugin() {
+					@Override
+					public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
+						builder.linkColor(linkColor)
+								.codeTextColor(codeTextColor)
+								.codeBackgroundColor(codeBgColor)
+								.codeBlockTextColor(codeTextColor)
+								.codeBlockBackgroundColor(codeBgColor)
+								.codeTypeface(Typeface.MONOSPACE)
+								.headingBreakHeight(0);
+					}
+				})
+				.build();
+		cachedMarkwonKey = key;
+		LOG.info("Markwon instance rebuilt for preset=" + preset.name() + " night=" + night);
+		return cachedMarkwon;
+	}
+
+	/**
+	 * Invalidate the cached Markwon instance (e.g., after theme change).
+	 */
+	public static void invalidateMarkwon() {
+		cachedMarkwon = null;
+		cachedMarkwonKey = -1;
 	}
 }

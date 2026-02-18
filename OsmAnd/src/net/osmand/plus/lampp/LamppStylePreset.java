@@ -265,4 +265,96 @@ public enum LamppStylePreset {
 				return ContextCompat.getColor(context, R.color.color_warning);
 		}
 	}
+
+	// ---- Phase 17: Model status bar state colors ----
+
+	/** Status bar background when no model is installed (red CTA) */
+	@ColorInt
+	public int getStatusNoModelBgColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return 0xFF331111; // dark red tint
+			case MODERN:
+				return 0xFF2D1B1B; // muted dark red
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFF3D2020 : 0xFFFFF0F0; // light red tint
+		}
+	}
+
+	/** Status bar text color when no model */
+	@ColorInt
+	public int getStatusNoModelTextColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return 0xFFFF6666; // bright red
+			case MODERN:
+				return 0xFFFF7777;
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFFFF6666 : 0xFFCC3333;
+		}
+	}
+
+	/** Status bar background when model available but not loaded (amber) */
+	@ColorInt
+	public int getStatusAvailableBgColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return 0xFF332D11; // dark amber tint
+			case MODERN:
+				return 0xFF2D2817; // muted dark amber
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFF3D3620 : 0xFFFFF8E1;
+		}
+	}
+
+	/** Status bar text color when model available */
+	@ColorInt
+	public int getStatusAvailableTextColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return 0xFFFFBB33; // amber
+			case MODERN:
+				return 0xFFFFCC44;
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFFFFBB33 : 0xFFBB8800;
+		}
+	}
+
+	/** Status bar background when model loaded (green/success) */
+	@ColorInt
+	public int getStatusLoadedBgColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return 0xFF112211; // dark green tint
+			case MODERN:
+				return 0xFF1B2D1B; // muted dark green
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFF203D20 : 0xFFF0FFF0;
+		}
+	}
+
+	/** Status bar text color when model loaded */
+	@ColorInt
+	public int getStatusLoadedTextColor(@NonNull Context context, boolean nightMode) {
+		switch (this) {
+			case PIP_BOY:
+				return ContextCompat.getColor(context, R.color.lampp_green_primary);
+			case MODERN:
+				return ContextCompat.getColor(context, R.color.lampp_modern_primary);
+			case CLASSIC:
+			default:
+				return nightMode ? 0xFF66CC66 : 0xFF33AA33;
+		}
+	}
+
+	/** Status bar detail text color (secondary info like Wiki/POI status) */
+	@ColorInt
+	public int getStatusDetailTextColor(@NonNull Context context, boolean nightMode) {
+		return getTextSecondaryColor(context, nightMode);
+	}
 }
