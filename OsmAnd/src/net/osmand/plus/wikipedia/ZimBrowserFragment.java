@@ -38,11 +38,14 @@ import net.osmand.plus.lampp.LamppPanelFragment;
 
 import org.apache.commons.logging.Log;
 
+import android.os.Environment;
+
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -148,6 +151,11 @@ public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloa
 
 		// Show local tab by default
 		showTab(TAB_LOCAL);
+
+		// v0.5: Auto-detect ZIM files if none currently open
+		if (zimManager == null || !zimManager.isOpen()) {
+			autoDetectAndOpenFirst();
+		}
 	}
 
 	private void initTabs(View view) {
@@ -231,7 +239,7 @@ public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloa
 			updateSearchStatus(0, false);
 		});
 
-		openZimButton.setOnClickListener(v -> openFilePicker());
+		openZimButton.setOnClickListener(v -> smartZimAcquire());
 	}
 
 	private void initDownloadTab(View view) {
@@ -380,7 +388,15 @@ public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloa
 			List<String> sortedLanguages = new ArrayList<>(languages);
 			sortedLanguages.sort(String::compareToIgnoreCase);
 
+			// v0.7b: Detect device language and prioritize it in the list
+			String deviceLang = Locale.getDefault().getLanguage();
+			if (sortedLanguages.contains(deviceLang)) {
+				sortedLanguages.remove(deviceLang);
+				sortedLanguages.add(0, deviceLang);
+			}
+
 			List<ZimCatalogItem> finalItems = items;
+			String finalDeviceLang = deviceLang;
 			mainHandler.post(() -> {
 				catalogProgress.setVisibility(View.GONE);
 				catalogItems = finalItems;
@@ -406,6 +422,12 @@ public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloa
 					adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 					languageSpinner.setAdapter(adapter);
 
+					// v0.7b: Auto-select device language if available
+					int deviceLangIndex = availableLanguages.indexOf(finalDeviceLang);
+					if (deviceLangIndex >= 0) {
+						languageSpinner.setSelection(deviceLangIndex + 1); // +1 for "All languages"
+					}
+
 					applyLanguageFilter();
 				}
 			});
@@ -419,6 +441,171 @@ public class ZimBrowserFragment extends LamppPanelFragment implements ZimDownloa
 			filteredCatalogItems = catalogParser.filterByLanguage(catalogItems, selectedLanguage);
 		}
 		catalogAdapter.setItems(filteredCatalogItems);
+	}
+
+	// ---- v0.5: Smart ZIM Acquisition ----
+
+	/**
+	 * Scan common storage locations for .zim files.
+	 * Returns all found ZIM files (app dir, Downloads, external storage, SD card).
+	 */
+	@NonNull
+	private List<File> autoDetectZimFiles() {
+		List<File> found = new ArrayList<>();
+		Set<String> seen = new HashSet<>();
+
+		// 1. App's own ZIM directory
+		scanDirectoryForZim(downloadManager.getZimDirectory(), found, seen);
+
+		// 2. External storage Downloads folder
+		try {
+			File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+			scanDirectoryForZim(downloads, found, seen);
+		} catch (Exception e) {
+			LOG.warn("Could not scan Downloads: " + e.getMessage());
+		}
+
+		// 3. Root of external storage
+		try {
+			File extRoot = Environment.getExternalStorageDirectory();
+			scanDirectoryForZim(extRoot, found, seen);
+		} catch (Exception e) {
+			LOG.warn("Could not scan external storage root: " + e.getMessage());
+		}
+
+		// 4. SD card (if present) via getExternalFilesDirs
+		try {
+			File[] extDirs = app.getExternalFilesDirs(null);
+			if (extDirs != null) {
+				for (File dir : extDirs) {
+					if (dir != null) {
+						scanDirectoryForZim(dir, found, seen);
+						// Also scan parent (app-specific → generic area)
+						File parent = dir.getParentFile();
+						if (parent != null) {
+							scanDirectoryForZim(parent, found, seen);
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOG.warn("Could not scan external file dirs: " + e.getMessage());
+		}
+
+		LOG.info("v0.5: Auto-detected " + found.size() + " ZIM files");
+		return found;
+	}
+
+	private void scanDirectoryForZim(@Nullable File dir, @NonNull List<File> found, @NonNull Set<String> seen) {
+		if (dir == null || !dir.exists() || !dir.isDirectory()) return;
+		try {
+			File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".zim"));
+			if (files != null) {
+				for (File file : files) {
+					String path = file.getAbsolutePath();
+					if (!seen.contains(path) && file.length() > 0) {
+						seen.add(path);
+						found.add(file);
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOG.warn("Error scanning " + dir.getAbsolutePath() + ": " + e.getMessage());
+		}
+	}
+
+	/**
+	 * v0.5: Auto-scan on fragment open. If exactly 1 file found, open it silently.
+	 * Runs on background thread.
+	 */
+	private void autoDetectAndOpenFirst() {
+		executor.execute(() -> {
+			List<File> files = autoDetectZimFiles();
+			mainHandler.post(() -> {
+				if (!isAdded()) return;
+				if (files.size() == 1) {
+					// Auto-open the single found file
+					openZimFile(files.get(0));
+					app.showShortToastMessage(getString(R.string.zim_found_auto, files.get(0).getName()));
+				} else if (files.size() > 1) {
+					// Multiple found — update the local files list
+					loadDownloadedFiles();
+					updateLocalUI();
+				}
+				// If 0 found, do nothing — the empty state is already shown
+			});
+		});
+	}
+
+	/**
+	 * v0.5: Smart ZIM acquisition — three-tier fallback.
+	 * 1. Scan for local .zim files
+	 * 2. If found 1 → auto-open; if found multiple → picker dialog
+	 * 3. If found 0 → show options dialog (P2P, Browse Files, Download)
+	 */
+	private void smartZimAcquire() {
+		// Show scanning toast
+		app.showShortToastMessage(R.string.zim_scanning);
+
+		executor.execute(() -> {
+			List<File> files = autoDetectZimFiles();
+			mainHandler.post(() -> {
+				if (!isAdded()) return;
+				if (files.size() == 1) {
+					openZimFile(files.get(0));
+					app.showShortToastMessage(getString(R.string.zim_found_auto, files.get(0).getName()));
+				} else if (files.size() > 1) {
+					showZimPickerDialog(files);
+				} else {
+					showZimNotFoundDialog();
+				}
+			});
+		});
+	}
+
+	/**
+	 * v0.5: Show a picker dialog when multiple ZIM files are found.
+	 */
+	private void showZimPickerDialog(@NonNull List<File> files) {
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		String[] names = new String[files.size()];
+		for (int i = 0; i < files.size(); i++) {
+			names[i] = files.get(i).getName() + " (" + formatFileSize(files.get(i).length()) + ")";
+		}
+
+		new AlertDialog.Builder(activity)
+				.setTitle(getString(R.string.zim_found_multiple, files.size()))
+				.setItems(names, (dialog, which) -> openZimFile(files.get(which)))
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.show();
+	}
+
+	/**
+	 * v0.5: Show options dialog when no ZIM files found on device.
+	 */
+	private void showZimNotFoundDialog() {
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		new AlertDialog.Builder(activity)
+				.setTitle(R.string.zim_not_found_title)
+				.setMessage(R.string.zim_not_found_message)
+				.setPositiveButton(R.string.zim_get_via_p2p, (dialog, which) -> {
+					// Navigate to P2P tab
+					net.osmand.plus.activities.MapActivity mapActivity = getMapActivity();
+					if (mapActivity != null) {
+						mapActivity.getLamppPanelManager().openPanel(
+								net.osmand.plus.lampp.LamppTab.P2P);
+					}
+				})
+				.setNeutralButton(R.string.zim_browse_files, (dialog, which) -> openFilePicker())
+				.setNegativeButton(R.string.zim_download_online, (dialog, which) -> {
+					// Switch to Download tab
+					tabLayout.selectTab(tabLayout.getTabAt(TAB_DOWNLOAD));
+				})
+				.show();
 	}
 
 	private void openFilePicker() {

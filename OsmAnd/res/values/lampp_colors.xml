@@ -19,7 +19,7 @@
 	<!-- Text -->
 	<color name="lampp_text_primary">#33FF33</color>
 	<color name="lampp_text_secondary">#22AA22</color>
-	<color name="lampp_text_dim">#117711</color>
+	<color name="lampp_text_dim">#228822</color>
 
 	<!-- Accents -->
 	<color name="lampp_accent_orange">#FF8F00</color>
@@ -39,7 +39,7 @@
 	<color name="lampp_pipboy_activity_bg">#FF111111</color>
 	<color name="lampp_pipboy_card_bg">#FF222222</color>
 	<color name="lampp_pipboy_toolbar_text">#33FF33</color>
-	<color name="lampp_pipboy_searchbar_hint">#117711</color>
+	<color name="lampp_pipboy_searchbar_hint">#339933</color>
 
 	<!-- ============================================ -->
 	<!-- Modern Preset Colors (teal + grey)           -->

@@ -145,7 +145,7 @@
             android:id="@+id/transfer_filename"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
+            android:textSize="@dimen/lampp_text_body"
             android:textStyle="bold"
             android:singleLine="true"
             android:ellipsize="middle" />
@@ -169,7 +169,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="12sp" />
+                android:textSize="@dimen/lampp_text_detail" />
 
             <Button
                 android:id="@+id/transfer_cancel_button"
@@ -177,7 +177,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/shared_string_cancel"
-                android:textSize="12sp"
+                android:textSize="@dimen/lampp_text_detail"
                 android:minHeight="0dp"
                 android:paddingVertical="4dp" />
 

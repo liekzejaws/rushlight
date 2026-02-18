@@ -46,16 +46,14 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 	public static final String TAG = "LlmModelsFragment";
 	private static final Log LOG = PlatformUtil.getLog(LlmModelsFragment.class);
 
-	// Model definitions - using Q4_K_M quantization for good quality/size balance
-	// TinyLlama - smallest model for testing/low-end devices
-	private static final String TINYLLAMA_URL = "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf";
-	private static final String TINYLLAMA_FILENAME = "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf";
-	private static final long TINYLLAMA_SIZE = 669_000_000L; // ~669 MB
+	// v0.5: Model constants now live in ModelDownloadHelper for shared access
+	private static final String TINYLLAMA_URL = ModelDownloadHelper.TINYLLAMA_URL;
+	private static final String TINYLLAMA_FILENAME = ModelDownloadHelper.TINYLLAMA_FILENAME;
+	private static final long TINYLLAMA_SIZE = ModelDownloadHelper.TINYLLAMA_SIZE;
 
-	// Phi-3-mini - good balance of quality and size
-	private static final String PHI3_URL = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf";
-	private static final String PHI3_FILENAME = "Phi-3-mini-4k-instruct-q4.gguf";
-	private static final long PHI3_SIZE = 2_400_000_000L; // ~2.4 GB
+	private static final String PHI3_URL = ModelDownloadHelper.PHI3_URL;
+	private static final String PHI3_FILENAME = ModelDownloadHelper.PHI3_FILENAME;
+	private static final long PHI3_SIZE = ModelDownloadHelper.PHI3_SIZE;
 
 	// Currently selected model for download
 	private String currentDownloadUrl;
@@ -72,6 +70,8 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 	private ProgressBar phi3Progress;
 	private TextView phi3ProgressText;
 	private TextView storageInfo;
+	private TextView tinyLlamaSuitability;
+	private TextView phi3Suitability;
 
 	// State
 	private LlmManager llmManager;
@@ -117,6 +117,13 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 		tinyLlamaButton = view.findViewById(R.id.gemma_2b_button);
 		tinyLlamaProgress = view.findViewById(R.id.gemma_2b_progress);
 		tinyLlamaProgressText = view.findViewById(R.id.gemma_2b_progress_text);
+		tinyLlamaSuitability = view.findViewById(R.id.tinyllama_suitability);
+
+		// v0.7b: Phi-3 card
+		phi3Button = view.findViewById(R.id.phi3_button);
+		phi3Progress = view.findViewById(R.id.phi3_progress);
+		phi3ProgressText = view.findViewById(R.id.phi3_progress_text);
+		phi3Suitability = view.findViewById(R.id.phi3_suitability);
 
 		storageInfo = view.findViewById(R.id.storage_info);
 
@@ -130,6 +137,17 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 			} else if (!isDownloading) {
 				downloadModel(TINYLLAMA_URL, TINYLLAMA_FILENAME, TINYLLAMA_SIZE,
 					tinyLlamaProgress, tinyLlamaProgressText);
+			}
+		});
+
+		// v0.7b: Phi-3 download button
+		phi3Button.setOnClickListener(v -> {
+			File modelFile = new File(llmManager.getModelsDirectory(), PHI3_FILENAME);
+			if (modelFile.exists()) {
+				showDeleteDialog(modelFile);
+			} else if (!isDownloading) {
+				downloadModel(PHI3_URL, PHI3_FILENAME, PHI3_SIZE,
+					phi3Progress, phi3ProgressText);
 			}
 		});
 	}
@@ -156,6 +174,20 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 			tinyLlamaButton.setText(R.string.shared_string_download);
 		}
 
+		// v0.7b: Update Phi-3 button
+		File phi3File = new File(llmManager.getModelsDirectory(), PHI3_FILENAME);
+		if (phi3File.exists()) {
+			phi3Button.setText(R.string.shared_string_delete);
+		} else if (isDownloading && PHI3_FILENAME.equals(downloadingModel)) {
+			phi3Button.setText(R.string.shared_string_cancel);
+		} else {
+			phi3Button.setText(R.string.shared_string_download);
+		}
+
+		// v0.7b: Suitability badges
+		updateSuitabilityBadge(tinyLlamaSuitability, TINYLLAMA_SIZE / (1024 * 1024));
+		updateSuitabilityBadge(phi3Suitability, PHI3_SIZE / (1024 * 1024));
+
 		// Update storage info with device tier
 		long totalSize = llmManager.getTotalModelsSize();
 		long freeStorageMb = deviceDetector.getAvailableAppStorageMb();
@@ -163,6 +195,26 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 		storageInfo.setText("Device: " + tier.getDisplayName() + " tier | "
 				+ "Storage used: " + formatSize(totalSize) + " | "
 				+ "Free: " + formatSize(freeStorageMb * 1024 * 1024));
+	}
+
+	// v0.7b: Set suitability badge text and color
+	private void updateSuitabilityBadge(TextView badge, long modelSizeMb) {
+		if (badge == null) return;
+		DeviceCapabilityDetector.ModelSuitability suitability = deviceDetector.getModelSuitability(modelSizeMb);
+		badge.setText(suitability.getDisplayName());
+		int color;
+		switch (suitability) {
+			case RECOMMENDED:
+				color = 0xFF4CAF50; // green
+				break;
+			case POSSIBLE:
+				color = 0xFFFF9800; // amber
+				break;
+			default:
+				color = 0xFFF44336; // red
+				break;
+		}
+		badge.setTextColor(color);
 	}
 
 	private void downloadModel(String url, String filename, long estimatedSize,

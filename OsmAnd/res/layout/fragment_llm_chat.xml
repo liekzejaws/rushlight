@@ -69,14 +69,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="No model installed"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/lampp_text_caption"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/model_status_detail"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="11sp"
+                    android:textSize="@dimen/lampp_text_detail"
                     android:visibility="gone" />
             </LinearLayout>
 
@@ -91,9 +91,22 @@
                 android:paddingVertical="4dp"
                 android:text="@string/shared_string_download"
                 android:textAllCaps="false"
-                android:textSize="12sp" />
+                android:textSize="@dimen/lampp_text_button" />
 
         </LinearLayout>
+
+        <!-- v0.5: Inline download progress bar (visible during model download) -->
+        <ProgressBar
+            android:id="@+id/model_download_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_gravity="bottom"
+            android:indeterminate="false"
+            android:max="100"
+            android:progress="0"
+            android:visibility="gone" />
+
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Chat messages area -->
@@ -136,7 +149,7 @@
                 android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:text="AI Assistant"
-                android:textSize="18sp"
+                android:textSize="@dimen/lampp_text_title"
                 android:textStyle="bold"
                 android:textColor="?attr/main_font_color_basic" />
 
@@ -147,7 +160,7 @@
                 android:layout_marginBottom="20dp"
                 android:gravity="center"
                 android:text="Try asking:"
-                android:textSize="13sp"
+                android:textSize="@dimen/lampp_text_caption"
                 android:textColor="?attr/searchbar_text_hint" />
 
             <!-- Suggestion chips container (populated dynamically) -->

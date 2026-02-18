@@ -21,6 +21,7 @@
 		<item name="active_color_basic">@color/lampp_green_primary</item>
 		<item name="searchbar_text">@color/lampp_text_primary</item>
 		<item name="searchbar_text_hint">@color/lampp_pipboy_searchbar_hint</item>
+		<item name="lampp_button_text">@color/lampp_pipboy_searchbar_hint</item>
 		<item name="divider_color">@color/lampp_divider</item>
 		<item name="android:textColorPrimary">@color/lampp_text_primary</item>
 		<item name="android:textColorSecondary">@color/lampp_text_secondary</item>
@@ -40,6 +41,7 @@
 		<item name="active_color_basic">@color/lampp_modern_primary</item>
 		<item name="searchbar_text">@color/lampp_modern_text_primary</item>
 		<item name="searchbar_text_hint">@color/lampp_modern_searchbar_hint</item>
+		<item name="lampp_button_text">@color/lampp_modern_text_secondary</item>
 		<item name="divider_color">@color/lampp_modern_divider</item>
 		<item name="android:textColorPrimary">@color/lampp_modern_text_primary</item>
 		<item name="android:textColorSecondary">@color/lampp_modern_text_secondary</item>

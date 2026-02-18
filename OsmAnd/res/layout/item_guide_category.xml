@@ -28,7 +28,7 @@
 			android:id="@+id/category_name"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_caption"
 			android:textStyle="bold"
 			android:textColor="?attr/main_font_color_basic"
 			android:gravity="center" />
@@ -37,8 +37,8 @@
 			android:id="@+id/category_count"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:textSize="11sp"
-			android:textColor="@color/lampp_text_secondary"
+			android:textSize="@dimen/lampp_text_detail"
+			android:textColor="?attr/searchbar_text_hint"
 			android:gravity="center" />
 
 	</LinearLayout>

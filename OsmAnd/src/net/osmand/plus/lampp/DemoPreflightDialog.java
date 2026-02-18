@@ -144,14 +144,14 @@ public class DemoPreflightDialog extends DialogFragment {
 		// Check name
 		TextView nameView = new TextView(requireContext());
 		nameView.setText(check.name);
-		nameView.setTextSize(14);
+		nameView.setTextSize(14); // lampp_text_body
 		nameView.setTextColor(ContextCompat.getColor(requireContext(), R.color.lampp_green_primary));
 		textContainer.addView(nameView);
 
 		// Check message
 		TextView msgView = new TextView(requireContext());
 		msgView.setText(check.message);
-		msgView.setTextSize(12);
+		msgView.setTextSize(12); // lampp_text_detail
 		msgView.setTextColor(ContextCompat.getColor(requireContext(), R.color.lampp_text_secondary));
 		textContainer.addView(msgView);
 
@@ -162,7 +162,7 @@ public class DemoPreflightDialog extends DialogFragment {
 			MaterialButton fixBtn = new MaterialButton(requireContext(),
 					null, com.google.android.material.R.attr.borderlessButtonStyle);
 			fixBtn.setText(R.string.demo_preflight_fix);
-			fixBtn.setTextSize(12);
+			fixBtn.setTextSize(14); // lampp_text_button
 			fixBtn.setAllCaps(false);
 			fixBtn.setMinWidth(0);
 			fixBtn.setMinimumWidth(0);
@@ -188,7 +188,7 @@ public class DemoPreflightDialog extends DialogFragment {
 					MaterialButton fixBtn = new MaterialButton(requireContext(),
 							null, com.google.android.material.R.attr.borderlessButtonStyle);
 					fixBtn.setText(R.string.lampp_model_load);
-					fixBtn.setTextSize(12);
+					fixBtn.setTextSize(14); // lampp_text_button
 					fixBtn.setAllCaps(false);
 					fixBtn.setMinWidth(0);
 					fixBtn.setMinimumWidth(0);

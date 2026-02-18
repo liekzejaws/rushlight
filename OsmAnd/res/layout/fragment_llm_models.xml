@@ -148,6 +148,15 @@
 
                     </LinearLayout>
 
+                    <!-- v0.7b: Suitability badge -->
+                    <TextView
+                        android:id="@+id/tinyllama_suitability"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        android:textStyle="bold" />
+
                     <!-- Download progress -->
                     <ProgressBar
                         android:id="@+id/gemma_2b_progress"
@@ -167,6 +176,96 @@
 
                     <Button
                         android:id="@+id/gemma_2b_button"
+                        style="@style/Widget.AppCompat.Button.Colored"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/content_padding_half"
+                        android:text="@string/shared_string_download" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- v0.7b: Phi-3-mini Model Card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/phi3_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/content_padding"
+                android:layout_marginVertical="@dimen/content_padding_half"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/content_padding">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Phi-3-mini 4K"
+                                android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Good balance of quality and size. Microsoft Phi-3, 4K context. GGUF format."
+                                android:textAppearance="@style/TextAppearance.AppCompat.Caption" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="~2.4 GB"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                            android:textColor="?attr/default_icon_color" />
+
+                    </LinearLayout>
+
+                    <!-- Suitability badge -->
+                    <TextView
+                        android:id="@+id/phi3_suitability"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        android:textStyle="bold" />
+
+                    <!-- Download progress -->
+                    <ProgressBar
+                        android:id="@+id/phi3_progress"
+                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/content_padding_half"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/phi3_progress_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/phi3_button"
                         style="@style/Widget.AppCompat.Button.Colored"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

@@ -40,7 +40,7 @@
 				android:layout_height="wrap_content"
 				android:layout_weight="1"
 				android:text="@string/survival_guides"
-				android:textSize="20sp"
+				android:textSize="@dimen/lampp_text_header"
 				android:textStyle="bold"
 				android:textColor="?attr/main_font_color_basic" />
 		</LinearLayout>
@@ -56,9 +56,9 @@
 			android:maxLines="1"
 			android:paddingStart="12dp"
 			android:paddingEnd="12dp"
-			android:textSize="14sp"
+			android:textSize="@dimen/lampp_text_body"
 			android:textColor="?attr/main_font_color_basic"
-			android:textColorHint="@color/lampp_text_secondary" />
+			android:textColorHint="?attr/searchbar_text_hint" />
 	</LinearLayout>
 
 	<!-- Content: Category grid or guide list with loading spinner -->

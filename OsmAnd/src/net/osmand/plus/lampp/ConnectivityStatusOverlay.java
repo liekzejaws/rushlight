@@ -59,7 +59,7 @@ public class ConnectivityStatusOverlay implements DefaultLifecycleObserver {
 
 		// Create status TextView
 		statusView = new TextView(mapActivity);
-		statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+		statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
 		statusView.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
 		statusView.setPadding(dp(10), dp(4), dp(10), dp(4));
 		statusView.setBackground(createBackground());

@@ -10,6 +10,34 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+	<!-- Rushlight v0.5: Zero-Friction Content Acquisition -->
+	<string name="quick_download_title">Download AI Model?</string>
+	<string name="quick_download_message">TinyLlama 1.1B (669 MB) — smallest model, works on all devices.\n\nRequires internet connection.</string>
+	<string name="quick_download_button">Download</string>
+	<string name="quick_download_more_models">More Models…</string>
+	<string name="quick_download_cancel">Cancel Download</string>
+	<string name="downloading_model">Downloading %s…</string>
+	<string name="download_progress_detail">%1$s / %2$s</string>
+	<string name="model_download_complete">Model downloaded — tap to load</string>
+	<string name="model_download_failed">Download failed: %s</string>
+	<string name="model_download_no_space">Not enough storage. Need %s free.</string>
+
+	<string name="find_wikipedia">Find Wikipedia</string>
+	<string name="zim_smart_acquire_desc">Tap below to automatically find Wikipedia databases on your device, or get one from a nearby peer.</string>
+	<string name="zim_scanning">Scanning for Wikipedia files…</string>
+	<string name="zim_found_auto">Found Wikipedia: %s</string>
+	<string name="zim_found_multiple">Found %d Wikipedia files</string>
+	<string name="zim_not_found_title">No Wikipedia database found</string>
+	<string name="zim_not_found_message">No .zim files were found on your device storage.</string>
+	<string name="zim_scan_storage">Scan Storage</string>
+	<string name="zim_get_via_p2p">Get via P2P</string>
+	<string name="zim_browse_files">Browse Files</string>
+	<string name="zim_download_online">Download Online</string>
+
+	<string name="onboarding_knowledge_desc">Your AI assistant needs a model, and Wikipedia needs a database file.\nBoth work entirely offline once installed.\n\nTap below to set them up now, or skip and do it later from the side panel.</string>
+	<string name="onboarding_get_ai_model">Get AI Model</string>
+	<string name="onboarding_get_wikipedia">Get Wikipedia</string>
+
 	<!-- Rushlight: Settings screen strings -->
 	<string name="lampp_settings_title">Rushlight Settings</string>
 	<string name="lampp_ai_model_category">AI Model</string>

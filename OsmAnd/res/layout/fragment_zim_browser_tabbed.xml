@@ -223,7 +223,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:text="@string/select_zim_file_descr"
+                    android:text="@string/zim_smart_acquire_desc"
                     android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
                 <Button
@@ -232,7 +232,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/content_padding"
-                    android:text="@string/shared_string_open" />
+                    android:text="@string/find_wikipedia" />
 
             </LinearLayout>
 

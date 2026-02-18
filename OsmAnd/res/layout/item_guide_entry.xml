@@ -35,7 +35,7 @@
 				android:id="@+id/guide_title"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:textSize="15sp"
+				android:textSize="@dimen/lampp_text_body"
 				android:textStyle="bold"
 				android:textColor="?attr/main_font_color_basic"
 				android:maxLines="2"
@@ -45,8 +45,8 @@
 				android:id="@+id/guide_summary"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:textSize="12sp"
-				android:textColor="@color/lampp_text_secondary"
+				android:textSize="@dimen/lampp_text_detail"
+				android:textColor="?attr/searchbar_text_hint"
 				android:maxLines="2"
 				android:ellipsize="end"
 				android:layout_marginTop="2dp" />
@@ -58,7 +58,7 @@
 			android:layout_height="20dp"
 			android:layout_marginStart="8dp"
 			android:src="@drawable/ic_action_arrow_forward_16"
-			app:tint="@color/lampp_text_secondary" />
+			app:tint="?attr/lampp_button_text" />
 
 	</LinearLayout>
 </com.google.android.material.card.MaterialCardView>

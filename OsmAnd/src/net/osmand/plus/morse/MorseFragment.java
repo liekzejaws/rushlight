@@ -24,6 +24,7 @@ import com.google.android.material.button.MaterialButton;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.ai.LlmManager;
 import net.osmand.plus.lampp.LamppPanelFragment;
 import net.osmand.plus.lampp.LamppThemeUtils;
@@ -127,6 +128,12 @@ public class MorseFragment extends LamppPanelFragment {
     private LlmManager llmManager;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // v0.7: Full-width panel — Morse needs space for waveform and controls
+    @Override
+    protected float getPartialWidthRatio() {
+        return 1.0f;
+    }
+
     @Override
     protected int getPanelLayoutId() {
         return R.layout.fragment_morse;
@@ -170,6 +177,17 @@ public class MorseFragment extends LamppPanelFragment {
     // ==================== View Init ====================
 
     private void initViews(View view) {
+        // v0.7: Back button to close full-width panel
+        View backButton = view.findViewById(R.id.morse_back_button);
+        if (backButton != null) {
+            backButton.setOnClickListener(v -> {
+                MapActivity ma = getMapActivity();
+                if (ma != null) {
+                    ma.getLamppPanelManager().closeActivePanel(true);
+                }
+            });
+        }
+
         // Panel toggle
         panelSendButton = view.findViewById(R.id.panel_send_button);
         panelReceiveButton = view.findViewById(R.id.panel_receive_button);

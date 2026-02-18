@@ -5,15 +5,21 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import android.view.View;
+import android.view.animation.DecelerateInterpolator;
+
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.ai.LlmManager;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.p2pshare.P2pShareManager;
 import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import net.osmand.plus.security.PanelLockManager;
+import net.osmand.plus.wikipedia.WikipediaPlugin;
+import net.osmand.plus.wikipedia.ZimFileManager;
 
 import org.apache.commons.logging.Log;
 
@@ -116,6 +122,13 @@ public class LamppPanelManager {
 		saveActiveTabPreference();
 		if (tabBar != null) {
 			tabBar.setActiveTab(tab);
+			// v0.7: Fade out tab bar when panel opens to prevent overlap
+			tabBar.animate()
+					.alpha(0f)
+					.setDuration(200)
+					.setInterpolator(new DecelerateInterpolator())
+					.withEndAction(() -> tabBar.setVisibility(View.INVISIBLE))
+					.start();
 		}
 
 		// Disable drawer while panel is open
@@ -145,7 +158,17 @@ public class LamppPanelManager {
 		saveActiveTabPreference();
 		if (tabBar != null) {
 			tabBar.setActiveTab(null);
+			// v0.7: Restore tab bar when panel closes
+			tabBar.setVisibility(View.VISIBLE);
+			tabBar.animate()
+					.alpha(1f)
+					.setDuration(200)
+					.setInterpolator(new DecelerateInterpolator())
+					.start();
 		}
+
+		// v0.5: Refresh content status badges (content may have changed in panel)
+		updateContentStatusBadges();
 
 		// Re-enable drawer
 		mapActivity.enableDrawer();
@@ -292,6 +315,46 @@ public class LamppPanelManager {
 	}
 
 	/**
+	 * v0.5: Update content readiness badges on the tab bar.
+	 * Shows a red dot (badge count 1) on tabs that need attention:
+	 * - AI Chat tab: red dot if no model downloaded
+	 * - Wiki tab: red dot if no ZIM loaded
+	 * Called on startup and after panel operations.
+	 */
+	public void updateContentStatusBadges() {
+		if (tabBar == null) return;
+		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
+
+		// AI Chat: check if any models are downloaded
+		try {
+			LlmManager llm = new LlmManager(app);
+			if (!llm.hasDownloadedModels()) {
+				tabBar.setBadgeCount(LamppTab.AI_CHAT, 1);
+			} else {
+				// Only clear if it was a content status badge (not a P2P notification)
+				tabBar.setBadgeCount(LamppTab.AI_CHAT, 0);
+			}
+		} catch (Exception e) {
+			LOG.warn("Could not check AI model status for badge: " + e.getMessage());
+		}
+
+		// Wiki: check if any ZIM is open
+		try {
+			WikipediaPlugin plugin = PluginsHelper.getPlugin(WikipediaPlugin.class);
+			if (plugin != null) {
+				ZimFileManager zfm = plugin.getZimFileManager();
+				if (zfm == null || !zfm.isOpen()) {
+					tabBar.setBadgeCount(LamppTab.WIKI, 1);
+				} else {
+					tabBar.setBadgeCount(LamppTab.WIKI, 0);
+				}
+			}
+		} catch (Exception e) {
+			LOG.warn("Could not check ZIM status for badge: " + e.getMessage());
+		}
+	}
+
+	/**
 	 * Phase 12: Register a P2P event listener that increments badges
 	 * when the P2P panel is not the active tab.
 	 */
@@ -343,6 +406,9 @@ public class LamppPanelManager {
 
 		// Phase 12: Register P2P badge listener for events while P2P panel is inactive
 		registerP2pBadgeListener();
+
+		// v0.5: Update content readiness badges (red dots on AI/Wiki tabs if content missing)
+		updateContentStatusBadges();
 
 		// Phase 12: Show onboarding overlay on first launch (slight delay for map to load)
 		mapActivity.getWindow().getDecorView().postDelayed(() -> {

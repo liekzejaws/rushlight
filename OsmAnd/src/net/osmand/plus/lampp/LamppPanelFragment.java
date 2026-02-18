@@ -52,6 +52,7 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 
 	private int currentState = STATE_PARTIAL;
 	private View rootView;
+	private android.view.ViewTreeObserver.OnGlobalLayoutListener keyboardListener; // v0.6
 	private InterceptorFrameLayout panelContainer;
 	private View clickCatcher;
 	private View dragHandle;
@@ -138,6 +139,22 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 		// Start with panel off-screen, then animate in
 		panelContainer.setTranslationX(getPanelWidth());
 		rootView.post(() -> animateToState(STATE_PARTIAL));
+
+		// v0.6: Keyboard-aware padding — detect keyboard and adjust contentFrame bottom padding
+		keyboardListener = () -> {
+			if (contentFrame == null || rootView == null) return;
+			android.graphics.Rect visibleRect = new android.graphics.Rect();
+			rootView.getWindowVisibleDisplayFrame(visibleRect);
+			int rootHeight = rootView.getRootView().getHeight();
+			int keyboardHeight = rootHeight - visibleRect.bottom;
+			int threshold = rootHeight / 6; // keyboard > ~16% of screen
+			contentFrame.setPadding(
+					contentFrame.getPaddingLeft(),
+					contentFrame.getPaddingTop(),
+					contentFrame.getPaddingRight(),
+					keyboardHeight > threshold ? keyboardHeight : 0);
+		};
+		rootView.getViewTreeObserver().addOnGlobalLayoutListener(keyboardListener);
 
 		return rootView;
 	}
@@ -464,6 +481,13 @@ public abstract class LamppPanelFragment extends BaseOsmAndFragment {
 	@Override
 	public void onDestroyView() {
 		super.onDestroyView();
+
+		// v0.6: Remove keyboard listener
+		if (rootView != null && keyboardListener != null) {
+			rootView.getViewTreeObserver().removeOnGlobalLayoutListener(keyboardListener);
+		}
+		keyboardListener = null;
+
 		if (panelAnimator != null && panelAnimator.isRunning()) {
 			panelAnimator.cancel();
 		}

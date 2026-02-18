@@ -325,6 +325,24 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			lamppPanelManager.setTabBar(lamppTabBar);
 			// Restore previously open panel after layout is ready
 			lamppTabBar.post(() -> lamppPanelManager.restorePanelIfNeeded());
+
+			// v0.6: Fade/hide tab bar when navigation drawer opens to prevent overlap
+			final LamppSideTabBar tabBarRef = lamppTabBar;
+			drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
+				@Override
+				public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+					tabBarRef.setAlpha(1f - slideOffset);
+				}
+				@Override
+				public void onDrawerOpened(@NonNull View drawerView) {
+					tabBarRef.setVisibility(View.INVISIBLE);
+				}
+				@Override
+				public void onDrawerClosed(@NonNull View drawerView) {
+					tabBarRef.setVisibility(View.VISIBLE);
+					tabBarRef.setAlpha(1f);
+				}
+			});
 		}
 
 		// LAMPP: Connectivity status overlay (OFFLINE/GPS chip on map)

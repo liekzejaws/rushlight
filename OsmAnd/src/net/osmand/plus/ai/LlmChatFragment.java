@@ -59,6 +59,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.AlertDialog;
+
 /**
  * LAMPP: Chat interface for local LLM AI assistant.
  *
@@ -87,6 +89,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private EditText messageInput;
 	private ImageButton sendButton;
 
+	// v0.5: Inline download progress
+	private ProgressBar modelDownloadProgress;
+	@Nullable
+	private ModelDownloadHelper downloadHelper;
+
 	// State
 	private LlmManager llmManager;
 	private RagManager ragManager;
@@ -103,6 +110,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 	// Active conversation (Phase 14)
 	private long activeConversationId = EncryptedChatStorage.DEFAULT_CONVERSATION_ID;
+
+	// v0.7: Full-width panel — AI Chat is the app's primary interaction mode
+	@Override
+	protected float getPartialWidthRatio() {
+		return 1.0f;
+	}
 
 	@Override
 	protected int getPanelLayoutId() {
@@ -150,6 +163,14 @@ public class LlmChatFragment extends LamppPanelFragment {
 		toolbar = view.findViewById(R.id.toolbar);
 		if (toolbar != null) {
 			toolbar.setTitle("AI Assistant");
+			// v0.7: Back arrow to close full-width panel
+			toolbar.setNavigationIcon(R.drawable.ic_arrow_back);
+			toolbar.setNavigationOnClickListener(v -> {
+				MapActivity ma = getMapActivity();
+				if (ma != null) {
+					ma.getLamppPanelManager().closeActivePanel(true);
+				}
+			});
 			toolbar.inflateMenu(R.menu.menu_llm_chat);
 			toolbar.setOnMenuItemClickListener(item -> {
 				int id = item.getItemId();
@@ -222,6 +243,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 		messageInput = view.findViewById(R.id.message_input);
 		sendButton = view.findViewById(R.id.send_button);
 
+		modelDownloadProgress = view.findViewById(R.id.model_download_progress);
+
 		// Setup RecyclerView
 		chatAdapter = new ChatAdapter();
 		chatMessagesRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -248,8 +271,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 					loadModel(models[0]);
 				}
 			} else {
-				// Go to model download
-				showModelManagement();
+				// v0.5: One-tap model download instead of navigating to full management screen
+				showQuickModelDownload();
 			}
 		};
 
@@ -276,6 +299,14 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 		// Send button
 		sendButton.setOnClickListener(v -> sendMessage());
+
+		// v0.6: Scroll chat to bottom when input field gains focus (keyboard appears)
+		messageInput.setOnFocusChangeListener((v, hasFocus) -> {
+			if (hasFocus && chatAdapter.getItemCount() > 0) {
+				chatMessagesRecycler.postDelayed(() ->
+						chatMessagesRecycler.smoothScrollToPosition(chatAdapter.getItemCount() - 1), 200);
+			}
+		});
 	}
 
 	/**
@@ -350,6 +381,23 @@ public class LlmChatFragment extends LamppPanelFragment {
 			if (modelStatusCard != null) {
 				modelStatusCard.setCardBackgroundColor(preset.getStatusAvailableBgColor(ctx, nightMode));
 			}
+		} else if (downloadHelper != null && downloadHelper.isDownloading()) {
+			// v0.5: Downloading state — cyan/blue card with progress
+			modelStatusIcon.setVisibility(View.GONE);
+			modelLoadingProgress.setVisibility(View.VISIBLE);
+			modelStatusText.setText(getString(R.string.downloading_model, ModelDownloadHelper.TINYLLAMA_DISPLAY_NAME));
+			modelStatusText.setTextColor(preset.getStatusAvailableTextColor(ctx, nightMode));
+			modelStatusDetail.setVisibility(View.VISIBLE);
+			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
+			modelActionButton.setText(R.string.quick_download_cancel);
+			modelActionButton.setVisibility(View.VISIBLE);
+			if (modelStatusCard != null) {
+				modelStatusCard.setCardBackgroundColor(preset.getStatusAvailableBgColor(ctx, nightMode));
+			}
+			// Show download progress bar
+			if (modelDownloadProgress != null) {
+				modelDownloadProgress.setVisibility(View.VISIBLE);
+			}
 		} else {
 			// No model state: red card — download CTA
 			modelStatusIcon.setVisibility(View.VISIBLE);
@@ -366,6 +414,10 @@ public class LlmChatFragment extends LamppPanelFragment {
 			if (modelStatusCard != null) {
 				modelStatusCard.setCardBackgroundColor(preset.getStatusNoModelBgColor(ctx, nightMode));
 			}
+		}
+		// v0.5: Hide download progress bar when not downloading
+		if ((downloadHelper == null || !downloadHelper.isDownloading()) && modelDownloadProgress != null) {
+			modelDownloadProgress.setVisibility(View.GONE);
 		}
 
 		updateSendButton();
@@ -410,7 +462,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 			chip.setText(suggestion.text);
 			chip.setChipIconResource(suggestion.iconRes);
 			chip.setChipIconVisible(true);
-			chip.setTextSize(13);
+			chip.setTextSize(13); // lampp_text_caption
 			chip.setChipIconTint(android.content.res.ColorStateList.valueOf(chipIconColor));
 			chip.setTextColor(chipTextColor);
 			chip.setChipBackgroundColorResource(android.R.color.transparent);
@@ -630,11 +682,92 @@ public class LlmChatFragment extends LamppPanelFragment {
 		}
 	}
 
+	/**
+	 * v0.5: Show a compact confirmation dialog for one-tap model download.
+	 * Downloads TinyLlama directly with inline progress on the status card.
+	 */
+	private void showQuickModelDownload() {
+		// If already downloading, cancel it
+		if (downloadHelper != null && downloadHelper.isDownloading()) {
+			downloadHelper.cancel();
+			updateModelStatus();
+			return;
+		}
+
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		new AlertDialog.Builder(activity)
+				.setTitle(R.string.quick_download_title)
+				.setMessage(R.string.quick_download_message)
+				.setPositiveButton(R.string.quick_download_button, (dialog, which) -> startInlineDownload())
+				.setNeutralButton(R.string.quick_download_more_models, (dialog, which) -> showModelManagement())
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.show();
+	}
+
+	/**
+	 * v0.5: Start inline TinyLlama download with progress on the status card.
+	 */
+	private void startInlineDownload() {
+		if (downloadHelper == null) {
+			downloadHelper = new ModelDownloadHelper(app);
+		}
+
+		downloadHelper.downloadTinyLlama(new ModelDownloadHelper.DownloadCallback() {
+			@Override
+			public void onStarted() {
+				if (isAdded()) updateModelStatus();
+			}
+
+			@Override
+			public void onProgress(int percent, long downloadedBytes, long totalBytes) {
+				if (!isAdded()) return;
+				if (modelDownloadProgress != null) {
+					modelDownloadProgress.setProgress(percent);
+				}
+				if (modelStatusDetail != null) {
+					modelStatusDetail.setText(getString(R.string.download_progress_detail,
+							ModelDownloadHelper.formatSize(downloadedBytes),
+							ModelDownloadHelper.formatSize(totalBytes)));
+				}
+			}
+
+			@Override
+			public void onComplete(@NonNull File modelFile) {
+				if (!isAdded()) return;
+				app.showShortToastMessage(R.string.model_download_complete);
+				updateModelStatus();
+			}
+
+			@Override
+			public void onError(@NonNull String message) {
+				if (!isAdded()) return;
+				app.showShortToastMessage(getString(R.string.model_download_failed, message));
+				updateModelStatus();
+			}
+
+			@Override
+			public void onCancelled() {
+				if (!isAdded()) return;
+				updateModelStatus();
+			}
+		});
+
+		updateModelStatus();
+	}
+
 	@Override
 	public void onDestroyView() {
 		super.onDestroyView();
 		// Don't close the model - keep it loaded for quick access
 		// User can manually unload from status bar if needed
+
+		// v0.5: Shutdown download helper (download continues in background if active)
+		if (downloadHelper != null) {
+			downloadHelper.shutdown();
+			downloadHelper = null;
+		}
 
 		// Shutdown RAG manager to release executor resources
 		if (ragManager != null) {

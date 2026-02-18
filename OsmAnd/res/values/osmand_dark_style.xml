@@ -62,6 +62,7 @@
         <item name="ctx_menu_card_btn">@color/inactive_buttons_and_links_bg_dark</item>
         <item name="searchbar_text">@color/text_color_primary_dark</item>
         <item name="searchbar_text_hint">@color/text_color_secondary_dark</item>
+        <item name="lampp_button_text">@color/lampp_classic_text_secondary_dark</item>
         <item name="list_divider">@color/divider_color_dark</item>
         <item name="expandable_category_color">?android:attr/colorBackground</item>
         <item name="bottomToolBarColor">@color/tool_bar_color_dark</item>

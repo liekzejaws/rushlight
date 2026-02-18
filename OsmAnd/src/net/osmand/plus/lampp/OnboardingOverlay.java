@@ -55,10 +55,11 @@ public class OnboardingOverlay {
 			"You're Ready"
 	};
 
+	// v0.5: Step 3 description uses string resource and adds action buttons
 	private static final String[] STEP_DESCRIPTIONS = {
 			"Rushlight is your offline survival computer. Maps, AI assistant, Wikipedia, peer-to-peer sharing, and Morse code — all working without internet.\n\nDesigned for journalists, activists, and aid workers in environments where connectivity fails.",
 			"Download an offline map for your region before you go. Maps use GPS positioning — no cell towers needed.\n\nTap the menu button to access map downloads, or use the P2P tab to receive maps from a nearby device.",
-			"Download an AI model for offline questions and a Wikipedia database for reference.\n\nThe AI Chat tab provides an on-device assistant. The Wiki tab gives you full Wikipedia access offline.",
+			null, // v0.5: Loaded from string resource + action buttons added dynamically
 			"Rushlight is ready. Here's what you can do:\n\n• Navigate offline with GPS maps\n• Ask the AI assistant anything\n• Browse Wikipedia offline\n• Share content device-to-device\n• Send Morse code signals\n• Access security features in Tools"
 	};
 
@@ -130,11 +131,21 @@ public class OnboardingOverlay {
 			titleView.setText(STEP_TITLES[step]);
 		}
 		if (descView != null) {
-			descView.setText(STEP_DESCRIPTIONS[step]);
+			if (STEP_DESCRIPTIONS[step] != null) {
+				descView.setText(STEP_DESCRIPTIONS[step]);
+			} else {
+				// v0.5: Step 3 uses string resource
+				descView.setText(app.getString(R.string.onboarding_knowledge_desc));
+			}
 		}
 		if (iconView != null) {
 			iconView.setImageResource(STEP_ICONS[step]);
 			iconView.setColorFilter(Color.parseColor("#4CAF50"), PorterDuff.Mode.SRC_IN);
+		}
+
+		// v0.5: Add action buttons for step 3 (Add Knowledge)
+		if (step == 2) {
+			addKnowledgeActionButtons(overlay, mapActivity, app, rootView);
 		}
 
 		// Action button
@@ -201,6 +212,75 @@ public class OnboardingOverlay {
 				.start();
 
 		LOG.info("Onboarding step " + (step + 1) + "/" + TOTAL_STEPS + " shown");
+	}
+
+	/**
+	 * v0.5: Add "Get AI Model" and "Get Wikipedia" action buttons to step 3.
+	 * These dismiss onboarding and navigate directly to the relevant tab.
+	 */
+	private static void addKnowledgeActionButtons(@NonNull View overlay,
+	                                               @NonNull MapActivity mapActivity,
+	                                               @NonNull OsmandApplication app,
+	                                               @NonNull ViewGroup rootView) {
+		// Find the description view and add buttons below it
+		TextView descView = overlay.findViewById(R.id.onboarding_description);
+		if (descView == null) return;
+		ViewGroup parent = (ViewGroup) descView.getParent();
+		if (parent == null) return;
+
+		int descIndex = parent.indexOfChild(descView);
+
+		// Create a horizontal button container
+		LinearLayout buttonRow = new LinearLayout(mapActivity);
+		buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+		buttonRow.setGravity(android.view.Gravity.CENTER);
+		LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.MATCH_PARENT,
+				LinearLayout.LayoutParams.WRAP_CONTENT);
+		int marginPx = (int) (12 * mapActivity.getResources().getDisplayMetrics().density);
+		rowParams.topMargin = marginPx;
+		buttonRow.setLayoutParams(rowParams);
+
+		// "Get AI Model" button
+		Button aiButton = new Button(mapActivity);
+		aiButton.setText(R.string.onboarding_get_ai_model);
+		aiButton.setTextSize(14);
+		aiButton.setAllCaps(false);
+		aiButton.setBackgroundColor(Color.parseColor("#1B5E20")); // dark green
+		aiButton.setTextColor(Color.WHITE);
+		int padPx = (int) (8 * mapActivity.getResources().getDisplayMetrics().density);
+		aiButton.setPadding(padPx * 2, padPx, padPx * 2, padPx);
+		LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+				0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+		btnParams.setMarginEnd(padPx);
+		aiButton.setLayoutParams(btnParams);
+		aiButton.setOnClickListener(v -> {
+			dismiss(overlay, rootView, app);
+			mapActivity.getLamppPanelManager().openPanel(LamppTab.AI_CHAT);
+		});
+
+		// "Get Wikipedia" button
+		Button wikiButton = new Button(mapActivity);
+		wikiButton.setText(R.string.onboarding_get_wikipedia);
+		wikiButton.setTextSize(14);
+		wikiButton.setAllCaps(false);
+		wikiButton.setBackgroundColor(Color.parseColor("#1B5E20"));
+		wikiButton.setTextColor(Color.WHITE);
+		wikiButton.setPadding(padPx * 2, padPx, padPx * 2, padPx);
+		LinearLayout.LayoutParams btnParams2 = new LinearLayout.LayoutParams(
+				0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+		btnParams2.setMarginStart(padPx);
+		wikiButton.setLayoutParams(btnParams2);
+		wikiButton.setOnClickListener(v -> {
+			dismiss(overlay, rootView, app);
+			mapActivity.getLamppPanelManager().openPanel(LamppTab.WIKI);
+		});
+
+		buttonRow.addView(aiButton);
+		buttonRow.addView(wikiButton);
+
+		// Insert after description
+		parent.addView(buttonRow, descIndex + 1);
 	}
 
 	/**

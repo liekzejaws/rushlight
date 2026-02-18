@@ -119,7 +119,8 @@ public class LamppThemeUtils {
 	}
 
 	private static void applyFontRecursive(@NonNull View view, @NonNull Typeface typeface) {
-		if (view instanceof TextView) {
+		// v0.6: Skip EditText — monospace on input fields makes typed text cramped
+		if (view instanceof TextView && !(view instanceof android.widget.EditText)) {
 			((TextView) view).setTypeface(typeface);
 		}
 		if (view instanceof ViewGroup) {

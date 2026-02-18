@@ -16,7 +16,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="Theme"
-			android:textSize="20sp"
+			android:textSize="@dimen/lampp_text_header"
 			android:textStyle="bold"
 			android:textColor="?attr/main_font_color_basic"
 			android:layout_marginBottom="12dp" />
@@ -62,7 +62,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Pip-Boy"
-						android:textSize="16sp"
+						android:textSize="@dimen/lampp_text_subheader"
 						android:textStyle="bold"
 						android:textColor="@color/lampp_green_primary" />
 
@@ -70,7 +70,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Retro-futuristic terminal"
-						android:textSize="13sp"
+						android:textSize="@dimen/lampp_text_caption"
 			android:textAllCaps="false"
 						android:textColor="@color/lampp_text_secondary" />
 
@@ -130,7 +130,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Modern"
-						android:textSize="16sp"
+						android:textSize="@dimen/lampp_text_subheader"
 						android:textStyle="bold"
 						android:textColor="@color/lampp_modern_text_primary" />
 
@@ -138,7 +138,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Sleek teal and grey"
-						android:textSize="13sp"
+						android:textSize="@dimen/lampp_text_caption"
 			android:textAllCaps="false"
 						android:textColor="@color/lampp_modern_text_secondary" />
 
@@ -198,7 +198,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Classic OsmAnd"
-						android:textSize="16sp"
+						android:textSize="@dimen/lampp_text_subheader"
 						android:textStyle="bold"
 						android:textColor="@color/lampp_classic_text_primary_light" />
 
@@ -206,7 +206,7 @@
 						android:layout_width="wrap_content"
 						android:layout_height="wrap_content"
 						android:text="Default OsmAnd look"
-						android:textSize="13sp"
+						android:textSize="@dimen/lampp_text_caption"
 			android:textAllCaps="false"
 						android:textColor="@color/lampp_classic_text_secondary_light" />
 
@@ -239,13 +239,13 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="More settings..."
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
 			app:icon="@drawable/ic_action_settings"
-			app:iconTint="@color/lampp_text_secondary"
+			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
 		<!-- Show Setup Guide button -->
@@ -255,13 +255,13 @@
 			android:layout_height="wrap_content"
 			android:layout_marginTop="8dp"
 			android:text="Show Setup Guide"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
 			app:icon="@drawable/ic_action_help"
-			app:iconTint="@color/lampp_text_secondary"
+			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
 		<!-- Prepare Demo button -->
@@ -271,13 +271,13 @@
 			android:layout_height="wrap_content"
 			android:layout_marginTop="4dp"
 			android:text="Prepare Demo"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
 			app:icon="@drawable/ic_action_start_navigation"
-			app:iconTint="@color/lampp_text_secondary"
+			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
 		<!-- Divider -->
@@ -293,7 +293,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/rushlight_security_title"
-			android:textSize="20sp"
+			android:textSize="@dimen/lampp_text_header"
 			android:textStyle="bold"
 			android:textColor="?attr/main_font_color_basic"
 			android:layout_marginBottom="12dp" />
@@ -303,7 +303,7 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/rushlight_panic_wipe"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
 			android:textColor="@android:color/white"
 			android:backgroundTint="@color/lampp_accent_red"
@@ -324,7 +324,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/security_pin_section"
-			android:textSize="16sp"
+			android:textSize="@dimen/lampp_text_subheader"
 			android:textStyle="bold"
 			android:textColor="?attr/main_font_color_basic"
 			android:layout_marginBottom="8dp" />
@@ -335,13 +335,13 @@
 			android:layout_height="wrap_content"
 			android:layout_marginBottom="4dp"
 			android:text="@string/set_unlock_pin"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
 			app:icon="@drawable/ic_action_lock"
-			app:iconTint="@color/lampp_text_secondary"
+			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
 		<com.google.android.material.button.MaterialButton
@@ -350,7 +350,7 @@
 			android:layout_height="wrap_content"
 			android:layout_marginBottom="4dp"
 			android:text="@string/set_duress_pin"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
 			android:textColor="@color/lampp_accent_red"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
@@ -371,8 +371,8 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="@string/duress_wipe_scope"
-				android:textSize="14sp"
-				android:textColor="@color/lampp_text_secondary"
+				android:textSize="@dimen/lampp_text_body"
+				android:textColor="?attr/searchbar_text_hint"
 				android:layout_marginEnd="8dp" />
 
 			<TextView
@@ -380,7 +380,7 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="@string/wipe_chat_only"
-				android:textSize="14sp"
+				android:textSize="@dimen/lampp_text_body"
 				android:textStyle="bold"
 				android:textColor="?attr/main_font_color_basic"
 				android:background="?attr/selectableItemBackground"
@@ -392,9 +392,9 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/clear_pins"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			android:visibility="gone"
 			app:cornerRadius="8dp"
@@ -412,7 +412,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/stealth_mode"
-			android:textSize="16sp"
+			android:textSize="@dimen/lampp_text_subheader"
 			android:textStyle="bold"
 			android:textColor="?attr/main_font_color_basic"
 			android:layout_marginBottom="4dp" />
@@ -422,9 +422,9 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/stealth_inactive"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_caption"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/searchbar_text_hint"
 			android:layout_marginBottom="8dp" />
 
 		<com.google.android.material.button.MaterialButton
@@ -432,13 +432,13 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:text="@string/stealth_settings"
-			android:textSize="13sp"
+			android:textSize="@dimen/lampp_text_button"
 			android:textAllCaps="false"
-			android:textColor="@color/lampp_text_secondary"
+			android:textColor="?attr/lampp_button_text"
 			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
 			app:cornerRadius="8dp"
 			app:icon="@drawable/ic_action_hide"
-			app:iconTint="@color/lampp_text_secondary"
+			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
 	</LinearLayout>
