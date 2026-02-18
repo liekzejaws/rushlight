@@ -242,6 +242,38 @@
 			app:iconTint="@color/lampp_text_secondary"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
+		<!-- Show Setup Guide button -->
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/show_setup_guide_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			android:text="Show Setup Guide"
+			android:textSize="13sp"
+			android:textAllCaps="false"
+			android:textColor="@color/lampp_text_secondary"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_help"
+			app:iconTint="@color/lampp_text_secondary"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+		<!-- Prepare Demo button -->
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/prepare_demo_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:text="Prepare Demo"
+			android:textSize="13sp"
+			android:textAllCaps="false"
+			android:textColor="@color/lampp_text_secondary"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_start_navigation"
+			app:iconTint="@color/lampp_text_secondary"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
 		<!-- Divider -->
 		<View
 			android:layout_width="match_parent"

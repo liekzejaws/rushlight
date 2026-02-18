@@ -327,6 +327,9 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			lamppTabBar.post(() -> lamppPanelManager.restorePanelIfNeeded());
 		}
 
+		// LAMPP: Connectivity status overlay (OFFLINE/GPS chip on map)
+		new net.osmand.plus.lampp.ConnectivityStatusOverlay(this).attach();
+
 		checkAppInitialization();
 
 		getMapActions().updateDrawerMenu();

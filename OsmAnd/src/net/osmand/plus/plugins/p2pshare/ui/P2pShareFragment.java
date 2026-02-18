@@ -13,11 +13,15 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.widget.Toast;
+
 import net.osmand.PlatformUtil;
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.lampp.LamppPanelFragment;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
+import net.osmand.plus.plugins.p2pshare.P2pDemoMode;
 import net.osmand.plus.plugins.p2pshare.P2pPermissionHelper;
 import net.osmand.plus.plugins.p2pshare.P2pShareManager;
 import net.osmand.plus.plugins.p2pshare.P2pSharePlugin;
@@ -147,6 +151,11 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
 
     private void setupListeners() {
         startScanButton.setOnClickListener(v -> {
+            if (P2pDemoMode.isActive()) {
+                // Exit demo mode on regular tap
+                exitDemoMode();
+                return;
+            }
             if (shareManager != null) {
                 if (shareManager.isScanning()) {
                     shareManager.stopScanning();
@@ -156,9 +165,64 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
             }
         });
 
+        // Long-press scan button to activate demo mode
+        startScanButton.setOnLongClickListener(v -> {
+            if (!P2pDemoMode.isActive()) {
+                activateDemoMode();
+            } else {
+                exitDemoMode();
+            }
+            return true;
+        });
+
         configureContentButton.setOnClickListener(v -> {
             showContentConfigDialog();
         });
+    }
+
+    /**
+     * Activate demo mode with simulated peers for video recording.
+     */
+    private void activateDemoMode() {
+        OsmandApplication app = getActivity() != null
+                ? (OsmandApplication) getActivity().getApplication() : null;
+        if (app == null) return;
+
+        P2pDemoMode.setActive(true);
+        LOG.info("P2P Demo Mode activated");
+
+        // Inject simulated peers
+        peers.clear();
+        peers.addAll(P2pDemoMode.createDemoPeers(app));
+        peersAdapter.notifyDataSetChanged();
+        updateEmptyState();
+
+        // Update toolbar to show demo mode indicator
+        if (toolbar != null) {
+            toolbar.setSubtitle("DEMO MODE");
+        }
+        startScanButton.setText("Exit Demo");
+
+        Toast.makeText(getContext(), "Demo mode: simulated peers active", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Exit demo mode and clear simulated peers.
+     */
+    private void exitDemoMode() {
+        P2pDemoMode.setActive(false);
+        LOG.info("P2P Demo Mode deactivated");
+
+        peers.clear();
+        peersAdapter.notifyDataSetChanged();
+        updateEmptyState();
+
+        if (toolbar != null) {
+            toolbar.setSubtitle(null);
+        }
+        startScanButton.setText(R.string.p2p_share_scan);
+
+        transferProgressCard.setVisibility(View.GONE);
     }
 
     /**
@@ -218,6 +282,35 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
     private void onPeerClicked(@NonNull DiscoveredPeer peer) {
         LOG.info("Peer clicked: " + peer.getDeviceName());
 
+        // Demo mode: handle simulated peer interaction
+        if (P2pDemoMode.isActive()) {
+            if (peer.getState() == DiscoveredPeer.PeerState.CONNECTED && peer.getRemoteManifest() != null) {
+                PeerContentBottomSheet.showInstance(getChildFragmentManager(), peer);
+            } else if (peer.getState() == DiscoveredPeer.PeerState.DISCOVERED) {
+                // Simulate connection for unconnected demo peers
+                peer.setState(DiscoveredPeer.PeerState.CONNECTING);
+                int idx = peers.indexOf(peer);
+                if (idx >= 0) peersAdapter.notifyItemChanged(idx);
+
+                // Simulate 1-second connection delay, then show as connected
+                startScanButton.postDelayed(() -> {
+                    if (!isAdded()) return;
+                    peer.setState(DiscoveredPeer.PeerState.CONNECTED);
+                    // Build a manifest for this peer
+                    OsmandApplication app = getActivity() != null
+                            ? (OsmandApplication) getActivity().getApplication() : null;
+                    if (app != null && peer.getRemoteManifest() == null) {
+                        peer.setManifestSummary("3 maps");
+                        // Auto-open content sheet
+                    }
+                    int i = peers.indexOf(peer);
+                    if (i >= 0) peersAdapter.notifyItemChanged(i);
+                    Toast.makeText(getContext(), "Connected to " + peer.getDeviceName(), Toast.LENGTH_SHORT).show();
+                }, 1200);
+            }
+            return;
+        }
+
         // If already connected and manifest available, show content directly
         if (peer.getState() == DiscoveredPeer.PeerState.CONNECTED && peer.getRemoteManifest() != null) {
             PeerContentBottomSheet.showInstance(getChildFragmentManager(), peer);
@@ -239,6 +332,44 @@ public class P2pShareFragment extends LamppPanelFragment implements P2pShareMana
         if (shareManager != null) {
             shareManager.connectToPeer(peer);
         }
+    }
+
+    /**
+     * Start a simulated transfer animation for demo mode.
+     * Called from PeerContentBottomSheet when user selects a demo content item.
+     */
+    public void startDemoTransfer() {
+        if (!P2pDemoMode.isActive() || !isAdded()) return;
+
+        P2pDemoMode.simulateTransferProgress(new P2pDemoMode.TransferProgressCallback() {
+            @Override
+            public void onProgress(@NonNull String filename, int percent, long bytesTransferred, long totalBytes) {
+                runOnUiIfAttached(() -> {
+                    if (!isAdded() || transferProgressCard == null) return;
+                    transferProgressCard.setVisibility(View.VISIBLE);
+                    transferFilename.setText(filename);
+                    transferProgressBar.setProgress(percent);
+                    String transferred = formatSize(bytesTransferred);
+                    String total = formatSize(totalBytes);
+                    transferProgressText.setText(transferred + " / " + total + " (" + percent + "%)");
+                });
+            }
+
+            @Override
+            public void onComplete(@NonNull String filename, boolean success, String error) {
+                runOnUiIfAttached(() -> {
+                    if (!isAdded() || transferProgressCard == null) return;
+                    transferFilename.setText("Complete: " + filename);
+                    transferProgressBar.setProgress(100);
+                    transferProgressText.setText("");
+                    transferProgressCard.postDelayed(() -> {
+                        if (transferProgressCard != null) {
+                            transferProgressCard.setVisibility(View.GONE);
+                        }
+                    }, 3000);
+                });
+            }
+        });
     }
 
     private void showContentConfigDialog() {

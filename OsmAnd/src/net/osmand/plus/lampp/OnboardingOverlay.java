@@ -1,7 +1,12 @@
 package net.osmand.plus.lampp;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +18,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
@@ -127,6 +134,7 @@ public class OnboardingOverlay {
 		}
 		if (iconView != null) {
 			iconView.setImageResource(STEP_ICONS[step]);
+			iconView.setColorFilter(Color.parseColor("#4CAF50"), PorterDuff.Mode.SRC_IN);
 		}
 
 		// Action button
@@ -137,7 +145,8 @@ public class OnboardingOverlay {
 				rootView.removeView(overlay);
 				show(mapActivity, app, step + 1);
 			} else {
-				// Final step — dismiss and mark complete
+				// Final step — request permissions, then dismiss
+				requestAllPermissions(mapActivity);
 				dismiss(overlay, rootView, app);
 			}
 		});
@@ -192,6 +201,63 @@ public class OnboardingOverlay {
 				.start();
 
 		LOG.info("Onboarding step " + (step + 1) + "/" + TOTAL_STEPS + " shown");
+	}
+
+	/**
+	 * Request all Rushlight-specific permissions in a single batch.
+	 * Front-loads permission prompts during onboarding to prevent interruptions
+	 * during actual usage or demo recording.
+	 */
+	private static void requestAllPermissions(@NonNull MapActivity mapActivity) {
+		java.util.List<String> needed = new java.util.ArrayList<>();
+
+		// Location (for P2P, RAG POI search)
+		if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.ACCESS_FINE_LOCATION)
+				!= PackageManager.PERMISSION_GRANTED) {
+			needed.add(Manifest.permission.ACCESS_FINE_LOCATION);
+		}
+
+		// Camera (for Morse receive via camera)
+		if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.CAMERA)
+				!= PackageManager.PERMISSION_GRANTED) {
+			needed.add(Manifest.permission.CAMERA);
+		}
+
+		// Microphone (for Morse receive via mic)
+		if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.RECORD_AUDIO)
+				!= PackageManager.PERMISSION_GRANTED) {
+			needed.add(Manifest.permission.RECORD_AUDIO);
+		}
+
+		// Bluetooth permissions (API 31+, for P2P)
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.BLUETOOTH_SCAN)
+					!= PackageManager.PERMISSION_GRANTED) {
+				needed.add(Manifest.permission.BLUETOOTH_SCAN);
+			}
+			if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.BLUETOOTH_CONNECT)
+					!= PackageManager.PERMISSION_GRANTED) {
+				needed.add(Manifest.permission.BLUETOOTH_CONNECT);
+			}
+			if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.BLUETOOTH_ADVERTISE)
+					!= PackageManager.PERMISSION_GRANTED) {
+				needed.add(Manifest.permission.BLUETOOTH_ADVERTISE);
+			}
+		}
+
+		// Nearby WiFi Devices (API 33+, for P2P WiFi Direct)
+		if (Build.VERSION.SDK_INT >= 33) {
+			if (ContextCompat.checkSelfPermission(mapActivity, Manifest.permission.NEARBY_WIFI_DEVICES)
+					!= PackageManager.PERMISSION_GRANTED) {
+				needed.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+			}
+		}
+
+		if (!needed.isEmpty()) {
+			LOG.info("Requesting " + needed.size() + " permissions during onboarding");
+			ActivityCompat.requestPermissions(mapActivity,
+					needed.toArray(new String[0]), 9001);
+		}
 	}
 
 	/**

@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+  <!-- Red "L" mark — Rushlight brand, centered and scaled for splash -->
+  <path
+      android:pathData="M70,30 L70,170 L150,170 L150,148 L92,148 L92,30 Z"
+      android:fillColor="#e94560"/>
+</vector>

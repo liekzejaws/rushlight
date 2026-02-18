@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -92,6 +93,24 @@ public class ToolsFragment extends LamppPanelFragment {
 
 		// Phase 15 Session 2: Stealth mode section
 		setupStealthSection(contentView);
+
+		// Show Setup Guide button
+		View showGuideButton = contentView.findViewById(R.id.show_setup_guide_button);
+		if (showGuideButton != null) {
+			showGuideButton.setOnClickListener(v -> {
+				MapActivity mapActivity = getMapActivity();
+				if (mapActivity != null) {
+					mapActivity.getLamppPanelManager().closeActivePanel(false);
+					OnboardingOverlay.showFromTools(mapActivity);
+				}
+			});
+		}
+
+		// Prepare Demo button
+		View prepareDemoButton = contentView.findViewById(R.id.prepare_demo_button);
+		if (prepareDemoButton != null) {
+			prepareDemoButton.setOnClickListener(v -> showPrepareDemoConfirmation());
+		}
 
 		// Show current selection
 		updateSelection();
@@ -286,6 +305,48 @@ public class ToolsFragment extends LamppPanelFragment {
 				})
 				.setNegativeButton(R.string.shared_string_cancel, null)
 				.setIcon(android.R.drawable.ic_dialog_alert)
+				.show();
+	}
+
+	private void showPrepareDemoConfirmation() {
+		if (getContext() == null) return;
+		new AlertDialog.Builder(getContext())
+				.setTitle("Prepare Demo")
+				.setMessage("This will:\n\n• Clear chat history\n• Reset onboarding\n• Set Pip-Boy theme\n• Close panels\n\nProceed?")
+				.setPositiveButton("Prepare", (dialog, which) -> {
+					OsmandApplication app = getMyApplication();
+					MapActivity mapActivity = getMapActivity();
+					if (app == null) return;
+
+					// 1. Clear chat history
+					try {
+						net.osmand.plus.security.EncryptedChatStorage chatStorage =
+								app.getSecurityManager().getChatStorage();
+						if (chatStorage != null) {
+							chatStorage.clearMessages();
+						}
+					} catch (Exception e) {
+						// Chat storage may not be initialized
+					}
+
+					// 2. Reset onboarding shown flag
+					app.getSettings().LAMPP_ONBOARDING_SHOWN.set(false);
+
+					// 3. Set Pip-Boy theme
+					app.getSettings().LAMPP_STYLE_PRESET.set(LamppStylePreset.PIP_BOY);
+					updateSelection();
+					if (mapActivity != null) {
+						mapActivity.getLamppPanelManager().refreshTheme();
+					}
+
+					// 4. Close active panel
+					if (mapActivity != null) {
+						mapActivity.getLamppPanelManager().closeActivePanel(false);
+					}
+
+					Toast.makeText(getContext(), "Ready for demo recording", Toast.LENGTH_SHORT).show();
+				})
+				.setNegativeButton(R.string.shared_string_cancel, null)
 				.show();
 	}
 
