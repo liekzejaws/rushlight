@@ -16,8 +16,10 @@ import androidx.annotation.Nullable;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
+import net.osmand.plus.plugins.p2pshare.P2pLogSanitizer;
 import net.osmand.plus.plugins.p2pshare.ShareableContent;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
+import net.osmand.plus.plugins.p2pshare.discovery.PeerDiscoveryManager;
 import net.osmand.plus.utils.AndroidUtils;
 
 import org.apache.commons.logging.Log;
@@ -49,11 +51,8 @@ public class BluetoothTransport {
 
     private static final Log LOG = PlatformUtil.getLog(BluetoothTransport.class);
 
-    // UUID for Lampp Bluetooth service (same hex pattern as BLE UUID)
-    private static final UUID SERVICE_UUID = UUID.fromString("4c616d70-7032-7053-6861-726500000002");
-
-    // Service name for discovery
-    private static final String SERVICE_NAME = "Lampp P2P";
+    // Service name for discovery (generic to avoid identification)
+    private static final String SERVICE_NAME = "RL-P2P";
 
     // Buffer size (smaller than WiFi Direct due to lower bandwidth)
     private static final int BUFFER_SIZE = 16 * 1024; // 16KB
@@ -72,6 +71,9 @@ public class BluetoothTransport {
     private final OsmandApplication app;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    // Discovery manager reference for rotating UUID access
+    private PeerDiscoveryManager discoveryManager;
 
     // Bluetooth components
     private BluetoothAdapter bluetoothAdapter;
@@ -117,6 +119,22 @@ public class BluetoothTransport {
         }
     }
 
+    public void setDiscoveryManager(@Nullable PeerDiscoveryManager discoveryManager) {
+        this.discoveryManager = discoveryManager;
+    }
+
+    /**
+     * Get the service UUID — uses rotating UUID from discovery manager if available,
+     * otherwise falls back to a static UUID (for backwards compatibility).
+     */
+    private UUID getServiceUuid() {
+        if (discoveryManager != null) {
+            return discoveryManager.getRotatingServiceUuid();
+        }
+        // Fallback: deterministic UUID (less secure but functional)
+        return UUID.nameUUIDFromBytes("rushlight-bt-service".getBytes());
+    }
+
     public void setCallback(@Nullable TransportCallback callback) {
         this.callback = callback;
     }
@@ -151,7 +169,7 @@ public class BluetoothTransport {
         executor.execute(() -> {
             try {
                 LOG.info("Starting Bluetooth server socket");
-                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(SERVICE_NAME, SERVICE_UUID);
+                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(SERVICE_NAME, getServiceUuid());
                 isListening = true;
 
                 while (isListening && !Thread.currentThread().isInterrupted()) {
@@ -160,7 +178,8 @@ public class BluetoothTransport {
                         BluetoothSocket socket = serverSocket.accept();
 
                         if (socket != null) {
-                            LOG.info("Bluetooth connection accepted from: " + socket.getRemoteDevice().getAddress());
+                            LOG.info("Bluetooth connection accepted from: "
+                                    + P2pLogSanitizer.redactMac(socket.getRemoteDevice().getAddress()));
                             handleIncomingConnection(socket);
                         }
                     } catch (IOException e) {
@@ -207,14 +226,15 @@ public class BluetoothTransport {
             return;
         }
 
-        LOG.info("Connecting via Bluetooth to: " + peer.getDeviceName() + " (" + macAddress + ")");
+        LOG.info("Connecting via Bluetooth to: " + peer.getDeviceName()
+                + " (" + P2pLogSanitizer.redactMac(macAddress) + ")");
         connectedPeer = peer;
         peer.setState(DiscoveredPeer.PeerState.CONNECTING);
 
         executor.execute(() -> {
             try {
                 BluetoothDevice device = bluetoothAdapter.getRemoteDevice(macAddress);
-                clientSocket = device.createRfcommSocketToServiceRecord(SERVICE_UUID);
+                clientSocket = device.createRfcommSocketToServiceRecord(getServiceUuid());
 
                 LOG.info("Attempting Bluetooth RFCOMM connection...");
                 clientSocket.connect();
@@ -480,12 +500,12 @@ public class BluetoothTransport {
 
         try {
             clientSocket = socket;
-            String deviceName = socket.getRemoteDevice().getName();
             String deviceAddress = socket.getRemoteDevice().getAddress();
 
-            if (deviceName == null) deviceName = "Unknown Device";
+            // SECURITY: Don't use the real device name — use anonymous alias
+            String peerAlias = "Peer-" + Integer.toHexString(deviceAddress.hashCode()).substring(0, 4);
 
-            connectedPeer = new DiscoveredPeer(deviceAddress, deviceName);
+            connectedPeer = new DiscoveredPeer(deviceAddress, peerAlias);
             connectedPeer.setMacAddress(deviceAddress);
 
             setupStreams(socket);

@@ -23,6 +23,7 @@ import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
+import net.osmand.plus.plugins.p2pshare.P2pLogSanitizer;
 import net.osmand.plus.plugins.p2pshare.ShareableContent;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
 import net.osmand.plus.utils.AndroidUtils;
@@ -255,7 +256,7 @@ public class WifiDirectTransport {
         wifiP2pManager.connect(channel, config, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                LOG.info("WiFi P2P connection initiated to: " + macAddress);
+                LOG.info("WiFi P2P connection initiated to: " + P2pLogSanitizer.redactMac(macAddress));
                 // Actual connection status comes via CONNECTION_CHANGED broadcast
             }
 
@@ -1113,7 +1114,8 @@ public class WifiDirectTransport {
                 case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
                     WifiP2pDevice device = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
                     if (device != null) {
-                        LOG.info("This device changed: " + device.deviceName + " status: " + device.status);
+                        LOG.info("This device changed: " + P2pLogSanitizer.redactDeviceName(device.deviceName)
+                                + " status: " + device.status);
                     }
                     break;
             }

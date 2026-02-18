@@ -172,12 +172,14 @@ public class RagManager {
 
         // Search Wikipedia if needed
         if (shouldSearchWikipedia) {
-            // Extract search terms
-            List<String> searchTerms = classifier.extractSearchTerms(query);
-            LOG.info("Wikipedia search terms: " + searchTerms);
+            // Extract search terms and expand with synonyms for better recall
+            List<String> rawTerms = classifier.extractSearchTerms(query);
+            List<String> searchTerms = classifier.expandWithSynonyms(rawTerms);
+            LOG.info("Wikipedia search terms (with synonyms): " + searchTerms);
 
             // Notify callback
-            mainHandler.post(() -> callback.onSearchStarted(searchTerms));
+            final List<String> termsForCallback = searchTerms;
+            mainHandler.post(() -> callback.onSearchStarted(termsForCallback));
 
             // Search Wikipedia
             long searchStart = System.currentTimeMillis();

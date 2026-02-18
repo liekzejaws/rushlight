@@ -4,9 +4,11 @@ import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -566,6 +568,121 @@ public class QueryClassifier {
         }
 
         return terms;
+    }
+
+    // ---- Synonym Expansion (Phase 3.2) ----
+
+    /**
+     * Domain-focused synonym map for survival, medical, navigation, and legal terms.
+     * Maps common query words to related terms that might match Wikipedia article titles.
+     * Kept small and targeted — not a general thesaurus.
+     */
+    private static final Map<String, List<String>> SYNONYM_MAP = new HashMap<>();
+    static {
+        // Medical / First Aid
+        SYNONYM_MAP.put("dehydration", Arrays.asList("water loss", "fluid deficit"));
+        SYNONYM_MAP.put("bleeding", Arrays.asList("hemorrhage", "blood loss"));
+        SYNONYM_MAP.put("fracture", Arrays.asList("broken bone", "bone injury"));
+        SYNONYM_MAP.put("infection", Arrays.asList("sepsis", "bacterial infection"));
+        SYNONYM_MAP.put("fever", Arrays.asList("hyperthermia", "elevated temperature"));
+        SYNONYM_MAP.put("hypothermia", Arrays.asList("cold exposure", "low body temperature"));
+        SYNONYM_MAP.put("heatstroke", Arrays.asList("heat exhaustion", "hyperthermia"));
+        SYNONYM_MAP.put("wound", Arrays.asList("laceration", "injury"));
+        SYNONYM_MAP.put("burn", Arrays.asList("thermal injury", "scald"));
+        SYNONYM_MAP.put("poison", Arrays.asList("toxin", "toxic substance"));
+        SYNONYM_MAP.put("cpr", Arrays.asList("cardiopulmonary resuscitation", "chest compressions"));
+        SYNONYM_MAP.put("splint", Arrays.asList("immobilize", "fracture support"));
+        SYNONYM_MAP.put("tourniquet", Arrays.asList("bleeding control", "hemostasis"));
+        SYNONYM_MAP.put("antibiotics", Arrays.asList("antimicrobial", "anti-infective"));
+        SYNONYM_MAP.put("painkillers", Arrays.asList("analgesic", "pain relief"));
+        SYNONYM_MAP.put("bandage", Arrays.asList("dressing", "wound cover"));
+        SYNONYM_MAP.put("medicine", Arrays.asList("medication", "drug treatment"));
+
+        // Water / Survival
+        SYNONYM_MAP.put("water purification", Arrays.asList("water treatment", "water disinfection"));
+        SYNONYM_MAP.put("shelter", Arrays.asList("emergency shelter", "bivouac"));
+        SYNONYM_MAP.put("fire starting", Arrays.asList("fire making", "ignition"));
+        SYNONYM_MAP.put("foraging", Arrays.asList("wild food", "edible plants"));
+        SYNONYM_MAP.put("navigation", Arrays.asList("wayfinding", "orienteering"));
+        SYNONYM_MAP.put("compass", Arrays.asList("magnetic compass", "direction finding"));
+        SYNONYM_MAP.put("survival", Arrays.asList("wilderness survival", "emergency preparedness"));
+        SYNONYM_MAP.put("rescue", Arrays.asList("search and rescue", "emergency rescue"));
+        SYNONYM_MAP.put("signal", Arrays.asList("distress signal", "sos"));
+
+        // Navigation / Geography
+        SYNONYM_MAP.put("earthquake", Arrays.asList("seismic activity", "tremor"));
+        SYNONYM_MAP.put("flood", Arrays.asList("flooding", "flash flood"));
+        SYNONYM_MAP.put("tsunami", Arrays.asList("tidal wave", "seismic sea wave"));
+        SYNONYM_MAP.put("hurricane", Arrays.asList("cyclone", "typhoon"));
+        SYNONYM_MAP.put("volcano", Arrays.asList("volcanic eruption", "volcanism"));
+        SYNONYM_MAP.put("landslide", Arrays.asList("mudslide", "mass movement"));
+        SYNONYM_MAP.put("drought", Arrays.asList("water scarcity", "arid conditions"));
+
+        // Legal / Human Rights
+        SYNONYM_MAP.put("asylum", Arrays.asList("refugee status", "political asylum"));
+        SYNONYM_MAP.put("detention", Arrays.asList("imprisonment", "arrest"));
+        SYNONYM_MAP.put("censorship", Arrays.asList("information control", "media suppression"));
+        SYNONYM_MAP.put("surveillance", Arrays.asList("monitoring", "tracking"));
+        SYNONYM_MAP.put("encryption", Arrays.asList("cryptography", "data protection"));
+        SYNONYM_MAP.put("protest", Arrays.asList("demonstration", "civil disobedience"));
+        SYNONYM_MAP.put("refugee", Arrays.asList("displaced person", "asylum seeker"));
+
+        // Technology
+        SYNONYM_MAP.put("radio", Arrays.asList("two-way radio", "wireless communication"));
+        SYNONYM_MAP.put("battery", Arrays.asList("power source", "energy storage"));
+        SYNONYM_MAP.put("solar", Arrays.asList("solar power", "photovoltaic"));
+        SYNONYM_MAP.put("morse", Arrays.asList("morse code", "telegraphy"));
+        SYNONYM_MAP.put("gps", Arrays.asList("global positioning system", "satellite navigation"));
+    }
+
+    /**
+     * Expand search terms with domain-specific synonyms.
+     *
+     * For each input term, adds up to 2 synonyms from the synonym map,
+     * increasing the chance of matching Wikipedia article titles.
+     *
+     * @param terms Original search terms
+     * @return Expanded list including synonyms (originals first, then synonyms)
+     */
+    @NonNull
+    public List<String> expandWithSynonyms(@NonNull List<String> terms) {
+        List<String> expanded = new ArrayList<>(terms);
+        Set<String> seen = new HashSet<>();
+        for (String t : terms) {
+            seen.add(t.toLowerCase());
+        }
+
+        for (String term : terms) {
+            String lowerTerm = term.toLowerCase();
+
+            // Check exact match in synonym map
+            List<String> synonyms = SYNONYM_MAP.get(lowerTerm);
+            if (synonyms != null) {
+                for (String syn : synonyms) {
+                    if (seen.add(syn.toLowerCase())) {
+                        expanded.add(capitalize(syn));
+                    }
+                }
+                continue;
+            }
+
+            // Check if any synonym map key is contained in the term
+            for (Map.Entry<String, List<String>> entry : SYNONYM_MAP.entrySet()) {
+                if (lowerTerm.contains(entry.getKey())) {
+                    for (String syn : entry.getValue()) {
+                        if (seen.add(syn.toLowerCase())) {
+                            expanded.add(capitalize(syn));
+                            if (expanded.size() - terms.size() >= terms.size() * 2) {
+                                // Don't add too many synonyms
+                                return expanded;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return expanded;
     }
 
     /**

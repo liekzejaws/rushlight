@@ -19,6 +19,10 @@ import java.io.Closeable;
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * LAMPP: Manager for local LLM inference using llama.cpp via Ai-Core.
@@ -54,7 +58,9 @@ public class LlmManager implements Closeable {
 
 	private final OsmandApplication app;
 	private final ExecutorService executor;
+	private final ScheduledExecutorService timeoutScheduler;
 	private final Handler mainHandler;
+	private final DeviceCapabilityDetector deviceDetector;
 
 	private NativeLib nativeLib;
 	private File currentModelFile;
@@ -62,6 +68,11 @@ public class LlmManager implements Closeable {
 	private boolean isLoading;
 	private boolean isGenerating;
 	private boolean isModelLoaded;
+	private ScheduledFuture<?> inferenceTimeoutFuture;
+	private final AtomicBoolean inferenceTimedOut = new AtomicBoolean(false);
+
+	// Adaptive performance tracking
+	private float lastTokensPerSecond = -1;
 
 	public interface LlmCallback {
 		void onPartialResult(String partialText);
@@ -78,7 +89,19 @@ public class LlmManager implements Closeable {
 	public LlmManager(@NonNull OsmandApplication app) {
 		this.app = app;
 		this.executor = Executors.newSingleThreadExecutor();
+		this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor();
 		this.mainHandler = new Handler(Looper.getMainLooper());
+		this.deviceDetector = new DeviceCapabilityDetector(app);
+
+		LOG.info("LlmManager initialized. " + deviceDetector.getDeviceSummary());
+	}
+
+	/**
+	 * Get the device capability detector for this device.
+	 */
+	@NonNull
+	public DeviceCapabilityDetector getDeviceDetector() {
+		return deviceDetector;
 	}
 
 	/**
@@ -162,6 +185,15 @@ public class LlmManager implements Closeable {
 
 				android.util.Log.i(TAG, "Loading model: " + modelFile.getAbsolutePath());
 
+				// Check if device has enough RAM for this model
+				long modelSizeMb = modelFile.length() / (1024 * 1024);
+				long availRam = deviceDetector.getAvailableRamMb();
+				long estimatedNeed = (long) (modelSizeMb * 1.5);
+				if (availRam > 0 && estimatedNeed > availRam) {
+					LOG.warn("Low available RAM (" + availRam + "MB) for model (" + modelSizeMb
+							+ "MB). May cause OOM.");
+				}
+
 				// Create NativeLib instance using reflection (Kotlin private constructor)
 				// The constructor signature is NativeLib(String instanceId)
 				java.lang.reflect.Constructor<NativeLib> constructor =
@@ -169,16 +201,24 @@ public class LlmManager implements Closeable {
 				constructor.setAccessible(true);
 				nativeLib = constructor.newInstance("default");
 
-				// Read inference parameters from user preferences
-				int threads = app.getSettings().LAMPP_LLM_THREADS.get();
-				int ctxSize = app.getSettings().LAMPP_LLM_CTX_SIZE.get();
+				// Read inference parameters from user preferences, with device-aware defaults
+				int userThreads = app.getSettings().LAMPP_LLM_THREADS.get();
+				int userCtxSize = app.getSettings().LAMPP_LLM_CTX_SIZE.get();
+
+				// Use device-recommended values if user hasn't customized (i.e., using defaults)
+				int threads = (userThreads == DEFAULT_THREADS)
+						? deviceDetector.getRecommendedThreadCount() : userThreads;
+				int ctxSize = (userCtxSize == DEFAULT_CTX_SIZE)
+						? deviceDetector.getRecommendedContextSize() : userCtxSize;
+
 				int temp10 = app.getSettings().LAMPP_LLM_TEMPERATURE.get();
 				float temperature = temp10 / 10.0f;
 
 				// Initialize with model path and parameters
 				// Using the 7-parameter overload: (path, threads, ctxSize, temp, topK, topP, minP)
 				android.util.Log.i(TAG, "Init params: threads=" + threads
-					+ " ctxSize=" + ctxSize + " temperature=" + temperature);
+					+ " ctxSize=" + ctxSize + " temperature=" + temperature
+					+ " (tier=" + deviceDetector.getDeviceTier() + ")");
 				boolean success = nativeLib.init(
 					modelFile.getAbsolutePath(),
 					threads,
@@ -274,7 +314,16 @@ public class LlmManager implements Closeable {
 			return;
 		}
 
+		// Battery check: disable inference on critically low battery
+		if (deviceDetector.shouldDisableInference()) {
+			mainHandler.post(() -> callback.onError(
+					"Battery critically low (" + deviceDetector.getBatteryLevel()
+							+ "%). Please charge device before using AI."));
+			return;
+		}
+
 		isGenerating = true;
+		inferenceTimedOut.set(false);
 
 		executor.execute(() -> {
 			try {
@@ -282,12 +331,34 @@ public class LlmManager implements Closeable {
 					prompt.substring(0, Math.min(50, prompt.length())) + "...");
 
 				StringBuilder fullResponse = new StringBuilder();
+				final long startTime = System.currentTimeMillis();
+				final int[] tokenCount = {0};
 
-				// Use the native streaming generation with user-configured max tokens
-				int maxTokens = app.getSettings().LAMPP_LLM_MAX_TOKENS.get();
+				// Use device-aware max tokens, with battery throttling
+				int userMaxTokens = app.getSettings().LAMPP_LLM_MAX_TOKENS.get();
+				int deviceMaxTokens = deviceDetector.getRecommendedMaxTokens();
+				int maxTokens = deviceDetector.shouldThrottleInference()
+						? Math.min(userMaxTokens, deviceMaxTokens) : userMaxTokens;
+
+				if (deviceDetector.shouldThrottleInference()) {
+					LOG.info("Inference throttled: battery=" + deviceDetector.getBatteryLevel()
+							+ "%, maxTokens capped at " + maxTokens);
+				}
+
+				// Set up inference timeout
+				int timeoutSec = deviceDetector.getInferenceTimeoutSeconds();
+				inferenceTimeoutFuture = timeoutScheduler.schedule(() -> {
+					if (isGenerating) {
+						LOG.warn("Inference timeout after " + timeoutSec + " seconds, stopping generation");
+						inferenceTimedOut.set(true);
+						stopGeneration();
+					}
+				}, timeoutSec, TimeUnit.SECONDS);
+
 				boolean success = nativeLib.nativeGenerateStream(prompt, maxTokens, new StreamCallback() {
 					@Override
 					public void onToken(@NonNull String token) {
+						tokenCount[0]++;
 						fullResponse.append(token);
 						mainHandler.post(() -> callback.onPartialResult(fullResponse.toString()));
 					}
@@ -300,14 +371,31 @@ public class LlmManager implements Closeable {
 
 					@Override
 					public void onDone() {
+						cancelInferenceTimeout();
 						isGenerating = false;
-						String finalResponse = fullResponse.toString();
-						android.util.Log.i(TAG, "Generation complete. Length: " + finalResponse.length());
-						mainHandler.post(() -> callback.onComplete(finalResponse));
+
+						// Track performance for adaptive context sizing
+						long elapsedMs = System.currentTimeMillis() - startTime;
+						if (elapsedMs > 0 && tokenCount[0] > 0) {
+							lastTokensPerSecond = (tokenCount[0] * 1000.0f) / elapsedMs;
+							android.util.Log.i(TAG, "Generation complete. " + tokenCount[0]
+									+ " tokens in " + elapsedMs + "ms ("
+									+ String.format("%.1f", lastTokensPerSecond) + " tok/s)");
+						}
+
+						if (inferenceTimedOut.get()) {
+							String partial = fullResponse.toString();
+							mainHandler.post(() -> callback.onComplete(
+									partial + "\n\n⚠️ *Response truncated due to timeout.*"));
+						} else {
+							String finalResponse = fullResponse.toString();
+							mainHandler.post(() -> callback.onComplete(finalResponse));
+						}
 					}
 
 					@Override
 					public void onError(@NonNull String message) {
+						cancelInferenceTimeout();
 						android.util.Log.e(TAG, "Generation error: " + message);
 						isGenerating = false;
 						mainHandler.post(() -> callback.onError(message));
@@ -315,11 +403,13 @@ public class LlmManager implements Closeable {
 				});
 
 				if (!success) {
+					cancelInferenceTimeout();
 					isGenerating = false;
 					mainHandler.post(() -> callback.onError("nativeGenerateStream returned false"));
 				}
 
 			} catch (Exception e) {
+				cancelInferenceTimeout();
 				android.util.Log.e(TAG, "Error in streaming generation: " + e.getMessage(), e);
 				LOG.error("Error in LLM streaming generation", e);
 				isGenerating = false;
@@ -327,6 +417,24 @@ public class LlmManager implements Closeable {
 				mainHandler.post(() -> callback.onError(error != null ? error : "Unknown error"));
 			}
 		});
+	}
+
+	/**
+	 * Cancel any pending inference timeout.
+	 */
+	private void cancelInferenceTimeout() {
+		if (inferenceTimeoutFuture != null && !inferenceTimeoutFuture.isDone()) {
+			inferenceTimeoutFuture.cancel(false);
+			inferenceTimeoutFuture = null;
+		}
+	}
+
+	/**
+	 * Get the last measured inference speed in tokens per second.
+	 * Returns -1 if no measurement available yet.
+	 */
+	public float getLastTokensPerSecond() {
+		return lastTokensPerSecond;
 	}
 
 	/**
@@ -393,7 +501,9 @@ public class LlmManager implements Closeable {
 
 	@Override
 	public void close() {
+		cancelInferenceTimeout();
 		closeModel();
 		executor.shutdown();
+		timeoutScheduler.shutdown();
 	}
 }

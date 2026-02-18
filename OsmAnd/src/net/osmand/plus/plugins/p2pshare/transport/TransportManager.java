@@ -10,6 +10,7 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
 import net.osmand.plus.plugins.p2pshare.ShareableContent;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
+import net.osmand.plus.plugins.p2pshare.discovery.PeerDiscoveryManager;
 
 import org.apache.commons.logging.Log;
 
@@ -74,6 +75,14 @@ public class TransportManager implements TransportCallback {
         this.localManifest = manifest;
         wifiDirectTransport.setLocalManifest(manifest);
         bluetoothTransport.setLocalManifest(manifest);
+    }
+
+    /**
+     * Set the discovery manager reference for rotating UUID access.
+     * This allows BluetoothTransport to use the same rotating UUID as BLE discovery.
+     */
+    public void setDiscoveryManager(@Nullable PeerDiscoveryManager discoveryManager) {
+        bluetoothTransport.setDiscoveryManager(discoveryManager);
     }
 
     public void setCallback(@Nullable TransportCallback callback) {

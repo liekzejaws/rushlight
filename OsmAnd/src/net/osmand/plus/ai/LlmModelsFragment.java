@@ -75,6 +75,7 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 
 	// State
 	private LlmManager llmManager;
+	private DeviceCapabilityDetector deviceDetector;
 	private final ExecutorService executor = Executors.newSingleThreadExecutor();
 	private boolean isDownloading = false;
 	private String downloadingModel = null;
@@ -93,6 +94,7 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 		View view = inflater.inflate(R.layout.fragment_llm_models, container, false);
 
 		llmManager = new LlmManager(app);
+		deviceDetector = llmManager.getDeviceDetector();
 
 		setupToolbar(view.findViewById(R.id.toolbar));
 		initViews(view);
@@ -154,12 +156,51 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 			tinyLlamaButton.setText(R.string.shared_string_download);
 		}
 
-		// Update storage info
+		// Update storage info with device tier
 		long totalSize = llmManager.getTotalModelsSize();
-		storageInfo.setText("Storage used: " + formatSize(totalSize));
+		long freeStorageMb = deviceDetector.getAvailableAppStorageMb();
+		DeviceCapabilityDetector.DeviceTier tier = deviceDetector.getDeviceTier();
+		storageInfo.setText("Device: " + tier.getDisplayName() + " tier | "
+				+ "Storage used: " + formatSize(totalSize) + " | "
+				+ "Free: " + formatSize(freeStorageMb * 1024 * 1024));
 	}
 
 	private void downloadModel(String url, String filename, long estimatedSize,
+							   ProgressBar progressBar, TextView progressText) {
+		// Check storage space before downloading
+		long sizeMb = estimatedSize / (1024 * 1024);
+		if (!deviceDetector.hasEnoughStorage(sizeMb, 500)) {
+			long freeMb = deviceDetector.getAvailableAppStorageMb();
+			new AlertDialog.Builder(getContext())
+					.setTitle("Insufficient Storage")
+					.setMessage("This model requires " + formatSize(estimatedSize) + " plus 500 MB buffer.\n\n"
+							+ "Available: " + formatSize(freeMb * 1024 * 1024) + "\n\n"
+							+ "Free up space and try again.")
+					.setPositiveButton("OK", null)
+					.show();
+			return;
+		}
+
+		// Check model suitability for device
+		DeviceCapabilityDetector.ModelSuitability suitability = deviceDetector.getModelSuitability(sizeMb);
+		if (suitability == DeviceCapabilityDetector.ModelSuitability.NOT_RECOMMENDED) {
+			new AlertDialog.Builder(getContext())
+					.setTitle("Model May Be Too Large")
+					.setMessage("This model (" + formatSize(estimatedSize) + ") is not recommended for your device.\n\n"
+							+ "Your device: " + deviceDetector.getDeviceTier().getDisplayName() + " tier ("
+							+ deviceDetector.getTotalRamMb() + " MB RAM)\n\n"
+							+ "It may cause slow performance or crashes. Download anyway?")
+					.setPositiveButton("Download Anyway", (d, w) ->
+							startDownload(url, filename, estimatedSize, progressBar, progressText))
+					.setNegativeButton("Cancel", null)
+					.show();
+			return;
+		}
+
+		startDownload(url, filename, estimatedSize, progressBar, progressText);
+	}
+
+	private void startDownload(String url, String filename, long estimatedSize,
 							   ProgressBar progressBar, TextView progressText) {
 		isDownloading = true;
 		downloadingModel = filename;
@@ -327,8 +368,12 @@ public class LlmModelsFragment extends WikiBaseDialogFragment {
 
 			void bind(File model) {
 				String name = model.getName().replace(".gguf", "");
+				long sizeMb = model.length() / (1024 * 1024);
+				DeviceCapabilityDetector.ModelSuitability suitability =
+						deviceDetector.getModelSuitability(sizeMb);
+
 				text1.setText(name);
-				text2.setText(formatSize(model.length()));
+				text2.setText(formatSize(model.length()) + " | " + suitability.getDisplayName());
 
 				itemView.setOnClickListener(v -> {
 					showDeleteDialog(model);

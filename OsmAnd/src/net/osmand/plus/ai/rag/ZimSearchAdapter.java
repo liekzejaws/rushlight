@@ -34,9 +34,18 @@ public class ZimSearchAdapter {
     // Default token budget for article context
     private static final int DEFAULT_MAX_TOKENS = 3000;
 
-    // LRU cache for search results
-    private static final int CACHE_SIZE = 50;
-    private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    // LRU cache for search results (expanded for offline use — content doesn't change)
+    private static final int CACHE_SIZE = 200;
+    private static final long CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+    // BM25 parameters (standard values, tuned for short document titles + snippets)
+    private static final float BM25_K1 = 1.2f;
+    private static final float BM25_B = 0.75f;
+    // Estimated average document length in tokens (title + first 500 chars)
+    private static final float AVG_DOC_LENGTH = 120.0f;
+
+    // Performance: max time for BM25 scoring before falling back to heuristic
+    private static final long BM25_TIMEOUT_MS = 100;
 
     private final OsmandApplication app;
     private final HtmlTextExtractor textExtractor;
@@ -83,12 +92,20 @@ public class ZimSearchAdapter {
             return new ArrayList<>();
         }
 
-        // Check cache first
+        // Check cache first (exact match)
         String cacheKey = String.join("|", searchTerms).toLowerCase();
         CacheEntry cached = searchCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) {
-            LOG.debug("Cache hit for: " + cacheKey);
+            LOG.debug("Cache hit (exact) for: " + cacheKey);
             return cached.results;
+        }
+
+        // Check prefix-match cache: if "dehydr" was searched and we have "dehydration" cached
+        for (Map.Entry<String, CacheEntry> entry : searchCache.entrySet()) {
+            if (!entry.getValue().isExpired() && entry.getKey().startsWith(cacheKey)) {
+                LOG.debug("Cache hit (prefix) for: " + cacheKey + " → " + entry.getKey());
+                return entry.getValue().results;
+            }
         }
 
         LOG.info("Searching ZIM for terms: " + searchTerms);
@@ -237,7 +254,14 @@ public class ZimSearchAdapter {
     }
 
     /**
-     * Calculate relevance score for an article.
+     * Calculate relevance score using BM25 algorithm with title boost.
+     *
+     * BM25 is a probabilistic relevance function that accounts for:
+     * - Term frequency (how often the term appears)
+     * - Document length normalization (avoids bias toward longer docs)
+     * - Inverse document frequency (rare terms score higher)
+     *
+     * Plus heuristic title-match boosts for better precision.
      *
      * @param title Article title
      * @param text Article text
@@ -246,42 +270,79 @@ public class ZimSearchAdapter {
      */
     private int calculateRelevance(@NonNull String title, @NonNull String text,
                                     @NonNull String searchTerm) {
-        int score = 0;
         String lowerTitle = title.toLowerCase();
         String lowerTerm = searchTerm.toLowerCase();
         String lowerText = text.toLowerCase();
 
-        // Exact title match (highest value)
-        if (lowerTitle.equals(lowerTerm)) {
-            score += 50;
-        }
-        // Title starts with search term
-        else if (lowerTitle.startsWith(lowerTerm)) {
-            score += 40;
-        }
-        // Title contains search term
-        else if (lowerTitle.contains(lowerTerm)) {
-            score += 30;
-        }
-
-        // Term frequency in first paragraph (first 500 chars)
+        // Create the "document" for BM25: title (weighted 3x) + first 500 chars of body
         String firstPart = lowerText.substring(0, Math.min(500, lowerText.length()));
-        int occurrences = countOccurrences(firstPart, lowerTerm);
-        score += Math.min(occurrences * 5, 25);
+        String document = lowerTitle + " " + lowerTitle + " " + lowerTitle + " " + firstPart;
 
-        // Bonus for longer articles (more content)
+        // Split search term into individual words for multi-term BM25
+        String[] queryTerms = lowerTerm.split("\\s+");
+        String[] docWords = document.split("\\s+");
+        int docLength = docWords.length;
+
+        float bm25Score = 0.0f;
+
+        // Approximate IDF: since we don't have corpus stats, use a heuristic
+        // Rare terms (longer) get higher IDF
+        for (String term : queryTerms) {
+            if (term.isEmpty()) continue;
+
+            // Count term frequency in document
+            int tf = 0;
+            for (String word : docWords) {
+                if (word.contains(term)) {
+                    tf++;
+                }
+            }
+
+            // Heuristic IDF based on term length (longer = more specific = higher IDF)
+            float idf = (float) Math.log(1.0 + (10.0 / (1.0 + Math.max(0, 5 - term.length()))));
+
+            // BM25 TF component
+            float tfNorm = (tf * (BM25_K1 + 1.0f))
+                    / (tf + BM25_K1 * (1.0f - BM25_B + BM25_B * (docLength / AVG_DOC_LENGTH)));
+
+            bm25Score += idf * tfNorm;
+        }
+
+        // Normalize BM25 score to 0-60 range
+        float normalizedBm25 = Math.min(60.0f, bm25Score * 10.0f);
+
+        // Title match bonuses (0-40 range)
+        float titleBonus = 0;
+        if (lowerTitle.equals(lowerTerm)) {
+            titleBonus = 40; // Exact title match
+        } else if (lowerTitle.startsWith(lowerTerm)) {
+            titleBonus = 30; // Title starts with term
+        } else if (lowerTitle.contains(lowerTerm)) {
+            titleBonus = 20; // Title contains term
+        } else {
+            // Check if all query words appear in title
+            boolean allInTitle = true;
+            for (String term : queryTerms) {
+                if (!lowerTitle.contains(term)) {
+                    allInTitle = false;
+                    break;
+                }
+            }
+            if (allInTitle && queryTerms.length > 1) {
+                titleBonus = 15;
+            }
+        }
+
+        // Article quality bonus (max 10)
+        float qualityBonus = 0;
         if (text.length() > 5000) {
-            score += 10;
-        } else if (text.length() > 2000) {
-            score += 5;
+            qualityBonus = 5;
+        } else if (text.length() < 300) {
+            qualityBonus = -5; // Penalty for stubs
         }
 
-        // Penalty for very short articles
-        if (text.length() < 500) {
-            score -= 10;
-        }
-
-        return Math.max(0, Math.min(100, score));
+        int finalScore = Math.round(normalizedBm25 + titleBonus + qualityBonus);
+        return Math.max(0, Math.min(100, finalScore));
     }
 
     /**

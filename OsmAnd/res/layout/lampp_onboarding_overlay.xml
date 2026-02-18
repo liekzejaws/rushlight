@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Phase 12: First-launch onboarding overlay -->
+<!-- Multi-step onboarding overlay for Rushlight -->
 <FrameLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:id="@+id/onboarding_root"
@@ -9,7 +9,7 @@
 	android:clickable="true"
 	android:focusable="true">
 
-	<!-- Center content: Welcome + feature list -->
+	<!-- Center content: Step-based onboarding -->
 	<LinearLayout
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
@@ -21,7 +21,16 @@
 		android:paddingBottom="24dp"
 		android:gravity="center_horizontal">
 
-		<!-- App title -->
+		<!-- Step icon -->
+		<ImageView
+			android:id="@+id/onboarding_icon"
+			android:layout_width="64dp"
+			android:layout_height="64dp"
+			android:layout_marginBottom="16dp"
+			android:src="@drawable/ic_action_world_globe"
+			android:contentDescription="Step icon" />
+
+		<!-- Step title -->
 		<TextView
 			android:id="@+id/onboarding_title"
 			android:layout_width="wrap_content"
@@ -32,73 +41,20 @@
 			android:textStyle="bold"
 			android:layout_marginBottom="8dp" />
 
-		<!-- Subtitle -->
+		<!-- Step description (replaces subtitle + tab list) -->
 		<TextView
-			android:id="@+id/onboarding_subtitle"
+			android:id="@+id/onboarding_description"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="@string/onboarding_subtitle"
-			android:textColor="#AAFFFFFF"
-			android:textSize="14sp"
-			android:layout_marginBottom="24dp" />
-
-		<!-- Tab descriptions -->
-		<TextView
-			android:id="@+id/onboarding_tab_ai"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/onboarding_tab_ai"
-			android:textColor="#FF4CAF50"
+			android:textColor="#CCFFFFFF"
 			android:textSize="15sp"
-			android:layout_marginBottom="12dp"
-			android:drawablePadding="12dp"
-			android:gravity="center_vertical" />
-
-		<TextView
-			android:id="@+id/onboarding_tab_wiki"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/onboarding_tab_wiki"
-			android:textColor="#FF4CAF50"
-			android:textSize="15sp"
-			android:layout_marginBottom="12dp"
-			android:drawablePadding="12dp"
-			android:gravity="center_vertical" />
-
-		<TextView
-			android:id="@+id/onboarding_tab_p2p"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/onboarding_tab_p2p"
-			android:textColor="#FF4CAF50"
-			android:textSize="15sp"
-			android:layout_marginBottom="12dp"
-			android:drawablePadding="12dp"
-			android:gravity="center_vertical" />
-
-		<TextView
-			android:id="@+id/onboarding_tab_morse"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/onboarding_tab_morse"
-			android:textColor="#FF4CAF50"
-			android:textSize="15sp"
-			android:layout_marginBottom="12dp"
-			android:drawablePadding="12dp"
-			android:gravity="center_vertical" />
-
-		<TextView
-			android:id="@+id/onboarding_tab_tools"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/onboarding_tab_tools"
-			android:textColor="#FF4CAF50"
-			android:textSize="15sp"
+			android:lineSpacingExtra="3dp"
 			android:layout_marginBottom="24dp"
-			android:drawablePadding="12dp"
-			android:gravity="center_vertical" />
+			android:maxWidth="320dp"
+			android:gravity="center" />
 
-		<!-- Dismiss button -->
+		<!-- Action button (Next / Get Started / Start Exploring) -->
 		<Button
 			android:id="@+id/onboarding_dismiss"
 			android:layout_width="wrap_content"
@@ -107,7 +63,27 @@
 			android:text="@string/onboarding_got_it"
 			android:textColor="#FF000000"
 			android:backgroundTint="#FF4CAF50"
-			android:textStyle="bold" />
+			android:textStyle="bold"
+			android:layout_marginBottom="16dp" />
+
+		<!-- Skip button (text link style) -->
+		<TextView
+			android:id="@+id/onboarding_skip"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Skip"
+			android:textColor="#88FFFFFF"
+			android:textSize="14sp"
+			android:padding="8dp"
+			android:layout_marginBottom="16dp" />
+
+		<!-- Progress dots container -->
+		<LinearLayout
+			android:id="@+id/onboarding_dots"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:gravity="center" />
 
 	</LinearLayout>
 

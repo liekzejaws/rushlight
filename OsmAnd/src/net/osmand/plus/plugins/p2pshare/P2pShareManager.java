@@ -77,6 +77,9 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
         transportManager.setCallback(this);
         transportManager.setLocalManifest(localManifest);
 
+        // Wire up discovery manager to transport for rotating UUID access
+        transportManager.setDiscoveryManager(discoveryManager);
+
         // Initialize transfer history database
         historyDb = TransferHistoryDatabase.getInstance(app);
 
