@@ -218,29 +218,21 @@ public class LamppPanelManager {
 
 	@Nullable
 	private LamppPanelFragment createFragmentForTab(@NonNull LamppTab tab) {
-		try {
-			switch (tab) {
-				case AI_CHAT:
-					return (LamppPanelFragment) Class.forName(
-							"net.osmand.plus.ai.LlmChatFragment").newInstance();
-				case WIKI:
-					return (LamppPanelFragment) Class.forName(
-							"net.osmand.plus.wikipedia.ZimBrowserFragment").newInstance();
-				case P2P:
-					return (LamppPanelFragment) Class.forName(
-							"net.osmand.plus.plugins.p2pshare.ui.P2pShareFragment").newInstance();
-				case MORSE:
-					return new net.osmand.plus.morse.MorseFragment();
-				case GUIDES:
-					return new net.osmand.plus.guides.GuidesFragment();
-				case TOOLS:
-					return new ToolsFragment();
-				default:
-					return null;
-			}
-		} catch (Exception e) {
-			LOG.error("Error creating fragment for tab " + tab + ": " + e.getMessage());
-			return null;
+		switch (tab) {
+			case AI_CHAT:
+				return new net.osmand.plus.ai.LlmChatFragment();
+			case WIKI:
+				return new net.osmand.plus.wikipedia.ZimBrowserFragment();
+			case P2P:
+				return new net.osmand.plus.plugins.p2pshare.ui.P2pShareFragment();
+			case MORSE:
+				return new net.osmand.plus.morse.MorseFragment();
+			case GUIDES:
+				return new net.osmand.plus.guides.GuidesFragment();
+			case TOOLS:
+				return new ToolsFragment();
+			default:
+				return null;
 		}
 	}
 

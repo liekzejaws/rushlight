@@ -25,12 +25,13 @@
 
 			<ImageView
 				android:id="@+id/guides_back_button"
-				android:layout_width="32dp"
-				android:layout_height="32dp"
-				android:padding="4dp"
+				android:layout_width="48dp"
+				android:layout_height="48dp"
+				android:padding="12dp"
 				android:src="@drawable/ic_arrow_back"
 				android:visibility="gone"
-				android:contentDescription="Back"
+				android:background="?attr/selectableItemBackgroundBorderless"
+				android:contentDescription="@string/guides_back_desc"
 				app:tint="?attr/main_font_color_basic" />
 
 			<TextView
@@ -60,15 +61,30 @@
 			android:textColorHint="@color/lampp_text_secondary" />
 	</LinearLayout>
 
-	<!-- Content: Category grid or guide list -->
-	<androidx.recyclerview.widget.RecyclerView
-		android:id="@+id/guides_recycler"
+	<!-- Content: Category grid or guide list with loading spinner -->
+	<FrameLayout
 		android:layout_width="match_parent"
 		android:layout_height="0dp"
-		android:layout_weight="1"
-		android:clipToPadding="false"
-		android:paddingStart="16dp"
-		android:paddingEnd="16dp"
-		android:paddingBottom="16dp" />
+		android:layout_weight="1">
+
+		<androidx.recyclerview.widget.RecyclerView
+			android:id="@+id/guides_recycler"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:clipToPadding="false"
+			android:paddingStart="16dp"
+			android:paddingEnd="16dp"
+			android:paddingBottom="16dp" />
+
+		<ProgressBar
+			android:id="@+id/guides_loading"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="center"
+			android:indeterminate="true"
+			android:visibility="gone"
+			android:contentDescription="@string/guides_loading" />
+
+	</FrameLayout>
 
 </LinearLayout>

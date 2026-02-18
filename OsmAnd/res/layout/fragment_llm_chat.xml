@@ -45,14 +45,16 @@
                     android:id="@+id/model_status_icon"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_action_info_outlined" />
+                    android:src="@drawable/ic_action_info_outlined"
+                    android:contentDescription="@string/model_status_icon_desc" />
 
                 <ProgressBar
                     android:id="@+id/model_loading_progress"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:indeterminate="true"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:contentDescription="@string/model_loading_desc" />
             </FrameLayout>
 
             <LinearLayout
@@ -83,8 +85,8 @@
                 style="@style/Widget.AppCompat.Button.Borderless.Colored"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
+                android:minWidth="48dp"
+                android:minHeight="48dp"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="4dp"
                 android:text="@string/shared_string_download"

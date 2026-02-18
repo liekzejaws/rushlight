@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.ai.LlmManager;
+import net.osmand.plus.guides.GuideEntry;
 
 import org.apache.commons.logging.Log;
 
@@ -186,11 +187,20 @@ public class RagManager {
             wikiSources = zimAdapter.searchRelevant(searchTerms, maxSources);
             wikiSearchTimeMs = System.currentTimeMillis() - searchStart;
 
-            // Fit to token budget (survival queries give guides 70%, wiki gets 30%)
+            // Fit to token budget with adaptive allocation
+            // Guide queries get dynamic split based on guide match quality
             if (!wikiSources.isEmpty()) {
                 int wikiBudget;
                 if (shouldSearchGuides) {
-                    wikiBudget = (int)(contextTokenBudget * 0.3);
+                    // Adaptive: check guide match count to decide split
+                    List<GuideEntry> guideMatches = app.getGuideManager().search(query);
+                    if (guideMatches.size() >= 2) {
+                        wikiBudget = (int)(contextTokenBudget * 0.25); // Strong guide coverage, wiki supplements
+                    } else if (guideMatches.size() == 1) {
+                        wikiBudget = (int)(contextTokenBudget * 0.45); // Single guide + wiki supplement
+                    } else {
+                        wikiBudget = contextTokenBudget; // No guides found, all to wiki
+                    }
                 } else if (isHybridQuery) {
                     wikiBudget = (int)(contextTokenBudget * 0.6);
                 } else {
@@ -207,11 +217,21 @@ public class RagManager {
             LOG.info("Wikipedia search: " + wikiSources.size() + " sources in " + wikiSearchTimeMs + "ms");
         }
 
-        // Search survival guides if needed (Phase 14)
+        // Search survival/practical guides if needed (Phase 14 + v0.3)
         if (shouldSearchGuides) {
-            int guideBudget = (int)(contextTokenBudget * 0.7);
+            // Adaptive budget: check guide match count
+            List<GuideEntry> guideMatches = app.getGuideManager().search(query);
+            int guideBudget;
+            if (guideMatches.size() >= 2) {
+                guideBudget = (int)(contextTokenBudget * 0.75); // Strong coverage
+            } else if (guideMatches.size() == 1) {
+                guideBudget = (int)(contextTokenBudget * 0.55); // Single match
+            } else {
+                guideBudget = (int)(contextTokenBudget * 0.7); // Default fallback
+            }
             guideContext = guideAdapter.search(query, guideBudget);
-            LOG.info("Guide search: " + (guideContext.isEmpty() ? "no results" :
+            LOG.info("Guide search (" + queryType + "): " + guideMatches.size() +
+                    " matches, " + (guideContext.isEmpty() ? "no context" :
                     guideContext.length() + " chars of context"));
         }
 
@@ -244,12 +264,8 @@ public class RagManager {
 
                 LOG.info("POI search: " + poiSources.size() + " results in " + poiSearchTimeMs + "ms");
             } else {
-                LOG.warn("Location unavailable for POI search");
-                mainHandler.post(() -> callback.onError("Location unavailable. Please enable GPS."));
-                // Continue without POI data if this is a hybrid query
-                if (!isHybridQuery && shouldSearchPoi) {
-                    return;
-                }
+                LOG.warn("Location unavailable for POI search — continuing without POI data");
+                // Gracefully continue without POI data instead of failing
             }
         }
 
@@ -280,9 +296,8 @@ public class RagManager {
                     final long finalPlaceSearchTime = placeSearchTimeMs;
                     mainHandler.post(() -> callback.onPoiSearchComplete(new ArrayList<>(), finalPlaceSearchTime));
                 } else {
-                    LOG.warn("Location unavailable for direction query");
-                    mainHandler.post(() -> callback.onError("Location unavailable. Please enable GPS for direction queries."));
-                    return;
+                    LOG.warn("Location unavailable for direction query — continuing without location context");
+                    // Gracefully continue: LLM will give a general answer without specific directions
                 }
             }
         }
@@ -290,12 +305,16 @@ public class RagManager {
         // Build prompt based on what data we have
         String prompt;
         if (!guideContext.isEmpty()) {
-            // Survival query with guide context (Phase 14)
+            // Guide-backed query (survival or practical engineering)
             String wikiContext = "";
             if (!wikiSources.isEmpty()) {
                 wikiContext = promptBuilder.formatWikiSources(wikiSources);
             }
-            prompt = promptBuilder.buildSurvivalPrompt(query, guideContext, wikiContext, contextTokenBudget);
+            if (queryType == QueryClassifier.QueryType.PRACTICAL_QUERY) {
+                prompt = promptBuilder.buildPracticalPrompt(query, guideContext, wikiContext, contextTokenBudget);
+            } else {
+                prompt = promptBuilder.buildSurvivalPrompt(query, guideContext, wikiContext, contextTokenBudget);
+            }
         } else if (!placeResults.isEmpty()) {
             // Direction query about a place (Phase 8.2)
             LocationContext location = mapAdapter.getCurrentLocation(MAX_SEARCH_RADIUS);

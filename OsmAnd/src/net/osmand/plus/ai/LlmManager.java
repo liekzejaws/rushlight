@@ -293,6 +293,38 @@ public class LlmManager implements Closeable {
 	}
 
 	/**
+	 * Pre-warm the LLM by loading the first available model if none is loaded.
+	 * Used by the demo pre-flight system and auto-load on AI Chat open.
+	 *
+	 * @param callback Optional callback for load status updates
+	 */
+	public void preWarmIfNeeded(@Nullable ModelLoadCallback callback) {
+		if (isModelLoaded()) {
+			if (callback != null) {
+				mainHandler.post(() -> callback.onLoadComplete(getCurrentModelName()));
+			}
+			return;
+		}
+
+		if (isLoading) {
+			if (callback != null) {
+				mainHandler.post(() -> callback.onLoadStarted());
+			}
+			return;
+		}
+
+		File[] models = getDownloadedModels();
+		if (models.length > 0) {
+			LOG.info("Pre-warming LLM with model: " + models[0].getName());
+			loadModel(models[0], callback);
+		} else {
+			if (callback != null) {
+				mainHandler.post(() -> callback.onLoadError("No models downloaded"));
+			}
+		}
+	}
+
+	/**
 	 * Generate a response asynchronously with streaming updates.
 	 *
 	 * @param prompt The user's prompt/question

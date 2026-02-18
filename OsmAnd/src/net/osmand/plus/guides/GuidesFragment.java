@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -40,6 +41,7 @@ public class GuidesFragment extends LamppPanelFragment {
 	private EditText searchInput;
 	private TextView titleView;
 	private ImageView backButton;
+	private ProgressBar guidesLoading;
 	private View emptyView;
 
 	private int currentMode = MODE_CATEGORIES;
@@ -62,6 +64,7 @@ public class GuidesFragment extends LamppPanelFragment {
 		searchInput = contentView.findViewById(R.id.guides_search_input);
 		titleView = contentView.findViewById(R.id.guides_title);
 		backButton = contentView.findViewById(R.id.guides_back_button);
+		guidesLoading = contentView.findViewById(R.id.guides_loading);
 
 		backButton.setOnClickListener(v -> onBackToCategories());
 
@@ -80,9 +83,17 @@ public class GuidesFragment extends LamppPanelFragment {
 
 		// Load guides and show categories
 		OsmandApplication app = (OsmandApplication) requireActivity().getApplication();
-		app.getGuideManager().loadGuidesAsync(count -> showCategories());
+		if (!app.getGuideManager().isLoaded()) {
+			guidesLoading.setVisibility(View.VISIBLE);
+		}
+		app.getGuideManager().loadGuidesAsync(count -> {
+			if (isAdded()) {
+				guidesLoading.setVisibility(View.GONE);
+				showCategories();
+			}
+		});
 
-		// Show categories immediately (may be empty if first load)
+		// Show categories immediately (may be empty if first load, but spinner indicates loading)
 		showCategories();
 	}
 

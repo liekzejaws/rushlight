@@ -19,7 +19,10 @@ public enum GuideCategory {
 	NAVIGATION("Navigation", R.drawable.ic_action_compass, 4),
 	SIGNALING("Signaling", R.drawable.ic_action_antenna, 5),
 	FOOD("Food", R.drawable.ic_action_target, 6),
-	SECURITY("Security", R.drawable.ic_action_lock, 7);
+	SECURITY("Security", R.drawable.ic_action_lock, 7),
+	ENGINEERING("Engineering", R.drawable.ic_action_settings_outlined, 8),
+	AUTOMOTIVE("Automotive", R.drawable.ic_action_car, 9),
+	ELECTRICAL("Electrical", R.drawable.ic_action_antenna, 10);
 
 	private final String displayName;
 	@DrawableRes

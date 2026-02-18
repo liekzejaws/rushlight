@@ -174,6 +174,27 @@ public class LlmChatFragment extends LamppPanelFragment {
 		updateModelStatus();
 		updateUI();
 
+		// Phase 19: Auto-load model if available but not loaded (reduces demo friction)
+		if (!llmManager.isModelLoaded() && !llmManager.isLoading() && llmManager.hasDownloadedModels()) {
+			llmManager.preWarmIfNeeded(new LlmManager.ModelLoadCallback() {
+				@Override
+				public void onLoadStarted() {
+					if (isAdded()) updateModelStatus();
+				}
+
+				@Override
+				public void onLoadComplete(String name) {
+					if (isAdded()) updateModelStatus();
+				}
+
+				@Override
+				public void onLoadError(String error) {
+					if (isAdded()) updateModelStatus();
+				}
+			});
+			updateModelStatus(); // Show loading state immediately
+		}
+
 		// Phase 17: Check for pending query from "Ask AI" button
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
@@ -292,18 +313,21 @@ public class LlmChatFragment extends LamppPanelFragment {
 			StringBuilder detail = new StringBuilder();
 			if (ragManager.isWikipediaAvailable()) {
 				detail.append("Wiki: ").append(ragManager.getWikipediaTitle());
+			} else {
+				detail.append(getString(R.string.lampp_model_status_wiki_not_loaded));
 			}
 			if (ragManager.isMapDataAvailable()) {
 				if (detail.length() > 0) detail.append("  \u2022  ");
 				detail.append("POI: On");
 			}
-			if (detail.length() > 0) {
-				modelStatusDetail.setText(detail.toString());
-				modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
-				modelStatusDetail.setVisibility(View.VISIBLE);
-			} else {
-				modelStatusDetail.setVisibility(View.GONE);
+			int guideCount = app.getGuideManager().getGuideCount();
+			if (guideCount > 0) {
+				if (detail.length() > 0) detail.append("  \u2022  ");
+				detail.append("Guides: ").append(guideCount);
 			}
+			modelStatusDetail.setText(detail.toString());
+			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
+			modelStatusDetail.setVisibility(View.VISIBLE);
 
 			modelActionButton.setText("Unload");
 			modelActionButton.setVisibility(View.VISIBLE);

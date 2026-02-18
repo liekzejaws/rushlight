@@ -309,45 +309,9 @@ public class ToolsFragment extends LamppPanelFragment {
 	}
 
 	private void showPrepareDemoConfirmation() {
-		if (getContext() == null) return;
-		new AlertDialog.Builder(getContext())
-				.setTitle("Prepare Demo")
-				.setMessage("This will:\n\n• Clear chat history\n• Reset onboarding\n• Set Pip-Boy theme\n• Close panels\n\nProceed?")
-				.setPositiveButton("Prepare", (dialog, which) -> {
-					OsmandApplication app = getMyApplication();
-					MapActivity mapActivity = getMapActivity();
-					if (app == null) return;
-
-					// 1. Clear chat history
-					try {
-						net.osmand.plus.security.EncryptedChatStorage chatStorage =
-								app.getSecurityManager().getChatStorage();
-						if (chatStorage != null) {
-							chatStorage.clearMessages();
-						}
-					} catch (Exception e) {
-						// Chat storage may not be initialized
-					}
-
-					// 2. Reset onboarding shown flag
-					app.getSettings().LAMPP_ONBOARDING_SHOWN.set(false);
-
-					// 3. Set Pip-Boy theme
-					app.getSettings().LAMPP_STYLE_PRESET.set(LamppStylePreset.PIP_BOY);
-					updateSelection();
-					if (mapActivity != null) {
-						mapActivity.getLamppPanelManager().refreshTheme();
-					}
-
-					// 4. Close active panel
-					if (mapActivity != null) {
-						mapActivity.getLamppPanelManager().closeActivePanel(false);
-					}
-
-					Toast.makeText(getContext(), "Ready for demo recording", Toast.LENGTH_SHORT).show();
-				})
-				.setNegativeButton(R.string.shared_string_cancel, null)
-				.show();
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+		DemoPreflightDialog.showInstance(activity.getSupportFragmentManager());
 	}
 
 	private void applyPreset(@NonNull LamppStylePreset preset) {

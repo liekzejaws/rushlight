@@ -276,6 +276,66 @@
 	<string name="delete_zim_file">Delete ZIM file?</string>
 	<string name="delete_zim_file_descr">This will permanently delete the file from your device.</string>
 
+	<!-- Rushlight: Guide Categories (Phase 18 - MacGyver Pack) -->
+	<string name="category_engineering">Engineering</string>
+	<string name="category_automotive">Automotive</string>
+	<string name="category_electrical">Electrical</string>
+
+	<!-- Rushlight: Demo Pre-Flight (Phase 19) -->
+	<string name="demo_preflight_title">Demo Pre-Flight Check</string>
+	<string name="demo_preflight_subtitle">Verify all systems before recording</string>
+	<string name="demo_preflight_check_model">AI Model</string>
+	<string name="demo_preflight_check_wiki">Wikipedia Database</string>
+	<string name="demo_preflight_check_guides">Knowledge Guides</string>
+	<string name="demo_preflight_check_gps">GPS Signal</string>
+	<string name="demo_preflight_check_flash">Camera Flash</string>
+	<string name="demo_preflight_check_p2p">P2P Transport</string>
+	<string name="demo_preflight_check_perms">Permissions</string>
+	<string name="demo_preflight_check_battery">Battery Level</string>
+	<string name="demo_preflight_start">Start Demo</string>
+	<string name="demo_preflight_fix">Fix</string>
+	<string name="demo_preflight_recheck">Recheck</string>
+	<string name="demo_preflight_all_passed">All checks passed — ready for demo</string>
+	<string name="demo_preflight_critical_failed">Critical checks failed — fix before demo</string>
+	<string name="demo_model_loaded">Model loaded: %s</string>
+	<string name="demo_model_available">Model available — tap Fix to load</string>
+	<string name="demo_model_missing">No model downloaded</string>
+	<string name="demo_wiki_loaded">ZIM loaded: %s</string>
+	<string name="demo_wiki_missing">No Wikipedia ZIM file found</string>
+	<string name="demo_guides_loaded">%d guides indexed</string>
+	<string name="demo_guides_loading">Guides loading…</string>
+	<string name="demo_gps_available">GPS active</string>
+	<string name="demo_gps_unavailable">GPS not available — direction queries will be limited</string>
+	<string name="demo_flash_available">Flash available</string>
+	<string name="demo_flash_unavailable">Camera flash not available</string>
+	<string name="demo_p2p_available">BLE + WiFi Direct available</string>
+	<string name="demo_p2p_partial">Partial P2P support</string>
+	<string name="demo_p2p_unavailable">No P2P transport available</string>
+	<string name="demo_perms_granted">All permissions granted</string>
+	<string name="demo_perms_missing">%d permissions missing</string>
+	<string name="demo_battery_good">Battery: %d%%</string>
+	<string name="demo_battery_low">Battery low: %d%% — charge before demo</string>
+	<string name="demo_ready_toast">Demo ready — all systems go</string>
+
+	<!-- Rushlight: Model Status Strings (Phase 19) -->
+	<string name="lampp_model_status_loading">Loading model\u2026</string>
+	<string name="lampp_model_status_loaded">Model loaded</string>
+	<string name="lampp_model_status_ready">Model ready</string>
+	<string name="lampp_model_status_tap_to_load">Tap to load into memory</string>
+	<string name="lampp_model_status_no_model">No AI model</string>
+	<string name="lampp_model_status_download">Download a model to enable AI</string>
+	<string name="lampp_model_status_wiki_not_loaded">Wiki: Not loaded</string>
+	<string name="lampp_ai_assistant_title">AI Assistant</string>
+	<string name="lampp_model_unload">Unload</string>
+	<string name="lampp_model_load">Load</string>
+
+	<!-- Rushlight: Accessibility (Phase 19) -->
+	<string name="model_status_icon_desc">AI model status indicator</string>
+	<string name="model_loading_desc">Loading AI model</string>
+	<string name="copy_message_desc">Copy message to clipboard</string>
+	<string name="theme_selection_check_desc">Selected theme indicator</string>
+	<string name="guides_back_desc">Go back to categories</string>
+
 	<string name="galactic_line">Galactic Line</string>
 	<string name="meridian_line">Meridian Line</string>
 	<string name="equator_line">Equator Line</string>

@@ -47,7 +47,8 @@
 					android:layout_height="40dp"
 					android:layout_alignParentStart="true"
 					android:layout_centerVertical="true"
-					android:background="@color/lampp_green_primary" />
+					android:background="@color/lampp_green_primary"
+					android:importantForAccessibility="no" />
 
 				<LinearLayout
 					android:layout_width="wrap_content"
@@ -83,6 +84,7 @@
 					android:layout_centerVertical="true"
 					android:src="@drawable/ic_action_done"
 					android:visibility="gone"
+					android:contentDescription="@string/theme_selection_check_desc"
 					app:tint="@color/lampp_green_primary" />
 
 			</RelativeLayout>
@@ -113,7 +115,8 @@
 					android:layout_height="40dp"
 					android:layout_alignParentStart="true"
 					android:layout_centerVertical="true"
-					android:background="@color/lampp_modern_primary" />
+					android:background="@color/lampp_modern_primary"
+					android:importantForAccessibility="no" />
 
 				<LinearLayout
 					android:layout_width="wrap_content"
@@ -149,6 +152,7 @@
 					android:layout_centerVertical="true"
 					android:src="@drawable/ic_action_done"
 					android:visibility="gone"
+					android:contentDescription="@string/theme_selection_check_desc"
 					app:tint="@color/lampp_modern_primary" />
 
 			</RelativeLayout>
@@ -179,7 +183,8 @@
 					android:layout_height="40dp"
 					android:layout_alignParentStart="true"
 					android:layout_centerVertical="true"
-					android:background="@color/lampp_classic_tab_active_light" />
+					android:background="@color/lampp_classic_tab_active_light"
+					android:importantForAccessibility="no" />
 
 				<LinearLayout
 					android:layout_width="wrap_content"
@@ -215,6 +220,7 @@
 					android:layout_centerVertical="true"
 					android:src="@drawable/ic_action_done"
 					android:visibility="gone"
+					android:contentDescription="@string/theme_selection_check_desc"
 					app:tint="@color/lampp_classic_tab_active_light" />
 
 			</RelativeLayout>

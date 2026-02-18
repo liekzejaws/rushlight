@@ -21,12 +21,13 @@ public class PromptBuilder {
      * 3. Acknowledge if the excerpts don't contain relevant information
      */
     private static final String RAG_TEMPLATE =
-            "Use the following Wikipedia excerpts to answer the question.\n" +
+            "Use the following knowledge base excerpts to answer the question.\n" +
             "Cite sources as [Source: Article Title] when using information from them.\n" +
-            "If the excerpts don't contain relevant information, acknowledge this and answer based on your knowledge.\n\n" +
-            "=== Wikipedia Context ===\n" +
+            "If the excerpts don't fully cover the topic, supplement with your own knowledge " +
+            "and note what comes from the knowledge base vs. general knowledge.\n\n" +
+            "=== Knowledge Base ===\n" +
             "%s" +
-            "=== End Context ===\n\n" +
+            "=== End Knowledge Base ===\n\n" +
             "Question: %s\n\n" +
             "Answer:";
 
@@ -80,16 +81,34 @@ public class PromptBuilder {
      * Prioritizes safety and actionable step-by-step instructions.
      */
     private static final String SURVIVAL_TEMPLATE =
-            "You are a survival expert assistant with access to offline survival guides.\n" +
-            "Use the following survival guide excerpts to provide accurate, actionable advice.\n" +
-            "Prioritize safety - when in doubt, recommend the most conservative approach.\n\n" +
-            "=== Survival Guides ===\n" +
+            "Use the following survival and field reference materials to provide accurate, actionable advice.\n" +
+            "Cross-reference guide content with Wikipedia context when both are available.\n" +
+            "Prioritize safety — when in doubt, recommend the most conservative approach.\n\n" +
+            "=== Field Guides ===\n" +
             "%s" +
             "=== End Guides ===\n\n" +
             "%s" +
             "Question: %s\n\n" +
-            "Provide clear, step-by-step instructions when applicable. " +
-            "Cite guides as [Guide: Title]. Be specific about quantities, times, and measurements.\n\n" +
+            "Provide clear, step-by-step instructions. " +
+            "Cite guides as [Guide: Title] and Wikipedia as [Source: Title]. " +
+            "Be specific about quantities, times, measurements, and safety warnings.\n\n" +
+            "Answer:";
+
+    /**
+     * Template for practical/engineering queries (Phase v0.3).
+     * Routes through guide database for hands-on repair and construction knowledge.
+     */
+    private static final String PRACTICAL_TEMPLATE =
+            "Use the following reference materials to provide accurate, hands-on guidance.\n" +
+            "Focus on what can be done with available materials and common tools.\n\n" +
+            "=== Reference Materials ===\n" +
+            "%s" +
+            "=== End References ===\n\n" +
+            "%s" +
+            "Question: %s\n\n" +
+            "Provide specific, actionable steps. Include material alternatives when the ideal isn't available. " +
+            "Cite references as [Guide: Title] or [Source: Title]. " +
+            "Warn about safety hazards clearly.\n\n" +
             "Answer:";
 
     /**
@@ -102,18 +121,68 @@ public class PromptBuilder {
      * Template for fallback when no Wikipedia context is available.
      */
     private static final String NO_CONTEXT_TEMPLATE =
-            "Note: No Wikipedia articles were found for this topic.\n\n" +
+            "Note: No matching references were found in the local knowledge base for this topic.\n" +
+            "Answer based on your training knowledge.\n\n" +
             "Question: %s\n\n" +
             "Answer:";
 
     /**
      * Default system prompt prefix for the assistant.
+     * Establishes Rushlight's identity as a purpose-built offline field intelligence system.
      * Can be overridden via LAMPP_SYSTEM_PROMPT setting.
      */
     private static final String DEFAULT_SYSTEM_PREFIX =
-            "You are a helpful assistant with access to offline Wikipedia. " +
-            "When citing Wikipedia, use the format [Source: Article Title]. " +
-            "Be concise and accurate.";
+            "You are Rushlight, an offline field intelligence assistant built for survival, " +
+            "navigation, and practical problem-solving in austere environments. You have " +
+            "access to an integrated knowledge base of survival guides, practical engineering " +
+            "references, Wikipedia articles, and local map data — all stored on-device with " +
+            "no internet required.\n\n" +
+            "When answering questions:\n" +
+            "- Draw from your knowledge base first, citing sources as [Guide: Title] or [Source: Article Title]\n" +
+            "- Give actionable, step-by-step instructions with specific measurements and quantities\n" +
+            "- Prioritize safety — recommend the most conservative approach when lives are at stake\n" +
+            "- Think like a field engineer: improvise with available materials when ideal tools aren't available\n" +
+            "- Be concise and direct — you're being consulted in the field, not in a classroom";
+
+    // ---- System Prompt Presets (selectable from chat UI) ----
+
+    /** Field engineering mode: mechanical, structural, automotive, electrical repair */
+    public static final String PRESET_FIELD_ENGINEER =
+            "You are Rushlight in field engineering mode. You specialize in practical repairs, " +
+            "improvised solutions, and mechanical problem-solving with limited tools and materials. " +
+            "Think like a combat engineer or expedition mechanic. Give specific measurements, " +
+            "torque values, material properties, and step-by-step procedures. When the ideal " +
+            "part or tool isn't available, suggest the best field-expedient alternative. " +
+            "Always warn about safety hazards — especially electrical, structural, and chemical risks.";
+
+    /** Field medic mode: first aid, trauma, environmental injuries */
+    public static final String PRESET_MEDIC =
+            "You are Rushlight in field medic mode. You provide first aid and emergency medical " +
+            "guidance for austere environments where professional medical care is unavailable. " +
+            "Prioritize life-threatening conditions first (airway, breathing, circulation). " +
+            "Give specific dosages, timing, and technique descriptions. Always recommend " +
+            "seeking professional medical care when possible. Clearly distinguish between " +
+            "what a trained medic should do vs. what an untrained person can safely attempt.";
+
+    /** Navigation mode: maps, compass, celestial, terrain */
+    public static final String PRESET_NAVIGATOR =
+            "You are Rushlight in navigation mode. You help users navigate using offline maps, " +
+            "compass, celestial observation, terrain association, and dead reckoning. Give " +
+            "specific bearings, distances, and landmark-based instructions. When GPS is " +
+            "unavailable, guide users through alternative position-fixing methods. Reference " +
+            "map data and nearby places when available.";
+
+    /** Survival mode: wilderness, emergency preparedness, grid-down scenarios */
+    public static final String PRESET_SURVIVAL =
+            "You are Rushlight in survival mode. You provide expert wilderness survival and " +
+            "emergency preparedness guidance. Cover the priorities: shelter, water, fire, " +
+            "food, signaling, and security. Give specific techniques with quantities, timing, " +
+            "and environmental considerations. Adapt advice to the user's apparent situation " +
+            "and available resources. Safety is paramount — when in doubt, recommend the " +
+            "most conservative approach.";
+
+    /** General mode: default Rushlight personality */
+    public static final String PRESET_GENERAL = DEFAULT_SYSTEM_PREFIX;
 
     /**
      * Custom system prompt, set from user settings.
@@ -500,6 +569,31 @@ public class PromptBuilder {
         }
 
         return getSystemPrefix() + String.format(SURVIVAL_TEMPLATE,
+                guideContext,
+                wikiSection,
+                query);
+    }
+
+    /**
+     * Build a prompt for practical/engineering queries with guide context (Phase v0.3).
+     *
+     * @param query User's practical/engineering question
+     * @param guideContext Formatted guide context from GuideSearchAdapter
+     * @param wikiContext Optional Wikipedia context (may be empty)
+     * @param maxContextTokens Maximum tokens for context
+     * @return Complete prompt for LLM
+     */
+    @NonNull
+    public String buildPracticalPrompt(@NonNull String query,
+                                        @NonNull String guideContext,
+                                        @NonNull String wikiContext,
+                                        int maxContextTokens) {
+        String wikiSection = "";
+        if (!wikiContext.isEmpty()) {
+            wikiSection = "=== Wikipedia Context ===\n" + wikiContext + "=== End Wikipedia ===\n\n";
+        }
+
+        return getSystemPrefix() + String.format(PRACTICAL_TEMPLATE,
                 guideContext,
                 wikiSection,
                 query);

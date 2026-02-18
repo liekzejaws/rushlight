@@ -59,7 +59,7 @@
                 android:layout_gravity="end"
                 android:layout_marginTop="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Copy"
+                android:contentDescription="@string/copy_message_desc"
                 android:padding="2dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_action_copy"

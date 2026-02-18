@@ -84,6 +84,12 @@ public class QueryClassifier {
         SURVIVAL_QUERY(true, false, 95),
 
         /**
+         * Practical/engineering queries — needs offline guides + Wikipedia background
+         * "How do I patch a radiator hose?", "Improvised voltage regulator", "Fix a leaky pipe"
+         */
+        PRACTICAL_QUERY(true, false, 95),
+
+        /**
          * Default: Try Wikipedia if available
          */
         UNKNOWN(true, false, 50);
@@ -107,10 +113,11 @@ public class QueryClassifier {
         }
 
         /**
-         * Whether this query type should search the offline survival guide database.
+         * Whether this query type should search the offline guide database
+         * (survival guides + practical engineering references).
          */
         public boolean needsGuideSearch() {
-            return this == SURVIVAL_QUERY;
+            return this == SURVIVAL_QUERY || this == PRACTICAL_QUERY;
         }
 
         public int getPriority() {
@@ -129,7 +136,26 @@ public class QueryClassifier {
             "|signal.*rescue|sos|distress\\s*signal|signal\\s*mirror|signal\\s*fire" +
             "|forag(e|ing)|edib(le|ility)\\s*test|wild.*food|insect.*eat|snare|trap" +
             "|surviv(al|e)|emergency\\s*(prep|kit|supply)|grid[\\s-]?down|bug[\\s-]?out" +
-            "|gray\\s*man|opsec|situational\\s*awareness|panic\\s*wipe)",
+            "|gray\\s*man|opsec|situational\\s*awareness|panic\\s*wipe" +
+            "|improvise|makeshift|jury[\\s-]?rig|field[\\s-]?repair|off[\\s-]?grid)",
+            Pattern.CASE_INSENSITIVE);
+
+    // Practical/engineering query pattern - Phase v0.3
+    private static final Pattern PRACTICAL_PATTERN = Pattern.compile(
+            "(repair|fix(ing)?|patch|weld(ing)?|solder(ing)?|splice|improvise|makeshift|jury[\\s-]?rig" +
+            "|macgyver|mcgyver" +
+            "|engine|motor|radiator|alternator|carburetor|fuel\\s*(pump|line|filter)|brake|transmission" +
+            "|battery\\s*(test|charg|jump|dead)|volt(age)?|amp(erage)?|watt|circuit|wire\\s*(splic|strip|gauge)|fuse|generator|inverter" +
+            "|pipe|plumb(ing)?|leak|gasket|seal(ant)?|clamp|hose|fitting|valve" +
+            "|lever|pulley|gear|bearing|axle|shaft|torque|tension" +
+            "|concrete|mortar|rebar|rivet|bolt|thread|tap\\s*and\\s*die" +
+            "|insulate|waterproof|adhesive|epoxy|jb\\s*weld|duct\\s*tape" +
+            "|pump|siphon|hydraulic|pneumatic" +
+            "|structural|load[\\s-]?bearing|truss|brace|reinforce|anchor" +
+            "|sharpen|temper|anneal|harden|forge" +
+            "|tire\\s*(plug|patch|flat)|brake\\s*(pad|fluid|bleed)" +
+            "|solar\\s*(panel|charge)|off[\\s-]?grid|deep\\s*cycle" +
+            "|multimeter|ohm|resistor|capacitor|relay)",
             Pattern.CASE_INSENSITIVE);
 
     // Patterns for different query types
@@ -271,6 +297,11 @@ public class QueryClassifier {
         // Check survival/emergency queries (Phase 14)
         if (SURVIVAL_PATTERN.matcher(normalized).find()) {
             return QueryType.SURVIVAL_QUERY;
+        }
+
+        // Check practical/engineering queries (Phase v0.3)
+        if (PRACTICAL_PATTERN.matcher(normalized).find()) {
+            return QueryType.PRACTICAL_QUERY;
         }
 
         // Check factual lookup patterns
@@ -633,6 +664,38 @@ public class QueryClassifier {
         SYNONYM_MAP.put("solar", Arrays.asList("solar power", "photovoltaic"));
         SYNONYM_MAP.put("morse", Arrays.asList("morse code", "telegraphy"));
         SYNONYM_MAP.put("gps", Arrays.asList("global positioning system", "satellite navigation"));
+
+        // Mechanical / Automotive (Phase v0.3)
+        SYNONYM_MAP.put("engine", Arrays.asList("internal combustion", "motor"));
+        SYNONYM_MAP.put("radiator", Arrays.asList("cooling system", "coolant"));
+        SYNONYM_MAP.put("alternator", Arrays.asList("charging system", "generator"));
+        SYNONYM_MAP.put("brake", Arrays.asList("braking system", "disc brake"));
+        SYNONYM_MAP.put("transmission", Arrays.asList("gearbox", "drivetrain"));
+        SYNONYM_MAP.put("carburetor", Arrays.asList("fuel system", "fuel mixture"));
+        SYNONYM_MAP.put("tire", Arrays.asList("wheel", "flat tire"));
+        SYNONYM_MAP.put("starter", Arrays.asList("starter motor", "cranking"));
+        SYNONYM_MAP.put("exhaust", Arrays.asList("muffler", "catalytic converter"));
+
+        // Electrical (Phase v0.3)
+        SYNONYM_MAP.put("voltage", Arrays.asList("electrical potential", "volts"));
+        SYNONYM_MAP.put("circuit", Arrays.asList("electrical circuit", "wiring"));
+        SYNONYM_MAP.put("generator", Arrays.asList("power generation", "dynamo"));
+        SYNONYM_MAP.put("inverter", Arrays.asList("power inverter", "DC to AC"));
+        SYNONYM_MAP.put("fuse", Arrays.asList("circuit breaker", "overcurrent protection"));
+        SYNONYM_MAP.put("multimeter", Arrays.asList("voltmeter", "electrical testing"));
+        SYNONYM_MAP.put("capacitor", Arrays.asList("start capacitor", "run capacitor"));
+
+        // Structural / Materials (Phase v0.3)
+        SYNONYM_MAP.put("concrete", Arrays.asList("cement", "masonry"));
+        SYNONYM_MAP.put("welding", Arrays.asList("metal joining", "brazing"));
+        SYNONYM_MAP.put("insulation", Arrays.asList("thermal insulation", "insulate"));
+        SYNONYM_MAP.put("plumbing", Arrays.asList("pipe repair", "water system"));
+        SYNONYM_MAP.put("adhesive", Arrays.asList("glue", "bonding agent", "epoxy"));
+        SYNONYM_MAP.put("lever", Arrays.asList("simple machine", "mechanical advantage"));
+        SYNONYM_MAP.put("pulley", Arrays.asList("block and tackle", "mechanical advantage"));
+        SYNONYM_MAP.put("hydraulic", Arrays.asList("fluid power", "hydraulic system"));
+        SYNONYM_MAP.put("gasket", Arrays.asList("seal", "engine gasket"));
+        SYNONYM_MAP.put("solder", Arrays.asList("soldering", "tin-lead joint"));
     }
 
     /**
