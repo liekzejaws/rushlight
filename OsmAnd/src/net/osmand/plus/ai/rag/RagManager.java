@@ -78,6 +78,14 @@ public class RagManager {
     // Note: Direction queries (cities, regions) always work via DIRECTION_QUERY type
     private boolean poiAmenitySearchEnabled = false;
 
+    // v0.9: Crisis Mode — terse, fast responses for emergency situations
+    private static final int CRISIS_CONTEXT_TOKENS = 750;   // vs default 1500
+    private static final int CRISIS_MAX_SOURCES = 1;         // vs default 2
+    private static final int CRISIS_MAX_TOKENS = 384;        // vs default 1024
+    private boolean crisisMode = false;
+    private int savedContextTokenBudget;
+    private int savedMaxSources;
+
     public RagManager(@NonNull OsmandApplication app, @NonNull LlmManager llmManager) {
         this.app = app;
         this.llmManager = llmManager;
@@ -100,9 +108,23 @@ public class RagManager {
         this.contextTokenBudget = app.getSettings().LAMPP_RAG_CONTEXT_TOKENS.get();
         this.poiSearchRadius = app.getSettings().LAMPP_RAG_POI_RADIUS.get();
 
+        // v0.9: Restore Crisis Mode state from preferences
+        boolean savedCrisis = app.getSettings().LAMPP_CRISIS_MODE.get();
+        if (savedCrisis) {
+            savedContextTokenBudget = this.contextTokenBudget;
+            savedMaxSources = this.maxSources;
+            this.crisisMode = true;
+            this.contextTokenBudget = CRISIS_CONTEXT_TOKENS;
+            this.maxSources = CRISIS_MAX_SOURCES;
+            this.promptBuilder.setCrisisMode(true);
+            this.llmManager.setMaxTokensOverride(CRISIS_MAX_TOKENS);
+            LOG.info("Crisis Mode restored from preferences");
+        }
+
         LOG.info("RagManager initialized from preferences (wiki=" + wikipediaEnabled
             + " poi=" + poiAmenitySearchEnabled + " sources=" + maxSources
-            + " tokens=" + contextTokenBudget + " radius=" + poiSearchRadius + ")");
+            + " tokens=" + contextTokenBudget + " radius=" + poiSearchRadius
+            + " crisis=" + crisisMode + ")");
     }
 
     /**
@@ -126,6 +148,7 @@ public class RagManager {
      * Process a query synchronously (called from executor thread).
      */
     private void processQuery(@NonNull String query, @NonNull RagCallback callback) {
+        final long pipelineStartTime = System.currentTimeMillis();
         LOG.info("Processing query: " + query.substring(0, Math.min(50, query.length())) + "...");
 
         // Check if LLM is ready
@@ -368,6 +391,8 @@ public class RagManager {
 
             @Override
             public void onComplete(String fullResponse) {
+                // v0.8: Track end-to-end pipeline time
+                responseBuilder.setTotalPipelineTimeMs(System.currentTimeMillis() - pipelineStartTime);
                 // Build final response
                 RagResponse response = responseBuilder.build();
                 // Create the actual response with the full answer
@@ -445,6 +470,52 @@ public class RagManager {
     }
 
     /**
+     * v0.9: Enable or disable Crisis Mode.
+     * When active, reduces context budget, max sources, and max tokens
+     * for faster, more terse LLM responses in emergency situations.
+     * Layers the crisis prompt prefix on top of any active system prompt preset.
+     */
+    public void setCrisisMode(boolean enabled) {
+        if (this.crisisMode == enabled) return;  // No-op if unchanged
+
+        this.crisisMode = enabled;
+
+        if (enabled) {
+            // Save current values for restoration
+            savedContextTokenBudget = contextTokenBudget;
+            savedMaxSources = maxSources;
+
+            // Apply crisis overrides
+            contextTokenBudget = CRISIS_CONTEXT_TOKENS;
+            maxSources = CRISIS_MAX_SOURCES;
+        } else {
+            // Restore saved values
+            contextTokenBudget = savedContextTokenBudget;
+            maxSources = savedMaxSources;
+        }
+
+        // Propagate to PromptBuilder for prompt prefix injection
+        promptBuilder.setCrisisMode(enabled);
+
+        // Propagate to LlmManager for max_tokens override
+        llmManager.setMaxTokensOverride(enabled ? CRISIS_MAX_TOKENS : null);
+
+        // Persist to settings
+        app.getSettings().LAMPP_CRISIS_MODE.set(enabled);
+
+        LOG.info("Crisis Mode " + (enabled ? "ACTIVATED" : "deactivated")
+                + " (contextTokens=" + contextTokenBudget
+                + " maxSources=" + maxSources + ")");
+    }
+
+    /**
+     * v0.9: Check if Crisis Mode is active.
+     */
+    public boolean isCrisisMode() {
+        return crisisMode;
+    }
+
+    /**
      * Enable or disable Wikipedia integration.
      */
     public void setWikipediaEnabled(boolean enabled) {
@@ -460,9 +531,15 @@ public class RagManager {
 
     /**
      * Set the maximum number of Wikipedia sources to use.
+     * When Crisis Mode is active, the value is saved for restoration on deactivation.
      */
     public void setMaxSources(int maxSources) {
-        this.maxSources = Math.max(1, Math.min(5, maxSources));
+        int clamped = Math.max(1, Math.min(5, maxSources));
+        if (crisisMode) {
+            this.savedMaxSources = clamped;
+        } else {
+            this.maxSources = clamped;
+        }
     }
 
     /**
@@ -474,9 +551,15 @@ public class RagManager {
 
     /**
      * Set the token budget for context.
+     * When Crisis Mode is active, the value is saved for restoration on deactivation.
      */
     public void setContextTokenBudget(int budget) {
-        this.contextTokenBudget = Math.max(500, Math.min(6000, budget));
+        int clamped = Math.max(500, Math.min(6000, budget));
+        if (crisisMode) {
+            this.savedContextTokenBudget = clamped;
+        } else {
+            this.contextTokenBudget = clamped;
+        }
     }
 
     /**

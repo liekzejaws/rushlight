@@ -73,6 +73,11 @@ public class LlmManager implements Closeable {
 
 	// Adaptive performance tracking
 	private float lastTokensPerSecond = -1;
+	private long lastFirstTokenTimeMs = -1;
+
+	// v0.9: Crisis Mode max_tokens override (null = use normal logic)
+	@Nullable
+	private Integer maxTokensOverride = null;
 
 	public interface LlmCallback {
 		void onPartialResult(String partialText);
@@ -366,11 +371,21 @@ public class LlmManager implements Closeable {
 				final long startTime = System.currentTimeMillis();
 				final int[] tokenCount = {0};
 
-				// Use device-aware max tokens, with battery throttling
-				int userMaxTokens = app.getSettings().LAMPP_LLM_MAX_TOKENS.get();
-				int deviceMaxTokens = deviceDetector.getRecommendedMaxTokens();
-				int maxTokens = deviceDetector.shouldThrottleInference()
-						? Math.min(userMaxTokens, deviceMaxTokens) : userMaxTokens;
+				// Use device-aware max tokens, with battery throttling and crisis override
+				int maxTokens;
+				if (maxTokensOverride != null) {
+					// v0.9: Crisis Mode or external override
+					maxTokens = maxTokensOverride;
+					// Still respect battery throttling
+					if (deviceDetector.shouldThrottleInference()) {
+						maxTokens = Math.min(maxTokens, deviceDetector.getRecommendedMaxTokens());
+					}
+				} else {
+					int userMaxTokens = app.getSettings().LAMPP_LLM_MAX_TOKENS.get();
+					int deviceMaxTokens = deviceDetector.getRecommendedMaxTokens();
+					maxTokens = deviceDetector.shouldThrottleInference()
+							? Math.min(userMaxTokens, deviceMaxTokens) : userMaxTokens;
+				}
 
 				if (deviceDetector.shouldThrottleInference()) {
 					LOG.info("Inference throttled: battery=" + deviceDetector.getBatteryLevel()
@@ -390,6 +405,9 @@ public class LlmManager implements Closeable {
 				boolean success = nativeLib.nativeGenerateStream(prompt, maxTokens, new StreamCallback() {
 					@Override
 					public void onToken(@NonNull String token) {
+						if (tokenCount[0] == 0) {
+							lastFirstTokenTimeMs = System.currentTimeMillis() - startTime;
+						}
 						tokenCount[0]++;
 						fullResponse.append(token);
 						mainHandler.post(() -> callback.onPartialResult(fullResponse.toString()));
@@ -467,6 +485,23 @@ public class LlmManager implements Closeable {
 	 */
 	public float getLastTokensPerSecond() {
 		return lastTokensPerSecond;
+	}
+
+	/**
+	 * Get the time to first token from the last generation in milliseconds.
+	 * Returns -1 if no measurement available yet.
+	 */
+	public long getLastFirstTokenTimeMs() {
+		return lastFirstTokenTimeMs;
+	}
+
+	/**
+	 * v0.9: Set a max_tokens override that takes precedence over user settings
+	 * and device-recommended values. Used by Crisis Mode to cap generation length.
+	 * Pass null to clear the override and restore normal behavior.
+	 */
+	public void setMaxTokensOverride(@Nullable Integer override) {
+		this.maxTokensOverride = override;
 	}
 
 	/**

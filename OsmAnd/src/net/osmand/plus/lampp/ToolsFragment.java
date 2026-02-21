@@ -2,6 +2,7 @@ package net.osmand.plus.lampp;
 
 import android.animation.ValueAnimator;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -18,6 +19,10 @@ import com.google.android.material.card.MaterialCardView;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.ai.BenchmarkResult;
+import net.osmand.plus.ai.LlmManager;
+import net.osmand.plus.ai.PerformanceBenchmark;
+import net.osmand.plus.ai.rag.RagManager;
 import net.osmand.plus.security.DuressManager;
 import net.osmand.plus.security.PinEntryDialog;
 import net.osmand.plus.security.SecurityManager;
@@ -104,6 +109,12 @@ public class ToolsFragment extends LamppPanelFragment {
 					OnboardingOverlay.showFromTools(mapActivity);
 				}
 			});
+		}
+
+		// v0.8: Run Benchmark button
+		View benchmarkButton = contentView.findViewById(R.id.run_benchmark_button);
+		if (benchmarkButton != null) {
+			benchmarkButton.setOnClickListener(v -> showBenchmarkConfirmation());
 		}
 
 		// Prepare Demo button
@@ -305,6 +316,100 @@ public class ToolsFragment extends LamppPanelFragment {
 				})
 				.setNegativeButton(R.string.shared_string_cancel, null)
 				.setIcon(android.R.drawable.ic_dialog_alert)
+				.show();
+	}
+
+	// ==================== v0.8: Performance Benchmark ====================
+
+	private void showBenchmarkConfirmation() {
+		OsmandApplication app = getMyApplication();
+		if (app == null) return;
+
+		// Check if AI features are available
+		if (!LlmManager.isAiAvailable()) {
+			Toast.makeText(getContext(), "AI features require Android 11 or higher", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		// Create a temporary LlmManager to check model status
+		LlmManager tempLlm = new LlmManager(app);
+		if (!tempLlm.hasDownloadedModels()) {
+			Toast.makeText(getContext(), "Download an AI model first", Toast.LENGTH_SHORT).show();
+			tempLlm.close();
+			return;
+		}
+
+		new AlertDialog.Builder(getContext())
+				.setTitle("Run Benchmark")
+				.setMessage("This will send 4 test queries to the AI model and measure performance against OTF targets (<3s query time, <500MB RAM).\n\nThis takes approximately 30-60 seconds. Continue?")
+				.setPositiveButton("Run", (dialog, which) -> runBenchmark(app))
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.show();
+	}
+
+	private void runBenchmark(@NonNull OsmandApplication app) {
+		ProgressDialog progressDialog = new ProgressDialog(getContext());
+		progressDialog.setTitle("Running Benchmark");
+		progressDialog.setMessage("Loading model...");
+		progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+		progressDialog.setMax(4);
+		progressDialog.setProgress(0);
+		progressDialog.setCancelable(false);
+		progressDialog.show();
+
+		LlmManager llmManager = new LlmManager(app);
+		RagManager ragManager = new RagManager(app, llmManager);
+
+		// Load the first available model, then run benchmark
+		java.io.File[] models = llmManager.getDownloadedModels();
+		llmManager.loadModel(models[0], new LlmManager.ModelLoadCallback() {
+			@Override
+			public void onLoadStarted() {
+				progressDialog.setMessage("Loading model: " + models[0].getName() + "...");
+			}
+
+			@Override
+			public void onLoadComplete(String modelName) {
+				progressDialog.setMessage("Running queries...");
+				PerformanceBenchmark benchmark = new PerformanceBenchmark(app, ragManager, llmManager);
+				benchmark.runAsync(new PerformanceBenchmark.BenchmarkCallback() {
+					@Override
+					public void onProgress(int current, int total, String queryText) {
+						progressDialog.setProgress(current);
+						progressDialog.setMessage("Query " + current + "/" + total + ":\n" + queryText);
+					}
+
+					@Override
+					public void onComplete(java.util.List<BenchmarkResult> results, String summary) {
+						progressDialog.dismiss();
+						llmManager.close();
+						showBenchmarkResults(summary);
+					}
+
+					@Override
+					public void onError(String error) {
+						progressDialog.dismiss();
+						llmManager.close();
+						Toast.makeText(getContext(), "Benchmark error: " + error, Toast.LENGTH_LONG).show();
+					}
+				});
+			}
+
+			@Override
+			public void onLoadError(String error) {
+				progressDialog.dismiss();
+				llmManager.close();
+				Toast.makeText(getContext(), "Failed to load model: " + error, Toast.LENGTH_LONG).show();
+			}
+		});
+	}
+
+	private void showBenchmarkResults(@NonNull String summary) {
+		if (getContext() == null) return;
+		new AlertDialog.Builder(getContext())
+				.setTitle("Benchmark Results")
+				.setMessage(summary)
+				.setPositiveButton(R.string.shared_string_ok, null)
 				.show();
 	}
 

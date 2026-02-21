@@ -264,6 +264,22 @@
 			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
+		<!-- v0.8: Run Benchmark button -->
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/run_benchmark_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:text="Run Benchmark"
+			android:textSize="@dimen/lampp_text_button"
+			android:textAllCaps="false"
+			android:textColor="?attr/lampp_button_text"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_time_span"
+			app:iconTint="?attr/lampp_button_text"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
 		<!-- Prepare Demo button -->
 		<com.google.android.material.button.MaterialButton
 			android:id="@+id/prepare_demo_button"

@@ -127,6 +127,21 @@ public class PromptBuilder {
             "Answer:";
 
     /**
+     * v0.9: Crisis Mode prompt prefix — prepended to any active system prompt when
+     * Crisis Mode is enabled. Instructs the LLM to produce terse, bullet-point,
+     * survival-critical output with minimal prose.
+     */
+    private static final String CRISIS_PREFIX =
+            "CRITICAL EMERGENCY MODE ACTIVE. The user is in immediate danger. " +
+            "Respond with ONLY the most critical, life-saving information:\n" +
+            "- Use short bullet points, no prose\n" +
+            "- Most dangerous/urgent items FIRST\n" +
+            "- Include specific numbers (doses, distances, times)\n" +
+            "- Skip background info, history, and caveats\n" +
+            "- Maximum 4-6 bullet points per answer\n" +
+            "- If medical: ABCs (airway, breathing, circulation) first\n\n";
+
+    /**
      * Default system prompt prefix for the assistant.
      * Establishes Rushlight's identity as a purpose-built offline field intelligence system.
      * Can be overridden via LAMPP_SYSTEM_PROMPT setting.
@@ -190,6 +205,12 @@ public class PromptBuilder {
      */
     @Nullable
     private String customSystemPrompt;
+
+    /**
+     * v0.9: Crisis Mode flag. When true, CRISIS_PREFIX is prepended to whatever
+     * system prompt is active, demanding terse bullet-point responses.
+     */
+    private boolean crisisMode = false;
 
     /**
      * Maximum context tokens to use (leaving room for response).
@@ -297,11 +318,31 @@ public class PromptBuilder {
     }
 
     /**
-     * Get the active system prompt prefix (custom or default).
+     * v0.9: Enable or disable Crisis Mode prompt prefix.
+     * When enabled, CRISIS_PREFIX is prepended to the active system prompt,
+     * layering on top of any preset or custom prompt.
+     */
+    public void setCrisisMode(boolean enabled) {
+        this.crisisMode = enabled;
+    }
+
+    /**
+     * v0.9: Check if Crisis Mode is active.
+     */
+    public boolean isCrisisMode() {
+        return crisisMode;
+    }
+
+    /**
+     * Get the active system prompt prefix (custom or default),
+     * with Crisis Mode prefix layered on top when active.
      */
     @NonNull
     public String getSystemPrefix() {
         String prompt = customSystemPrompt != null ? customSystemPrompt : DEFAULT_SYSTEM_PREFIX;
+        if (crisisMode) {
+            return CRISIS_PREFIX + prompt + "\n\n";
+        }
         return prompt + "\n\n";
     }
 

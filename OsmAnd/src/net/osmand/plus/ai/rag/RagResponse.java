@@ -23,12 +23,14 @@ public class RagResponse {
     private final long generationTimeMs;
     private final boolean usedWikipedia;
     private final boolean usedPoiData;                // Phase 8
+    private final long totalPipelineTimeMs;            // v0.8: end-to-end pipeline time
     private final String error;
 
     private RagResponse(@NonNull String answer, @NonNull List<ArticleSource> sources,
                         @NonNull List<PoiSource> poiSources,
                         long searchTimeMs, long poiSearchTimeMs, long generationTimeMs,
-                        boolean usedWikipedia, boolean usedPoiData, @Nullable String error) {
+                        boolean usedWikipedia, boolean usedPoiData, long totalPipelineTimeMs,
+                        @Nullable String error) {
         this.answer = answer;
         this.sources = Collections.unmodifiableList(new ArrayList<>(sources));
         this.poiSources = Collections.unmodifiableList(new ArrayList<>(poiSources));
@@ -37,6 +39,7 @@ public class RagResponse {
         this.generationTimeMs = generationTimeMs;
         this.usedWikipedia = usedWikipedia;
         this.usedPoiData = usedPoiData;
+        this.totalPipelineTimeMs = totalPipelineTimeMs;
         this.error = error;
     }
 
@@ -47,7 +50,7 @@ public class RagResponse {
     public static RagResponse success(@NonNull String answer, @NonNull List<ArticleSource> sources,
                                        long searchTimeMs, long generationTimeMs) {
         return new RagResponse(answer, sources, Collections.emptyList(),
-                searchTimeMs, 0, generationTimeMs, !sources.isEmpty(), false, null);
+                searchTimeMs, 0, generationTimeMs, !sources.isEmpty(), false, 0, null);
     }
 
     /**
@@ -57,7 +60,7 @@ public class RagResponse {
     public static RagResponse successWithPoi(@NonNull String answer, @NonNull List<PoiSource> poiSources,
                                               long poiSearchTimeMs, long generationTimeMs) {
         return new RagResponse(answer, Collections.emptyList(), poiSources,
-                0, poiSearchTimeMs, generationTimeMs, false, !poiSources.isEmpty(), null);
+                0, poiSearchTimeMs, generationTimeMs, false, !poiSources.isEmpty(), 0, null);
     }
 
     /**
@@ -71,7 +74,7 @@ public class RagResponse {
                                              long generationTimeMs) {
         return new RagResponse(answer, wikiSources, poiSources,
                 wikiSearchTimeMs, poiSearchTimeMs, generationTimeMs,
-                !wikiSources.isEmpty(), !poiSources.isEmpty(), null);
+                !wikiSources.isEmpty(), !poiSources.isEmpty(), 0, null);
     }
 
     /**
@@ -80,7 +83,7 @@ public class RagResponse {
     @NonNull
     public static RagResponse successWithoutWikipedia(@NonNull String answer, long generationTimeMs) {
         return new RagResponse(answer, Collections.emptyList(), Collections.emptyList(),
-                0, 0, generationTimeMs, false, false, null);
+                0, 0, generationTimeMs, false, false, 0, null);
     }
 
     /**
@@ -89,7 +92,7 @@ public class RagResponse {
     @NonNull
     public static RagResponse error(@NonNull String error) {
         return new RagResponse("", Collections.emptyList(), Collections.emptyList(),
-                0, 0, 0, false, false, error);
+                0, 0, 0, false, false, 0, error);
     }
 
     /**
@@ -159,10 +162,18 @@ public class RagResponse {
     }
 
     /**
-     * Get total time for the RAG pipeline.
+     * Get total time for the RAG pipeline (sum of component times).
      */
     public long getTotalTimeMs() {
         return searchTimeMs + poiSearchTimeMs + generationTimeMs;
+    }
+
+    /**
+     * Get the end-to-end pipeline time including classification and prompt building overhead.
+     * Returns 0 if not measured.
+     */
+    public long getTotalPipelineTimeMs() {
+        return totalPipelineTimeMs > 0 ? totalPipelineTimeMs : getTotalTimeMs();
     }
 
     /**
@@ -298,6 +309,7 @@ public class RagResponse {
         private long generationStartTime = 0;
         private boolean usedWikipedia = false;
         private boolean usedPoiData = false;
+        private long totalPipelineTimeMs = 0;
         private String error = null;
 
         public Builder() {
@@ -323,6 +335,11 @@ public class RagResponse {
 
         public Builder setPoiSearchTimeMs(long timeMs) {
             this.poiSearchTimeMs = timeMs;
+            return this;
+        }
+
+        public Builder setTotalPipelineTimeMs(long timeMs) {
+            this.totalPipelineTimeMs = timeMs;
             return this;
         }
 
@@ -371,7 +388,7 @@ public class RagResponse {
             }
             return new RagResponse(answer.toString(), sources, poiSources,
                     searchTimeMs, poiSearchTimeMs, generationTimeMs,
-                    usedWikipedia, usedPoiData, null);
+                    usedWikipedia, usedPoiData, totalPipelineTimeMs, null);
         }
     }
 }

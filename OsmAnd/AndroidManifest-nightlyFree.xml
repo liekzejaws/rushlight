@@ -12,7 +12,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="net.osmand.dev.fileprovider"
+            android:authorities="io.rushlight.app.fileprovider"
             tools:replace="android:authorities"/>
     </application>
 </manifest> 

@@ -118,6 +118,8 @@ android {
 		nightlyFree {
 			dimension "version"
 			applicationId "io.rushlight.app"
+			versionName "0.9.0"
+			versionCode 5500
 			resValue "string", "app_name", "Rushlight"
 			resValue "string", "app_edition", System.getenv("APP_EDITION") ? System.getenv("APP_EDITION") : ""
 			// resConfig "en"

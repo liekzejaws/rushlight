@@ -89,6 +89,10 @@ public class LlmChatFragment extends LamppPanelFragment {
 	private EditText messageInput;
 	private ImageButton sendButton;
 
+	// v0.9: Crisis Mode UI
+	@Nullable
+	private View crisisBanner;
+
 	// v0.5: Inline download progress
 	private ProgressBar modelDownloadProgress;
 	@Nullable
@@ -174,7 +178,10 @@ public class LlmChatFragment extends LamppPanelFragment {
 			toolbar.inflateMenu(R.menu.menu_llm_chat);
 			toolbar.setOnMenuItemClickListener(item -> {
 				int id = item.getItemId();
-				if (id == R.id.action_models) {
+				if (id == R.id.action_crisis_mode) {
+					toggleCrisisMode();
+					return true;
+				} else if (id == R.id.action_models) {
 					showModelManagement();
 					return true;
 				} else if (id == R.id.action_conversations) {
@@ -194,6 +201,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 		setupListeners();
 		updateModelStatus();
 		updateUI();
+
+		// v0.9: Initialize Crisis Mode UI from persisted state
+		if (ragManager.isCrisisMode()) {
+			updateCrisisModeUI(true);
+		}
 
 		// Phase 19: Auto-load model if available but not loaded (reduces demo friction)
 		if (!llmManager.isModelLoaded() && !llmManager.isLoading() && llmManager.hasDownloadedModels()) {
@@ -244,6 +256,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 		sendButton = view.findViewById(R.id.send_button);
 
 		modelDownloadProgress = view.findViewById(R.id.model_download_progress);
+
+		// v0.9: Crisis Mode banner
+		crisisBanner = view.findViewById(R.id.crisis_mode_banner);
+		if (crisisBanner != null) {
+			crisisBanner.setOnClickListener(v -> toggleCrisisMode());
+		}
 
 		// Setup RecyclerView
 		chatAdapter = new ChatAdapter();
@@ -356,6 +374,11 @@ public class LlmChatFragment extends LamppPanelFragment {
 				if (detail.length() > 0) detail.append("  \u2022  ");
 				detail.append("Guides: ").append(guideCount);
 			}
+			// v0.9: Show crisis mode indicator
+			if (ragManager.isCrisisMode()) {
+				if (detail.length() > 0) detail.append("  \u2022  ");
+				detail.append("\u26A0 CRISIS");
+			}
 			modelStatusDetail.setText(detail.toString());
 			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
 			modelStatusDetail.setVisibility(View.VISIBLE);
@@ -428,6 +451,50 @@ public class LlmChatFragment extends LamppPanelFragment {
 			&& !llmManager.isGenerating()
 			&& messageInput.getText().length() > 0;
 		sendButton.setEnabled(canSend);
+	}
+
+	/**
+	 * v0.9: Toggle Crisis Mode on/off.
+	 * Updates RAG parameters, prompt prefix, and all visual indicators.
+	 */
+	private void toggleCrisisMode() {
+		if (ragManager == null) return;
+
+		boolean newState = !ragManager.isCrisisMode();
+		ragManager.setCrisisMode(newState);
+
+		updateCrisisModeUI(newState);
+		updateModelStatus();
+
+		if (newState) {
+			Toast.makeText(getContext(), "\u26A0 Crisis Mode ON \u2014 terse, fast responses", Toast.LENGTH_SHORT).show();
+		} else {
+			Toast.makeText(getContext(), "Crisis Mode OFF \u2014 normal responses", Toast.LENGTH_SHORT).show();
+		}
+	}
+
+	/**
+	 * v0.9: Update all visual indicators for Crisis Mode state.
+	 */
+	private void updateCrisisModeUI(boolean active) {
+		// Toggle banner visibility
+		if (crisisBanner != null) {
+			crisisBanner.setVisibility(active ? View.VISIBLE : View.GONE);
+		}
+
+		// Update toolbar menu icon
+		if (toolbar != null && toolbar.getMenu() != null) {
+			android.view.MenuItem crisisItem = toolbar.getMenu().findItem(R.id.action_crisis_mode);
+			if (crisisItem != null) {
+				crisisItem.setIcon(active
+						? R.drawable.ic_action_alert_circle
+						: R.drawable.ic_action_alert);
+				Drawable icon = crisisItem.getIcon();
+				if (icon != null) {
+					icon.setTint(active ? 0xFFFF4444 : 0xFFFFFFFF);
+				}
+			}
+		}
 	}
 
 	private void updateUI() {

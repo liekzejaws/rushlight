@@ -1053,6 +1053,10 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> LAMPP_ONBOARDING_SHOWN =
 			new BooleanPreference(this, "lampp_onboarding_shown", false).makeGlobal().makeShared();
 
+	// Rushlight Crisis Mode: terse, fast AI responses for emergency situations
+	public final CommonPreference<Boolean> LAMPP_CRISIS_MODE =
+			new BooleanPreference(this, "lampp_crisis_mode", false).makeGlobal().makeShared();
+
 	// Rushlight AI Behavior
 	public final CommonPreference<String> LAMPP_SYSTEM_PROMPT =
 			new StringPreference(this, "lampp_system_prompt",
