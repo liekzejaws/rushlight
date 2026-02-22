@@ -11,10 +11,18 @@ Built for journalists, activists, humanitarian workers, and anyone who needs to 
 
 ---
 
-## 📸 Screenshots
+## 📸 Demo
 
-<!-- TODO: Add screenshots of Pip-Boy skin, AI chat, P2P, morse -->
-> *Demo screenshots coming soon. Build instructions below if you want to try it now.*
+[![Rushlight - Offline AI for Activists](https://img.youtube.com/vi/-ursT48AsOs/hqdefault.jpg)](https://youtube.com/shorts/-ursT48AsOs)
+
+> *Click to watch the demo video*
+
+<p align="center">
+  <img src="docs/screenshots/rushlight-classic-theme.png" width="22%" alt="Security & Themes"/>
+  <img src="docs/screenshots/rushlight-screenshot-03-tools.png" width="22%" alt="Theme Picker"/>
+  <img src="docs/screenshots/rushlight-screenshot-04-aichat.png" width="22%" alt="AI Assistant"/>
+  <img src="docs/screenshots/rushlight-screenshot-05-morse.png" width="22%" alt="Morse Code"/>
+</p>
 
 ---
 
