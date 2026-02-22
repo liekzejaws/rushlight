@@ -123,6 +123,9 @@ public class ToolsFragment extends LamppPanelFragment {
 			prepareDemoButton.setOnClickListener(v -> showPrepareDemoConfirmation());
 		}
 
+		// v1.0: FieldNotes section
+		setupFieldNotesSection(contentView);
+
 		// Show current selection
 		updateSelection();
 	}
@@ -417,6 +420,76 @@ public class ToolsFragment extends LamppPanelFragment {
 		FragmentActivity activity = getActivity();
 		if (activity == null) return;
 		DemoPreflightDialog.showInstance(activity.getSupportFragmentManager());
+	}
+
+	// ==================== v1.0: FieldNotes ====================
+
+	private void setupFieldNotesSection(@NonNull View contentView) {
+		OsmandApplication app = getMyApplication();
+		if (app == null) return;
+
+		// Update note count
+		TextView countText = contentView.findViewById(R.id.fieldnotes_count_text);
+		if (countText != null) {
+			int count = app.getFieldNotesManager().getNoteCount();
+			countText.setText(count == 0 ? "No notes" : count + " active note" + (count == 1 ? "" : "s"));
+		}
+
+		// View All button — show a simple list dialog of all FieldNotes
+		View listButton = contentView.findViewById(R.id.fieldnotes_list_button);
+		if (listButton != null) {
+			listButton.setOnClickListener(v -> showFieldNotesList());
+		}
+
+		// Cleanup button
+		View cleanupButton = contentView.findViewById(R.id.fieldnotes_cleanup_button);
+		if (cleanupButton != null) {
+			cleanupButton.setOnClickListener(v -> {
+				if (app == null) return;
+				int cleaned = app.getFieldNotesManager().cleanupExpired();
+				Toast.makeText(getContext(),
+						cleaned == 0 ? "No expired notes" : "Cleaned " + cleaned + " expired note(s)",
+						Toast.LENGTH_SHORT).show();
+				// Refresh count
+				if (countText != null) {
+					int count = app.getFieldNotesManager().getNoteCount();
+					countText.setText(count == 0 ? "No notes" : count + " active note" + (count == 1 ? "" : "s"));
+				}
+			});
+		}
+	}
+
+	private void showFieldNotesList() {
+		OsmandApplication app = getMyApplication();
+		if (app == null || getContext() == null) return;
+
+		java.util.List<net.osmand.plus.fieldnotes.FieldNote> notes = app.getFieldNotesManager().getAllNotes();
+		if (notes.isEmpty()) {
+			Toast.makeText(getContext(), "No FieldNotes yet. Long-press the map to add one.", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		String[] items = new String[notes.size()];
+		for (int i = 0; i < notes.size(); i++) {
+			net.osmand.plus.fieldnotes.FieldNote note = notes.get(i);
+			items[i] = note.getCategory().getDisplayName() + ": " + note.getTitle();
+		}
+
+		new AlertDialog.Builder(getContext())
+				.setTitle("FieldNotes (" + notes.size() + ")")
+				.setItems(items, (dialog, which) -> {
+					// Show the selected note in the view dialog
+					net.osmand.plus.fieldnotes.FieldNote selectedNote = notes.get(which);
+					FragmentActivity activity = getActivity();
+					if (activity != null) {
+						net.osmand.plus.fieldnotes.ViewFieldNoteDialog viewDialog =
+								net.osmand.plus.fieldnotes.ViewFieldNoteDialog.newInstance(selectedNote.getId());
+						viewDialog.show(activity.getSupportFragmentManager(),
+								net.osmand.plus.fieldnotes.ViewFieldNoteDialog.TAG);
+					}
+				})
+				.setNegativeButton(R.string.shared_string_cancel, null)
+				.show();
 	}
 
 	private void applyPreset(@NonNull LamppStylePreset preset) {

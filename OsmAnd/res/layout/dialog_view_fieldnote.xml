@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
+
+    <!-- Category header with icon and color -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/fieldnote_view_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/fieldnote_view_category"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/lampp_text_detail"
+                android:textAllCaps="true"
+                android:letterSpacing="0.05" />
+
+            <TextView
+                android:id="@+id/fieldnote_view_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/lampp_text_title"
+                android:textStyle="bold"
+                android:textColor="?attr/main_font_color_basic" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Full note text -->
+    <TextView
+        android:id="@+id/fieldnote_view_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textSize="@dimen/lampp_text_body"
+        android:textColor="?attr/main_font_color_basic"
+        android:lineSpacingMultiplier="1.3" />
+
+    <!-- Metadata section -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="12dp"
+        android:background="?attr/divider_color_basic" />
+
+    <!-- Timestamp -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Created"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/searchbar_text_hint" />
+
+        <TextView
+            android:id="@+id/fieldnote_view_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/main_font_color_basic" />
+    </LinearLayout>
+
+    <!-- Expiry -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Expires"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/searchbar_text_hint" />
+
+        <TextView
+            android:id="@+id/fieldnote_view_expiry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/main_font_color_basic" />
+    </LinearLayout>
+
+    <!-- Author -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Author"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/searchbar_text_hint" />
+
+        <TextView
+            android:id="@+id/fieldnote_view_author"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/main_font_color_basic"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+
+    <!-- Confirmations (for future P2P) -->
+    <LinearLayout
+        android:id="@+id/fieldnote_view_confirms_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Confirms"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/searchbar_text_hint" />
+
+        <TextView
+            android:id="@+id/fieldnote_view_confirms"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/main_font_color_basic" />
+    </LinearLayout>
+
+    <!-- Location -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Location"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/searchbar_text_hint" />
+
+        <TextView
+            android:id="@+id/fieldnote_view_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/lampp_text_detail"
+            android:textColor="?attr/main_font_color_basic"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/fieldnote_delete_button"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete"
+            android:textColor="#FFFF4444"
+            android:textAllCaps="false"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/fieldnote_close_button"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Close"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+</LinearLayout>

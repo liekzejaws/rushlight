@@ -76,6 +76,7 @@ public class MapLayers {
 	private PreviewRouteLineLayer previewRouteLineLayer;
 	private POIMapLayer poiMapLayer;
 	private FavouritesLayer mFavouritesLayer;
+	private net.osmand.plus.fieldnotes.FieldNotesLayer fieldNotesLayer;
 	private TransportStopsLayer transportStopsLayer;
 	private PointLocationLayer locationLayer;
 	private RadiusRulerControlLayer radiusRulerControlLayer;
@@ -150,6 +151,9 @@ public class MapLayers {
 		// 4. favorites layer
 		mFavouritesLayer = new FavouritesLayer(app);
 		mapView.addLayer(mFavouritesLayer, 4);
+		// 4.3 Rushlight FieldNotes layer
+		fieldNotesLayer = new net.osmand.plus.fieldnotes.FieldNotesLayer(app);
+		mapView.addLayer(fieldNotesLayer, 4.3f);
 		// 4.6 measurement tool layer
 		measurementToolLayer = new MeasurementToolLayer(app);
 		mapView.addLayer(measurementToolLayer, 4.6f);
@@ -628,6 +632,10 @@ public class MapLayers {
 
 	public FavouritesLayer getFavouritesLayer() {
 		return mFavouritesLayer;
+	}
+
+	public net.osmand.plus.fieldnotes.FieldNotesLayer getFieldNotesLayer() {
+		return fieldNotesLayer;
 	}
 
 	public MeasurementToolLayer getMeasurementToolLayer() {

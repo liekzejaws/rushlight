@@ -280,6 +280,63 @@
 			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
+		<!-- v1.0: FieldNotes section -->
+		<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:background="?attr/divider_color"
+			android:layout_marginTop="12dp"
+			android:layout_marginBottom="12dp" />
+
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="FieldNotes"
+			android:textSize="@dimen/lampp_text_subheader"
+			android:textStyle="bold"
+			android:textColor="?attr/main_font_color_basic"
+			android:layout_marginBottom="4dp" />
+
+		<TextView
+			android:id="@+id/fieldnotes_count_text"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="No notes"
+			android:textSize="@dimen/lampp_text_caption"
+			android:textAllCaps="false"
+			android:textColor="?attr/searchbar_text_hint"
+			android:layout_marginBottom="8dp" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/fieldnotes_list_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="4dp"
+			android:text="View All FieldNotes"
+			android:textSize="@dimen/lampp_text_button"
+			android:textAllCaps="false"
+			android:textColor="?attr/lampp_button_text"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_flag"
+			app:iconTint="?attr/lampp_button_text"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/fieldnotes_cleanup_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="4dp"
+			android:text="Clean Up Expired"
+			android:textSize="@dimen/lampp_text_button"
+			android:textAllCaps="false"
+			android:textColor="?attr/lampp_button_text"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_delete_dark"
+			app:iconTint="?attr/lampp_button_text"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
 		<!-- Prepare Demo button -->
 		<com.google.android.material.button.MaterialButton
 			android:id="@+id/prepare_demo_button"

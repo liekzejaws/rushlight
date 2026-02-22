@@ -167,6 +167,9 @@ public class OsmandApplication extends MultiDexApplication {
 	// Rushlight: Survival guide manager for offline knowledge base
 	private net.osmand.plus.guides.GuideManager guideManager;
 
+	// Rushlight: FieldNotes manager for shared map annotations
+	private net.osmand.plus.fieldnotes.FieldNotesManager fieldNotesManager;
+
 	// start variables
 	ResourceManager resourceManager;
 	OsmAndLocationProvider locationProvider;
@@ -466,6 +469,18 @@ public class OsmandApplication extends MultiDexApplication {
 			guideManager = new net.osmand.plus.guides.GuideManager(this);
 		}
 		return guideManager;
+	}
+
+	/**
+	 * Rushlight: FieldNotes manager for shared map annotations.
+	 * Lazily initialized on first access.
+	 */
+	@androidx.annotation.NonNull
+	public net.osmand.plus.fieldnotes.FieldNotesManager getFieldNotesManager() {
+		if (fieldNotesManager == null) {
+			fieldNotesManager = new net.osmand.plus.fieldnotes.FieldNotesManager(this);
+		}
+		return fieldNotesManager;
 	}
 
 	public SavingTrackHelper getSavingTrackHelper() {
