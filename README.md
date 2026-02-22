@@ -152,7 +152,7 @@ Rushlight additions are licensed under **AGPLv3**. The OsmAnd base is Apache 2.0
 
 ## 🙏 Built On
 
-- [OsmAnd](https://osmand.net/) — the offline maps foundation
+- [OsmAnd](https://osmand.net/) ([GitHub](https://github.com/osmandapp/OsmAnd)) — the offline maps foundation
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) — on-device LLM inference
 - [Kiwix](https://kiwix.org/) — offline Wikipedia
 - [Briar](https://briarproject.org/) — P2P architecture inspiration
