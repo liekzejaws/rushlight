@@ -108,18 +108,19 @@ public class DemoPreflightChecker {
 	@NonNull
 	private CheckResult checkLlmModel(@NonNull OsmandApplication app) {
 		String name = app.getString(R.string.demo_preflight_check_model);
-		LlmManager llm = new LlmManager(app);
 
-		if (llm.isModelLoaded()) {
+		// Check filesystem for downloaded models — avoids creating a throwaway
+		// LlmManager instance (which can never report isModelLoaded=true since
+		// LlmManager is not a singleton and state is per-instance).
+		// Models live under app.getAppPath("llm_models"), NOT app.getFilesDir()
+		File modelsDir = new File(app.getAppPath(null), LlmManager.MODELS_DIR);
+		File[] models = modelsDir.listFiles((d, n) -> n.endsWith(".gguf"));
+
+		if (models != null && models.length > 0) {
+			String modelName = models[0].getName().replace(".gguf", "");
 			return new CheckResult(name, CheckStatus.PASS,
-					app.getString(R.string.demo_model_loaded, llm.getCurrentModelName()),
+					app.getString(R.string.demo_model_loaded, modelName),
 					null, true);
-		}
-
-		if (llm.hasDownloadedModels()) {
-			return new CheckResult(name, CheckStatus.FAIL,
-					app.getString(R.string.demo_model_available),
-					null, true);  // Fix action set by dialog (needs callback)
 		}
 
 		return new CheckResult(name, CheckStatus.FAIL,

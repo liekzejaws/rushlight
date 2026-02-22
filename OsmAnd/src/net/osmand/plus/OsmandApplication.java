@@ -479,6 +479,19 @@ public class OsmandApplication extends MultiDexApplication {
 	public net.osmand.plus.fieldnotes.FieldNotesManager getFieldNotesManager() {
 		if (fieldNotesManager == null) {
 			fieldNotesManager = new net.osmand.plus.fieldnotes.FieldNotesManager(this);
+			// Phase 2: Wire P2P broadcast — lambda resolves transport at call time (lazy)
+			fieldNotesManager.setBroadcaster(noteJson -> {
+				net.osmand.plus.plugins.p2pshare.P2pSharePlugin plugin =
+						net.osmand.plus.plugins.PluginsHelper.getPlugin(
+								net.osmand.plus.plugins.p2pshare.P2pSharePlugin.class);
+				if (plugin != null && plugin.getShareManager() != null) {
+					net.osmand.plus.plugins.p2pshare.transport.TransportManager tm =
+							plugin.getShareManager().getTransportManager();
+					if (tm != null && tm.isConnected()) {
+						tm.sendFieldNote(noteJson);
+					}
+				}
+			});
 		}
 		return fieldNotesManager;
 	}

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -127,9 +128,74 @@ public class ViewFieldNoteDialog extends DialogFragment {
 		TextView authorText = view.findViewById(R.id.fieldnote_view_author);
 		authorText.setText(note.getAuthorId());
 
+		// Verified (crypto signature status)
+		ImageView verifiedIcon = view.findViewById(R.id.fieldnote_view_verified_icon);
+		TextView verifiedText = view.findViewById(R.id.fieldnote_view_verified);
+		if (FieldNoteSigner.isSigned(note)) {
+			boolean valid = FieldNoteSigner.verify(note);
+			if (valid) {
+				verifiedIcon.setImageResource(R.drawable.ic_action_done);
+				verifiedIcon.setColorFilter(0xFF4CAF50); // green
+				verifiedText.setText("Signature verified");
+				verifiedText.setTextColor(0xFF4CAF50);
+			} else {
+				verifiedIcon.setImageResource(R.drawable.ic_action_alert);
+				verifiedIcon.setColorFilter(0xFFFF4444); // red
+				verifiedText.setText("Signature invalid");
+				verifiedText.setTextColor(0xFFFF4444);
+			}
+		} else {
+			verifiedIcon.setImageResource(R.drawable.ic_action_remove);
+			verifiedIcon.setColorFilter(0xFF999999); // grey
+			verifiedText.setText("Unsigned");
+			verifiedText.setTextColor(0xFF999999);
+		}
+
 		// Confirmations
 		TextView confirmsText = view.findViewById(R.id.fieldnote_view_confirms);
 		confirmsText.setText(String.valueOf(note.getConfirmations()));
+
+		// Score & voting
+		TextView scoreText = view.findViewById(R.id.fieldnote_view_score);
+		scoreText.setText(String.valueOf(note.getScore()));
+		// Color: green for positive, red for negative, neutral for zero
+		if (note.getScore() > 0) {
+			scoreText.setTextColor(0xFF4CAF50); // green
+		} else if (note.getScore() < 0) {
+			scoreText.setTextColor(0xFFFF4444); // red
+		}
+
+		ImageButton upBtn = view.findViewById(R.id.fieldnote_vote_up);
+		ImageButton downBtn = view.findViewById(R.id.fieldnote_vote_down);
+
+		if (manager.hasVoted(note.getId())) {
+			// Already voted — disable buttons
+			upBtn.setEnabled(false);
+			downBtn.setEnabled(false);
+			upBtn.setAlpha(0.3f);
+			downBtn.setAlpha(0.3f);
+		} else {
+			upBtn.setOnClickListener(v -> {
+				manager.upvoteNote(note.getId());
+				scoreText.setText(String.valueOf(note.getScore()));
+				scoreText.setTextColor(note.getScore() > 0 ? 0xFF4CAF50
+						: note.getScore() < 0 ? 0xFFFF4444 : 0xFFCCCCCC);
+				upBtn.setEnabled(false);
+				downBtn.setEnabled(false);
+				upBtn.setAlpha(0.3f);
+				downBtn.setAlpha(0.3f);
+			});
+			downBtn.setOnClickListener(v -> {
+				manager.downvoteNote(note.getId());
+				scoreText.setText(String.valueOf(note.getScore()));
+				scoreText.setTextColor(note.getScore() > 0 ? 0xFF4CAF50
+						: note.getScore() < 0 ? 0xFFFF4444 : 0xFFCCCCCC);
+				upBtn.setEnabled(false);
+				downBtn.setEnabled(false);
+				upBtn.setAlpha(0.3f);
+				downBtn.setAlpha(0.3f);
+			});
+		}
 
 		// Location
 		TextView locationText = view.findViewById(R.id.fieldnote_view_location);

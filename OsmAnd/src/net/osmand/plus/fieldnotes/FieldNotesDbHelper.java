@@ -26,7 +26,7 @@ public class FieldNotesDbHelper {
 
 	private static final Log LOG = PlatformUtil.getLog(FieldNotesDbHelper.class);
 
-	private static final int DB_VERSION = 1;
+	private static final int DB_VERSION = 2;
 	public static final String DB_NAME = "fieldnotes_db";
 
 	// Table and column names
@@ -42,6 +42,8 @@ public class FieldNotesDbHelper {
 	private static final String COL_TTL_HOURS = "ttl_hours";
 	private static final String COL_CONFIRMATIONS = "confirmations";
 	private static final String COL_SCORE = "score";
+	private static final String COL_SIGNATURE = "signature";       // Step 5: crypto signing
+	private static final String COL_PUBLIC_KEY = "public_key";     // Step 5: crypto signing
 
 	private static final String TABLE_CREATE = "CREATE TABLE IF NOT EXISTS " +
 			TABLE_NAME + " (" +
@@ -55,13 +57,16 @@ public class FieldNotesDbHelper {
 			COL_AUTHOR_ID + " TEXT, " +
 			COL_TTL_HOURS + " INTEGER, " +
 			COL_CONFIRMATIONS + " INTEGER, " +
-			COL_SCORE + " INTEGER);";
+			COL_SCORE + " INTEGER, " +
+			COL_SIGNATURE + " TEXT, " +
+			COL_PUBLIC_KEY + " TEXT);";
 
 	private static final String TABLE_SELECT = "SELECT " +
 			COL_ID + ", " + COL_LAT + ", " + COL_LON + ", " +
 			COL_CATEGORY + ", " + COL_TITLE + ", " + COL_NOTE + ", " +
 			COL_TIMESTAMP + ", " + COL_AUTHOR_ID + ", " + COL_TTL_HOURS + ", " +
-			COL_CONFIRMATIONS + ", " + COL_SCORE +
+			COL_CONFIRMATIONS + ", " + COL_SCORE + ", " +
+			COL_SIGNATURE + ", " + COL_PUBLIC_KEY +
 			" FROM " + TABLE_NAME;
 
 	// Earth radius in km for Haversine
@@ -105,8 +110,13 @@ public class FieldNotesDbHelper {
 	}
 
 	private void onUpgrade(@NonNull SQLiteConnection db, int oldVersion, int newVersion) {
-		// Future schema migrations go here
 		LOG.info("FieldNotes database upgraded from v" + oldVersion + " to v" + newVersion);
+		if (oldVersion < 2) {
+			// Step 5: Add crypto signing columns (nullable for backward compat)
+			db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_SIGNATURE + " TEXT");
+			db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_PUBLIC_KEY + " TEXT");
+			LOG.info("FieldNotes: added signature + public_key columns (v2)");
+		}
 	}
 
 	// --- CRUD operations ---
@@ -124,13 +134,15 @@ public class FieldNotesDbHelper {
 							COL_ID + ", " + COL_LAT + ", " + COL_LON + ", " +
 							COL_CATEGORY + ", " + COL_TITLE + ", " + COL_NOTE + ", " +
 							COL_TIMESTAMP + ", " + COL_AUTHOR_ID + ", " + COL_TTL_HOURS + ", " +
-							COL_CONFIRMATIONS + ", " + COL_SCORE +
-							") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+							COL_CONFIRMATIONS + ", " + COL_SCORE + ", " +
+							COL_SIGNATURE + ", " + COL_PUBLIC_KEY +
+							") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					new Object[]{
 							note.getId(), note.getLat(), note.getLon(),
 							note.getCategory().getKey(), note.getTitle(), note.getNote(),
 							note.getTimestamp(), note.getAuthorId(), note.getTtlHours(),
-							note.getConfirmations(), note.getScore()
+							note.getConfirmations(), note.getScore(),
+							note.getSignature(), note.getPublicKey()
 					});
 			LOG.info("FieldNote added: " + note);
 			return true;
@@ -453,7 +465,9 @@ public class FieldNotesDbHelper {
 				cursor.getString(7),                          // authorId
 				cursor.getInt(8),                             // ttlHours
 				cursor.getInt(9),                             // confirmations
-				cursor.getInt(10)                             // score
+				cursor.getInt(10),                            // score
+				cursor.getString(11),                         // signature (nullable)
+				cursor.getString(12)                          // publicKey (nullable)
 		);
 	}
 

@@ -183,8 +183,11 @@ public class DemoPreflightDialog extends DialogFragment {
 				&& check.fixAction == null) {
 			OsmandApplication app = getOsmandApp();
 			if (app != null) {
-				LlmManager llm = new LlmManager(app);
-				if (llm.hasDownloadedModels()) {
+				// Check filesystem for downloaded models (avoid throwaway LlmManager instance)
+				// Models live under app.getAppPath("llm_models"), NOT app.getFilesDir()
+				java.io.File modelsDir = new java.io.File(app.getAppPath(null), LlmManager.MODELS_DIR);
+				java.io.File[] models = modelsDir.listFiles((d, n) -> n.endsWith(".gguf"));
+				if (models != null && models.length > 0) {
 					MaterialButton fixBtn = new MaterialButton(requireContext(),
 							null, com.google.android.material.R.attr.borderlessButtonStyle);
 					fixBtn.setText(R.string.lampp_model_load);
@@ -198,6 +201,8 @@ public class DemoPreflightDialog extends DialogFragment {
 					fixBtn.setOnClickListener(v -> {
 						fixBtn.setEnabled(false);
 						fixBtn.setText(R.string.lampp_model_status_loading);
+						// Create LlmManager here for loading (intentional — need instance to load model)
+						LlmManager llm = new LlmManager(app);
 						llm.preWarmIfNeeded(new LlmManager.ModelLoadCallback() {
 							@Override
 							public void onLoadStarted() {

@@ -81,6 +81,7 @@ public class WifiDirectTransport {
     private static final int MSG_FILE_COMPLETE = 4;
     private static final int MSG_ERROR = 5;
     private static final int MSG_FILE_RESUME = 6;
+    private static final int MSG_FIELDNOTE = 7;
 
     private final OsmandApplication app;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -786,6 +787,9 @@ public class WifiDirectTransport {
                     case MSG_FILE_RESUME:
                         handleFileResumeRequest();
                         break;
+                    case MSG_FIELDNOTE:
+                        receiveFieldNote();
+                        break;
                     default:
                         LOG.warn("Unknown message type: " + msgType);
                 }
@@ -796,6 +800,45 @@ public class WifiDirectTransport {
                 handleDisconnect("Communication error: " + e.getMessage());
             }
         }
+    }
+
+    /**
+     * Send a FieldNote sync packet to the connected peer.
+     * Phase 2: FieldNotes P2P sync.
+     */
+    public void sendFieldNote(@NonNull org.json.JSONObject noteJson) {
+        if (!isConnected || outputStream == null) {
+            LOG.warn("Cannot send FieldNote: not connected");
+            return;
+        }
+
+        executor.execute(() -> {
+            try {
+                byte[] data = noteJson.toString().getBytes(StandardCharsets.UTF_8);
+                outputStream.writeInt(MSG_FIELDNOTE);
+                outputStream.writeInt(data.length);
+                outputStream.write(data);
+                outputStream.flush();
+                LOG.info("FieldNote sent (" + data.length + " bytes)");
+            } catch (IOException e) {
+                LOG.error("Failed to send FieldNote", e);
+                handleDisconnect("FieldNote send failed: " + e.getMessage());
+            }
+        });
+    }
+
+    private void receiveFieldNote() throws IOException {
+        int length = inputStream.readInt();
+        byte[] data = new byte[length];
+        inputStream.readFully(data);
+        String noteJson = new String(data, StandardCharsets.UTF_8);
+        LOG.info("Received FieldNote (" + length + " bytes)");
+
+        mainHandler.post(() -> {
+            if (callback != null && connectedPeer != null) {
+                callback.onFieldNoteReceived(connectedPeer, noteJson);
+            }
+        });
     }
 
     private void receiveManifest() throws IOException {

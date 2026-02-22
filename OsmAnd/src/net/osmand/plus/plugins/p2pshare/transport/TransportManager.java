@@ -156,6 +156,26 @@ public class TransportManager implements TransportCallback {
     }
 
     /**
+     * Send a FieldNote sync packet to the connected peer.
+     * Phase 2: FieldNotes P2P sync.
+     */
+    public void sendFieldNote(@NonNull org.json.JSONObject noteJson) {
+        if (!isConnected()) {
+            LOG.warn("Cannot send FieldNote: not connected");
+            return;
+        }
+
+        switch (activeTransport) {
+            case WIFI_DIRECT:
+                wifiDirectTransport.sendFieldNote(noteJson);
+                break;
+            case BLUETOOTH:
+                bluetoothTransport.sendFieldNote(noteJson);
+                break;
+        }
+    }
+
+    /**
      * Send our content manifest to the connected peer.
      */
     public void sendManifest(@NonNull String manifestJson) {
@@ -381,6 +401,13 @@ public class TransportManager implements TransportCallback {
     public void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error) {
         if (callback != null) {
             callback.onTransferComplete(filename, success, error);
+        }
+    }
+
+    @Override
+    public void onFieldNoteReceived(@NonNull DiscoveredPeer peer, @NonNull String noteJson) {
+        if (callback != null) {
+            callback.onFieldNoteReceived(peer, noteJson);
         }
     }
 }

@@ -112,6 +112,10 @@ public class FieldNote {
 	private int confirmations; // how many devices have seen this (P2P, Phase 2)
 	private int score;         // net thumbs up/down (voting, Phase 4)
 
+	// Crypto signing fields (Step 5) — nullable for backward compat with unsigned notes
+	@Nullable private String signature;  // Base64 ECDSA P-256 signature
+	@Nullable private String publicKey;  // Base64 X509-encoded EC public key
+
 	/**
 	 * Create a new FieldNote with auto-generated content-addressed ID.
 	 */
@@ -137,7 +141,8 @@ public class FieldNote {
 	public FieldNote(@NonNull String id, double lat, double lon,
 			@NonNull Category category, @NonNull String title, @NonNull String note,
 			long timestamp, @NonNull String authorId, int ttlHours,
-			int confirmations, int score) {
+			int confirmations, int score,
+			@Nullable String signature, @Nullable String publicKey) {
 		this.id = id;
 		this.lat = lat;
 		this.lon = lon;
@@ -149,6 +154,8 @@ public class FieldNote {
 		this.ttlHours = ttlHours;
 		this.confirmations = confirmations;
 		this.score = score;
+		this.signature = signature;
+		this.publicKey = publicKey;
 	}
 
 	// --- ID generation ---
@@ -229,6 +236,22 @@ public class FieldNote {
 	public int getConfirmations() { return confirmations; }
 
 	public int getScore() { return score; }
+
+	// --- Crypto signing (Step 5) ---
+
+	@Nullable
+	public String getSignature() { return signature; }
+
+	public void setSignature(@Nullable String signature) {
+		this.signature = signature;
+	}
+
+	@Nullable
+	public String getPublicKey() { return publicKey; }
+
+	public void setPublicKey(@Nullable String publicKey) {
+		this.publicKey = publicKey;
+	}
 
 	// --- Mutable metadata (P2P sync updates these) ---
 

@@ -87,6 +87,10 @@ public class WhatsNewDialogFragment extends BaseAlertDialogFragment {
 	}
 
 	public static boolean shouldShowDialog(@NonNull OsmandApplication app) {
+		// Rushlight doesn't use OsmAnd's What's New dialog
+		if ("io.rushlight.app".equals(app.getPackageName())) {
+			return false;
+		}
 		if (app.getAppCustomization().isFeatureEnabled(FRAGMENT_WHATS_NEW_ID)) {
 			return app.getAppInitializer().checkAppVersionChanged() && notShown;
 		}

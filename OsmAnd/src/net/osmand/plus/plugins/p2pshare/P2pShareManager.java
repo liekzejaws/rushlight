@@ -116,6 +116,14 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
     }
 
     /**
+     * Get the transport manager for direct access (e.g., FieldNote sync).
+     */
+    @Nullable
+    public TransportManager getTransportManager() {
+        return transportManager;
+    }
+
+    /**
      * Start scanning for nearby peers.
      * Uses BLE beaconing for discovery.
      * Also starts advertising so others can find us.
@@ -535,6 +543,12 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
         for (P2pShareListener listener : listeners) {
             listener.onPeerConnected(peer);
         }
+        // Phase 2: Gossip all local FieldNotes to newly connected peer
+        try {
+            app.getFieldNotesManager().gossipAllNotesToPeer();
+        } catch (Exception e) {
+            LOG.error("FieldNotes gossip on connect failed: " + e.getMessage());
+        }
     }
 
     @Override
@@ -608,6 +622,23 @@ public class P2pShareManager implements PeerDiscoveryManager.PeerDiscoveryCallba
 
         for (P2pShareListener listener : listeners) {
             listener.onTransferComplete(filename, success, error);
+        }
+    }
+
+    @Override
+    public void onFieldNoteReceived(@NonNull DiscoveredPeer peer, @NonNull String noteJson) {
+        LOG.info("FieldNote packet from peer: " + peer.getDeviceName());
+        try {
+            // Route by JSON "type" field: "fieldnote" for notes, "fieldnote_vote" for votes
+            org.json.JSONObject json = new org.json.JSONObject(noteJson);
+            String type = json.optString("type", "fieldnote");
+            if ("fieldnote_vote".equals(type)) {
+                app.getFieldNotesManager().receiveVoteFromPeer(noteJson, peer.getDeviceName());
+            } else {
+                app.getFieldNotesManager().receiveFromPeer(noteJson, peer.getDeviceName());
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to process FieldNote packet: " + e.getMessage());
         }
     }
 }

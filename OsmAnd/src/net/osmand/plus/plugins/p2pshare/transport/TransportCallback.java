@@ -15,4 +15,10 @@ public interface TransportCallback {
     void onManifestReceived(@NonNull DiscoveredPeer peer, @NonNull String manifestJson);
     void onTransferProgress(@NonNull String filename, int percent, long bytesTransferred, long totalBytes);
     void onTransferComplete(@NonNull String filename, boolean success, @Nullable String error);
+
+    /**
+     * Called when a FieldNote sync packet is received from a connected peer.
+     * Phase 2: FieldNotes P2P sync via existing transport.
+     */
+    void onFieldNoteReceived(@NonNull DiscoveredPeer peer, @NonNull String noteJson);
 }

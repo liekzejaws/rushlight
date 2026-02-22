@@ -10,9 +10,9 @@ import org.apache.commons.logging.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -31,11 +31,11 @@ public class FieldNotesManager {
 
 	private final OsmandApplication app;
 	private final FieldNotesDbHelper dbHelper;
+	private final FieldNoteSigner signer;
 	private final CopyOnWriteArrayList<FieldNoteListener> listeners = new CopyOnWriteArrayList<>();
 
-	// Cached device author ID (truncated key hash)
-	@Nullable
-	private String cachedAuthorId;
+	// Track which notes this device has voted on (in-memory, lost on restart)
+	private final Set<String> votedNoteIds = new HashSet<>();
 
 	/**
 	 * Listener interface for FieldNote events.
@@ -45,11 +45,25 @@ public class FieldNotesManager {
 	public interface FieldNoteListener {
 		void onFieldNoteAdded(@NonNull FieldNote note);
 		void onFieldNoteDeleted(@NonNull String noteId);
+		default void onFieldNoteScoreChanged(@NonNull String noteId, int newScore) {}
 	}
+
+	/**
+	 * Broadcaster interface for P2P sync.
+	 * Decouples FieldNotes from the transport layer — registered by OsmandApplication
+	 * via a lambda that resolves TransportManager at call time.
+	 */
+	public interface FieldNoteBroadcaster {
+		void broadcast(@NonNull JSONObject noteJson);
+	}
+
+	@Nullable
+	private FieldNoteBroadcaster broadcaster;
 
 	public FieldNotesManager(@NonNull OsmandApplication app) {
 		this.app = app;
 		this.dbHelper = new FieldNotesDbHelper(app);
+		this.signer = new FieldNoteSigner(app);
 
 		// ATAK-style stale event cleanup on init
 		int expired = dbHelper.deleteExpiredNotes();
@@ -58,6 +72,14 @@ public class FieldNotesManager {
 		}
 
 		LOG.info("FieldNotesManager initialized. " + dbHelper.getNoteCount() + " active notes.");
+	}
+
+	/**
+	 * Get the FieldNote signer for direct access (e.g., panic wipe).
+	 */
+	@NonNull
+	public FieldNoteSigner getSigner() {
+		return signer;
 	}
 
 	// --- Public API ---
@@ -79,8 +101,19 @@ public class FieldNotesManager {
 		FieldNote fieldNote = new FieldNote(lat, lon, category, title, note,
 				timestamp, authorId, ttlHours);
 
+		// Step 5: Sign the note before storage and broadcast
+		signer.sign(fieldNote);
+
 		if (dbHelper.addNote(fieldNote)) {
 			notifyNoteAdded(fieldNote);
+			// Phase 2: Broadcast to connected P2P peers
+			if (broadcaster != null) {
+				try {
+					broadcaster.broadcast(toSyncJson(fieldNote));
+				} catch (JSONException e) {
+					LOG.error("Broadcast serialize failed: " + e.getMessage());
+				}
+			}
 			return fieldNote;
 		}
 		return null;
@@ -157,50 +190,203 @@ public class FieldNotesManager {
 		return dbHelper.deleteExpiredNotes();
 	}
 
+	// --- Voting / Trust (Step 4) ---
+
+	/**
+	 * Upvote a FieldNote. Each device can only vote once per note (in-memory tracking).
+	 * Broadcasts the vote to connected peers.
+	 *
+	 * @return true if vote was applied, false if already voted or note not found
+	 */
+	public boolean upvoteNote(@NonNull String noteId) {
+		if (votedNoteIds.contains(noteId)) return false;
+		FieldNote note = dbHelper.getNoteById(noteId);
+		if (note == null) return false;
+
+		int newScore = note.getScore() + 1;
+		dbHelper.updateScore(noteId, newScore);
+		note.setScore(newScore);
+		votedNoteIds.add(noteId);
+		broadcastVote(noteId, 1);
+		notifyScoreChanged(noteId, newScore);
+		return true;
+	}
+
+	/**
+	 * Downvote a FieldNote. Each device can only vote once per note (in-memory tracking).
+	 * Broadcasts the vote to connected peers.
+	 *
+	 * @return true if vote was applied, false if already voted or note not found
+	 */
+	public boolean downvoteNote(@NonNull String noteId) {
+		if (votedNoteIds.contains(noteId)) return false;
+		FieldNote note = dbHelper.getNoteById(noteId);
+		if (note == null) return false;
+
+		int newScore = note.getScore() - 1;
+		dbHelper.updateScore(noteId, newScore);
+		note.setScore(newScore);
+		votedNoteIds.add(noteId);
+		broadcastVote(noteId, -1);
+		notifyScoreChanged(noteId, newScore);
+		return true;
+	}
+
+	/**
+	 * Check if this device has already voted on a note.
+	 */
+	public boolean hasVoted(@NonNull String noteId) {
+		return votedNoteIds.contains(noteId);
+	}
+
+	/**
+	 * Broadcast a vote to connected P2P peers.
+	 * Reuses the FieldNote broadcast channel with a different JSON type field.
+	 */
+	private void broadcastVote(@NonNull String noteId, int delta) {
+		if (broadcaster == null) return;
+		try {
+			JSONObject json = new JSONObject();
+			json.put("type", "fieldnote_vote");
+			json.put("v", 1);
+			json.put("id", noteId);
+			json.put("delta", delta);
+			json.put("author", getDeviceAuthorId());
+			broadcaster.broadcast(json);
+		} catch (JSONException e) {
+			LOG.error("Vote broadcast failed: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Receive a vote from a P2P peer.
+	 * Applies the delta to the local note's score.
+	 */
+	public void receiveVoteFromPeer(@NonNull String jsonStr, @NonNull String peerName) {
+		try {
+			JSONObject json = new JSONObject(jsonStr);
+			if (!"fieldnote_vote".equals(json.optString("type"))) return;
+
+			String noteId = json.getString("id");
+			int delta = json.getInt("delta");
+
+			FieldNote note = dbHelper.getNoteById(noteId);
+			if (note == null) return;
+
+			int newScore = note.getScore() + delta;
+			dbHelper.updateScore(noteId, newScore);
+			LOG.info("Vote from " + peerName + ": "
+					+ noteId.substring(0, Math.min(8, noteId.length()))
+					+ " delta=" + delta + " newScore=" + newScore);
+			notifyScoreChanged(noteId, newScore);
+		} catch (JSONException e) {
+			LOG.error("Invalid vote packet from " + peerName + ": " + e.getMessage());
+		}
+	}
+
+	private void notifyScoreChanged(@NonNull String noteId, int newScore) {
+		for (FieldNoteListener listener : listeners) {
+			try {
+				listener.onFieldNoteScoreChanged(noteId, newScore);
+			} catch (Exception e) {
+				LOG.error("Listener error on scoreChanged: " + e.getMessage());
+			}
+		}
+	}
+
+	// --- P2P sync (Phase 2) ---
+
+	/**
+	 * Set the broadcaster for P2P sync.
+	 * Called from OsmandApplication.getFieldNotesManager() with a lambda
+	 * that resolves the transport at call time.
+	 */
+	public void setBroadcaster(@Nullable FieldNoteBroadcaster broadcaster) {
+		this.broadcaster = broadcaster;
+	}
+
+	/**
+	 * Receive a FieldNote from a P2P peer.
+	 * Validates, deduplicates (check-then-insert), increments confirmations.
+	 *
+	 * @param jsonStr  JSON string from the transport layer
+	 * @param peerName Human-readable peer identifier for logging
+	 * @return true if the note was new (inserted), false if duplicate or invalid
+	 */
+	public boolean receiveFromPeer(@NonNull String jsonStr, @NonNull String peerName) {
+		FieldNote note = fromSyncJson(jsonStr);
+		if (note == null) {
+			LOG.warn("Ignoring invalid FieldNote from peer: " + peerName);
+			return false;
+		}
+		if (note.isExpired()) {
+			LOG.info("Ignoring expired FieldNote from peer: " + peerName);
+			return false;
+		}
+
+		// Step 5: Verify signature if present (soft enforcement — warn but accept)
+		if (FieldNoteSigner.isSigned(note)) {
+			boolean valid = FieldNoteSigner.verify(note);
+			if (!valid) {
+				LOG.warn("FieldNote from " + peerName + " has INVALID signature: "
+						+ note.getId().substring(0, Math.min(8, note.getId().length())));
+			} else {
+				LOG.info("FieldNote from " + peerName + " signature verified: "
+						+ note.getId().substring(0, Math.min(8, note.getId().length())));
+			}
+		}
+
+		// Check for duplicate (content-addressed ID)
+		FieldNote existing = dbHelper.getNoteById(note.getId());
+		if (existing != null) {
+			// Already have it — increment confirmations
+			int newConfirms = Math.max(existing.getConfirmations(), note.getConfirmations()) + 1;
+			dbHelper.updateConfirmations(note.getId(), newConfirms);
+			LOG.debug("Duplicate FieldNote from " + peerName
+					+ ", updated confirms=" + newConfirms);
+			return false;
+		}
+
+		// New note — insert + notify listeners (map layer refreshes)
+		dbHelper.addNote(note);
+		LOG.info("Received new FieldNote from " + peerName + ": " + note);
+		notifyNoteAdded(note);
+		return true;
+	}
+
+	/**
+	 * Gossip all local FieldNotes to the currently connected peer.
+	 * Called by P2pShareManager.onConnected() after a peer connects.
+	 */
+	public void gossipAllNotesToPeer() {
+		if (broadcaster == null) return;
+		List<FieldNote> notes = getAllNotes();
+		if (notes.isEmpty()) return;
+		LOG.info("Gossiping " + notes.size() + " FieldNotes to connected peer");
+		for (FieldNote note : notes) {
+			try {
+				broadcaster.broadcast(toSyncJson(note));
+			} catch (JSONException e) {
+				LOG.error("Gossip serialize failed for note " + note.getId());
+			}
+		}
+	}
+
 	// --- Device identity ---
 
 	/**
 	 * Get the anonymous device author ID for FieldNotes.
-	 * SHA256 of the device's Android Keystore key, truncated to 16 hex chars.
-	 * Same key used by SecurityManager for encrypted chat.
+	 * Derived from the ECDSA signing public key hash (Step 5), truncated to 16 hex chars.
 	 *
 	 * This is the Rushlight equivalent of ATAK's callsign, but privacy-preserving:
-	 * unique per device, anonymous, deterministic.
+	 * unique per device keypair, anonymous, verifiable against the public key.
+	 *
+	 * If the signing keypair is cleared (panic wipe), a new one is generated on
+	 * next use, giving the device a fresh identity.
 	 */
 	@NonNull
 	public String getDeviceAuthorId() {
-		if (cachedAuthorId != null) {
-			return cachedAuthorId;
-		}
-
-		try {
-			// Use SecurityManager's keystore — it already manages the device key
-			net.osmand.plus.security.SecurityManager secMgr = app.getSecurityManager();
-
-			// We need a stable device identifier. SecurityManager has a keystore key
-			// but doesn't expose it directly. Use the Android ID as a fallback,
-			// hashed for privacy.
-			String deviceSeed = android.provider.Settings.Secure.getString(
-					app.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-
-			if (deviceSeed == null || deviceSeed.isEmpty()) {
-				deviceSeed = "rushlight-unknown-device";
-			}
-
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] hash = digest.digest(deviceSeed.getBytes(StandardCharsets.UTF_8));
-			StringBuilder hex = new StringBuilder();
-			for (int i = 0; i < 8; i++) { // 8 bytes = 16 hex chars
-				hex.append(String.format("%02x", hash[i]));
-			}
-			cachedAuthorId = hex.toString();
-
-		} catch (Exception e) {
-			LOG.error("Failed to generate device author ID: " + e.getMessage());
-			cachedAuthorId = "unknown";
-		}
-
-		return cachedAuthorId;
+		return signer.getAuthorId();
 	}
 
 	// --- JSON serialization (ready for Phase 2 P2P sync) ---
@@ -215,7 +401,7 @@ public class FieldNotesManager {
 	public static JSONObject toSyncJson(@NonNull FieldNote note) throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("type", "fieldnote");
-		json.put("v", 1);
+		json.put("v", 2);
 		json.put("id", note.getId());
 		json.put("lat", note.getLat());
 		json.put("lon", note.getLon());
@@ -226,6 +412,13 @@ public class FieldNotesManager {
 		json.put("author", note.getAuthorId());
 		json.put("ttl", note.getTtlHours());
 		json.put("confirms", note.getConfirmations());
+		// Step 5: include signature + public key (nullable for backward compat)
+		if (note.getSignature() != null) {
+			json.put("sig", note.getSignature());
+		}
+		if (note.getPublicKey() != null) {
+			json.put("pubkey", note.getPublicKey());
+		}
 		return json;
 	}
 
@@ -251,7 +444,7 @@ public class FieldNotesManager {
 				return null;
 			}
 
-			return new FieldNote(
+			FieldNote note = new FieldNote(
 					json.getString("id"),
 					json.getDouble("lat"),
 					json.getDouble("lon"),
@@ -262,8 +455,11 @@ public class FieldNotesManager {
 					json.getString("author"),
 					json.optInt("ttl", FieldNote.DEFAULT_TTL_HOURS),
 					json.optInt("confirms", 1),
-					0 // score not transmitted in sync packet
+					0, // score not transmitted in sync packet
+					json.optString("sig", null),    // Step 5: signature (nullable)
+					json.optString("pubkey", null)  // Step 5: public key (nullable)
 			);
+			return note;
 		} catch (JSONException e) {
 			LOG.error("Failed to parse sync packet: " + e.getMessage());
 			return null;

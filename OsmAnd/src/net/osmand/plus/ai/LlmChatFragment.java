@@ -136,6 +136,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 	protected void onPanelViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		// Initialize managers
 		llmManager = new LlmManager(app);
+		llmManager.setToolDispatcher(new ToolDispatcher(app));
 		ragManager = new RagManager(app, llmManager);
 		cursorBlinker = new TerminalCursorBlinker();
 

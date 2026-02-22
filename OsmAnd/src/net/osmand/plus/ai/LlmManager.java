@@ -79,6 +79,10 @@ public class LlmManager implements Closeable {
 	@Nullable
 	private Integer maxTokensOverride = null;
 
+	// Phase 3: LLM tool dispatch for FieldNotes integration
+	@Nullable
+	private ToolDispatcher toolDispatcher;
+
 	public interface LlmCallback {
 		void onPartialResult(String partialText);
 		void onComplete(String fullResponse);
@@ -99,6 +103,14 @@ public class LlmManager implements Closeable {
 		this.deviceDetector = new DeviceCapabilityDetector(app);
 
 		LOG.info("LlmManager initialized. " + deviceDetector.getDeviceSummary());
+	}
+
+	/**
+	 * Set the tool dispatcher for LLM tool call integration.
+	 * Phase 3: FieldNotes tools (query_fieldnotes, create_fieldnote).
+	 */
+	public void setToolDispatcher(@Nullable ToolDispatcher dispatcher) {
+		this.toolDispatcher = dispatcher;
 	}
 
 	/**
@@ -415,8 +427,14 @@ public class LlmManager implements Closeable {
 
 					@Override
 					public void onToolCall(@NonNull String name, @NonNull String argsJson) {
-						// Not used for basic chat
-						android.util.Log.d(TAG, "Tool call: " + name + " args: " + argsJson);
+						if (toolDispatcher != null) {
+							android.util.Log.d(TAG, "Dispatching tool call: " + name);
+							String result = toolDispatcher.dispatch(name, argsJson);
+							fullResponse.append("\n\n[Tool: ").append(name).append("]\n").append(result);
+							mainHandler.post(() -> callback.onPartialResult(fullResponse.toString()));
+						} else {
+							android.util.Log.d(TAG, "Tool call (no dispatcher): " + name + " args: " + argsJson);
+						}
 					}
 
 					@Override

@@ -193,6 +193,13 @@ public class SecurityManager {
 				LOG.error("Failed to delete keystore entry: " + e.getMessage());
 			}
 
+			// Clear FieldNote signing keypair (Step 5 — device gets new identity)
+			try {
+				app.getFieldNotesManager().getSigner().clearKeypair();
+			} catch (Exception e) {
+				LOG.error("Failed to clear FieldNote signing key: " + e.getMessage());
+			}
+
 			// Clear PINs
 			if (duressManager != null) {
 				duressManager.clearPins();

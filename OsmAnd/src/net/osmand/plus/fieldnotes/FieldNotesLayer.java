@@ -3,6 +3,7 @@ package net.osmand.plus.fieldnotes;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.PointF;
+import android.graphics.RectF;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -110,32 +111,53 @@ public class FieldNotesLayer extends OsmandMapLayer
 				continue;
 			}
 
+			// Skip heavily downvoted notes (score <= -7)
+			if (note.getScore() <= -7) {
+				continue;
+			}
+
 			visibleNotes.add(note);
 
 			float x = tileBox.getPixXFromLatLon(lat, lon);
 			float y = tileBox.getPixYFromLatLon(lat, lon);
 
 			if (intersects(boundIntersections, x, y, iconSize, iconSize)) {
-				// Draw small dot for overlapping icons
+				// Draw small dot for overlapping icons (with score-based alpha)
+				int alpha = getScoreAlpha(note.getScore());
 				PointImageDrawable drawable = PointImageUtils.getOrCreate(
 						getContext(), note.getCategory().getColor(), true,
 						note.getCategory().getIconRes());
-				drawable.drawSmallPoint(canvas, x, y, textScale);
+				if (alpha < 255) {
+					canvas.saveLayerAlpha(x - iconSize, y - iconSize,
+							x + iconSize, y + iconSize, alpha);
+					drawable.drawSmallPoint(canvas, x, y, textScale);
+					canvas.restore();
+				} else {
+					drawable.drawSmallPoint(canvas, x, y, textScale);
+				}
 			} else {
 				// Defer full icon drawing
 				fullObjects.add(note);
 			}
 		}
 
-		// Second pass: draw full-sized icons
+		// Second pass: draw full-sized icons (with score-based alpha fading)
 		for (FieldNote note : fullObjects) {
 			float x = tileBox.getPixXFromLatLon(note.getLat(), note.getLon());
 			float y = tileBox.getPixYFromLatLon(note.getLat(), note.getLon());
 
+			int alpha = getScoreAlpha(note.getScore());
 			PointImageDrawable drawable = PointImageUtils.getOrCreate(
 					getContext(), note.getCategory().getColor(), true,
 					note.getCategory().getIconRes());
-			drawable.drawPoint(canvas, x, y, textScale, false);
+			if (alpha < 255) {
+				canvas.saveLayerAlpha(x - iconSize, y - iconSize,
+						x + iconSize, y + iconSize, alpha);
+				drawable.drawPoint(canvas, x, y, textScale, false);
+				canvas.restore();
+			} else {
+				drawable.drawPoint(canvas, x, y, textScale, false);
+			}
 		}
 	}
 
@@ -262,7 +284,30 @@ public class FieldNotesLayer extends OsmandMapLayer
 		}
 	}
 
+	@Override
+	public void onFieldNoteScoreChanged(@NonNull String noteId, int newScore) {
+		// Refresh the map to update visual fading
+		if (view != null) {
+			view.refreshMap();
+		}
+	}
+
 	// --- Utility ---
+
+	/**
+	 * Calculate alpha (0-255) based on FieldNote score.
+	 * Positive or zero scores: fully opaque (255).
+	 * Negative scores: progressively fade.
+	 *   -1 → 217 (85%), -2 → 179 (70%), -3 → 140 (55%),
+	 *   -4 → 102 (40%), -5 → 77 (30%), -6 → 51 (20%)
+	 * Notes at -7 or below are hidden entirely (filtered out before drawing).
+	 */
+	private static int getScoreAlpha(int score) {
+		if (score >= 0) return 255;
+		// Linear fade from 255 at score=0 to ~51 at score=-6
+		float alpha = Math.max(0.2f, 1.0f + (score * 0.13f));
+		return (int) (alpha * 255);
+	}
 
 	/**
 	 * Get the list of currently visible notes (for context menu actions).
