@@ -40,7 +40,8 @@ LlmManager → Native llama.cpp inference → Streaming response
 ### Key Source Paths
 | Component | Path |
 |-----------|------|
-| LLM Manager | `OsmAnd/src/net/osmand/plus/ai/LlmManager.java` |
+| FieldNotes | `OsmAnd/src/net/osmand/plus/fieldnotes/` |
+| LLM + Tools | `OsmAnd/src/net/osmand/plus/ai/` |
 | RAG Pipeline | `OsmAnd/src/net/osmand/plus/ai/rag/` |
 | P2P Transport | `OsmAnd/src/net/osmand/plus/plugins/p2pshare/` |
 | Security | `OsmAnd/src/net/osmand/plus/security/` |
@@ -57,6 +58,7 @@ Rushlight implements defense-in-depth security designed for high-risk environmen
 ### Data Protection
 - **Chat Storage:** AES-256-GCM encryption via SQLCipher. Per-conversation encryption with Android Keystore-backed keys
 - **P2P Encryption:** ECDH P-256 key exchange + ChaCha20-Poly1305 authenticated encryption for all peer-to-peer transfers
+- **FieldNote Signing:** ECDSA P-256 signatures on all FieldNotes. Android Keystore-backed device keypairs. Signatures cover all immutable content fields, enabling tamper detection without any central authority
 - **At Rest:** All sensitive data encrypted on-device. No plaintext storage of conversations or keys
 
 ### Threat Mitigation
@@ -75,25 +77,51 @@ Rushlight implements defense-in-depth security designed for high-risk environmen
 
 ## Feature Inventory
 
-### 1. Offline AI Assistant
-On-device LLM inference with RAG-augmented responses. The AI draws from offline Wikipedia, 26 bundled field guides covering survival, engineering, automotive, and electrical topics, plus local map data. Responses include source citations. Multiple conversation threads with encrypted persistence.
+### 1. FieldNotes — Decentralized Map Annotations
+Shared geo-pinned annotations that sync between devices via BLE/WiFi Direct mesh. Inspired by ATAK's Cursor on Target (CoT) event model and Dark Souls-style player messages.
 
-### 2. Offline Wikipedia
+**Data Model:** Each FieldNote is a geo-pinned annotation with a content-addressed ID (SHA-256 of core fields), enabling deduplication when the same note arrives via multiple P2P paths. Notes carry a TTL for automatic expiry — stale intelligence is purged on app startup.
+
+**Categories:** 8 annotation types optimized for civilian field use: Water Source, Shelter, Hazard, Supply Cache, Route Info, Medical, Signal/Comms, Intelligence. Each has a distinct icon and color on the map overlay.
+
+**Crypto Signing (ECDSA P-256):** Every FieldNote is signed with the creating device's ECDSA P-256 keypair (Android Keystore-backed). The signature covers all immutable content fields. Recipients verify signatures on receipt — tamper-evident and verifiable without any central authority. Author identity is derived from the public key hash: anonymous, unique, and cryptographically bound to the signing key.
+
+**P2P Gossip Sync:** Notes propagate through the Rushlight mesh via a JSON gossip protocol. When a peer receives a new note, it stores it locally, increments confirmations, and re-broadcasts to its own connected peers. Existing notes arriving again just increment the confirmation counter. Vote packets also propagate via the mesh.
+
+**Voting/Trust:** Users can upvote or downvote FieldNotes. Score affects map display: low-scored notes fade out, notes at score -7 or below are hidden entirely. This is crowd-sourced content moderation without any central server.
+
+**LLM Tool Integration:** The on-device AI has two FieldNote tools: `query_fieldnotes` (spatial search by radius, category filter, result limit) and `create_fieldnote` (the AI can create notes from conversation context). Ask *"is there water nearby?"* and the AI queries the annotation database. Tell it *"the bridge is washed out"* and it creates a note for other users.
+
+**Key Source Paths:**
+| Component | Path |
+|-----------|------|
+| Data Model | `OsmAnd/src/net/osmand/plus/fieldnotes/FieldNote.java` |
+| Manager | `OsmAnd/src/net/osmand/plus/fieldnotes/FieldNotesManager.java` |
+| Crypto Signer | `OsmAnd/src/net/osmand/plus/fieldnotes/FieldNoteSigner.java` |
+| DB Helper | `OsmAnd/src/net/osmand/plus/fieldnotes/FieldNotesDbHelper.java` |
+| Map Layer | `OsmAnd/src/net/osmand/plus/fieldnotes/FieldNotesLayer.java` |
+| View Dialog | `OsmAnd/src/net/osmand/plus/fieldnotes/ViewFieldNoteDialog.java` |
+| LLM Tools | `OsmAnd/src/net/osmand/plus/ai/ToolDispatcher.java` |
+
+### 2. Offline AI Assistant
+On-device LLM inference with RAG-augmented responses. The AI draws from offline Wikipedia, 26 bundled field guides covering survival, engineering, automotive, and electrical topics, local map data, and nearby FieldNotes. Responses include source citations. Multiple conversation threads with encrypted persistence.
+
+### 3. Offline Wikipedia
 ZIM file reader with full-text search. Browse and search Wikipedia articles entirely offline. Integrated into the RAG pipeline so the AI can cite Wikipedia in responses.
 
-### 3. P2P Content Sharing
+### 4. P2P Content Sharing
 Device-to-device transfer of maps, AI models, Wikipedia databases, and custom content. Uses BLE for peer discovery and WiFi Direct for high-speed bulk transfer. All transfers encrypted with ECDH + ChaCha20-Poly1305. Zero infrastructure required — no servers, no internet, no accounts.
 
-### 4. Morse Code
+### 5. Morse Code
 Flashlight and audio transmission with camera and microphone reception. Supports AI-powered error correction for garbled transmissions. Optional GPS coordinate appending. Configurable speed (WPM) and audio frequency.
 
-### 5. Field Knowledge Base
+### 6. Field Knowledge Base
 26 bundled guides across 11 categories: First Aid, Water, Fire, Shelter, Navigation, Signaling, Food, Security, Engineering, Automotive, and Electrical. Searchable with keyword indexing. Extensible — users can add custom JSON guide files.
 
-### 6. Navigation & Maps
+### 7. Navigation & Maps
 Full OsmAnd mapping capabilities: offline vector maps, turn-by-turn routing, POI search, track recording, and coordinate tools. Enhanced with Rushlight's AI — ask natural language questions about nearby locations.
 
-### 7. Theme System
+### 8. Theme System
 Three visual presets: **Pip-Boy** (retro-futuristic green CRT terminal), **Modern** (sleek teal), and **Classic** (standard OsmAnd). CRT scan lines, phosphor glow, and monospace font effects available in Pip-Boy mode.
 
 ---
@@ -105,16 +133,18 @@ Rushlight directly addresses OTF's mission of supporting internet freedom techno
 
 - **Censorship Resistance:** Fully offline operation means the app functions identically in internet-shutdown environments. No server to block, no API to censor
 - **Encrypted Communications:** P2P messaging with forward-secrecy-capable encryption. No centralized infrastructure to compromise
-- **Tool Safety:** Duress PIN, panic wipe, and stealth mode protect users facing device seizure or coerced access
-- **Offline Intelligence:** AI assistant and knowledge base provide critical information access when internet is unavailable or surveilled
+- **Decentralized Field Intelligence:** FieldNotes enable groups to build shared situational awareness without any central server. Cryptographic signatures ensure content integrity without requiring trust in infrastructure. This is the kind of tool that works when everything else has been shut down
+- **Tool Safety:** Duress PIN, panic wipe (including signing keypair destruction for identity reset), and stealth mode protect users facing device seizure or coerced access
+- **Offline Intelligence:** AI assistant and knowledge base provide critical information access when internet is unavailable or surveilled. FieldNotes extend this to crowd-sourced intelligence from the mesh network
 
 ### NLnet Foundation
 Rushlight aligns with NLnet's focus on open internet technology and user empowerment:
 
 - **Open Source:** Built on Apache 2.0 licensed OsmAnd. All Rushlight additions follow the same open license
-- **Privacy by Design:** Zero telemetry, on-device processing, encrypted storage. Users control their data completely
-- **Decentralized Architecture:** P2P communication requires no servers. Knowledge sharing happens directly between devices
-- **Next Generation Internet:** On-device AI inference represents the future of privacy-preserving AI — compute stays with the user
+- **Privacy by Design:** Zero telemetry, on-device processing, encrypted storage. FieldNote author identity is a public key hash — anonymous, verifiable, and under user control. Users control their data completely
+- **Decentralized Architecture:** P2P communication requires no servers. FieldNotes gossip through the mesh with no central coordination. Knowledge sharing happens directly between devices
+- **Next Generation Internet:** On-device AI inference represents the future of privacy-preserving AI — compute stays with the user. FieldNotes demonstrate decentralized content moderation (voting/trust) without platform gatekeepers
+- **Cryptographic Trust:** ECDSA P-256 signatures on FieldNotes establish content authenticity without certificate authorities or identity providers — a building block for decentralized trust on the next-generation internet
 
 ---
 
@@ -168,11 +198,25 @@ adb shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 
 ## Project Status
 
-Rushlight is currently a functional prototype (v0.4) demonstrating the core thesis: a fully offline, privacy-first field intelligence platform is both technically feasible and practically useful. Key areas for future development with funding:
+Rushlight v1.3 is a working field-ready application demonstrating the core thesis: a fully offline, privacy-first field intelligence platform with decentralized shared situational awareness is both technically feasible and practically useful.
 
-- **Multi-device mesh networking** via P2P relay nodes
+### Version History
+| Version | Milestone |
+|---------|-----------|
+| v0.1 | Fork, rebrand, panel system, Morse code, Pip-Boy themes |
+| v0.4 | Offline AI (llama.cpp), RAG pipeline, offline Wikipedia, security suite |
+| v1.0 | FieldNotes local storage + map overlay |
+| v1.1 | FieldNotes P2P sync + LLM tool integration |
+| v1.2 | FieldNotes voting/trust + bug fixes |
+| v1.3 | FieldNotes ECDSA P-256 crypto signing (current) |
+
+### Roadmap — Areas for Future Development
+- **FieldNotes image attachments** — photos embedded in annotations (text-only in v1.3)
+- **Multi-hop mesh relay** — FieldNotes propagation beyond direct BLE/WiFi range
+- **FieldNotes map clustering** — visual grouping when many notes are in a small area
 - **Model fine-tuning** for domain-specific performance (medical, legal, technical)
 - **iOS port** for broader reach
 - **Hardware testing** across diverse Android devices and form factors
-- **Field testing** with target user populations
+- **Field testing** with target user populations (journalists, humanitarian workers)
 - **Accessibility audit** and internationalization
+- **Formal security audit** of the FieldNotes crypto signing and P2P trust model

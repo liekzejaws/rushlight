@@ -17,6 +17,8 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 
 ## Current Status (February 2026)
 
+### Version: v1.3.0 (build 5900)
+
 ### Completed Phases
 
 | Phase | Feature | Commit |
@@ -28,21 +30,25 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 | 7 | RAG pipeline (Wikipedia + POI + location) | `684e3e2b0d` |
 | 8 | Location-aware queries, map data integration | `c51d5b02b4` |
 | v0.1 | Panel system, Morse code, Pip-Boy themes | `e275941d2a` |
-| 9A | Rebrand from Lampp to Rushlight | *(current)* |
-| 9B | Security Suite (encrypted chat, panic wipe, biometric lock) | *(current)* |
+| 9A | Rebrand from Lampp to Rushlight | `96e805c207` |
+| 9B | Security Suite (encrypted chat, panic wipe, biometric lock) | `96e805c207` |
+| v1.0 | FieldNotes local storage + map overlay | `96e805c207` |
+| v1.1 | FieldNotes P2P sync + LLM tool integration | `c57e549210` |
+| v1.2 | FieldNotes voting/trust + bug fixes | `c57e549210` |
+| v1.3 | FieldNotes ECDSA P-256 crypto signing | `c57e549210` |
 
 ### Working Features
+- **FieldNotes** - Shared map annotations with P2P sync, LLM tools, voting, ECDSA signing
 - **Offline maps** - Full OsmAnd mapping with offline vector maps
 - **Offline Wikipedia** - Browse ZIM files via libkiwix integration
-- **Local LLM** - GGUF model chat via Ai-Core AAR (llama.cpp) with RAG
-- **P2P Sharing** - BLE discovery, WiFi Direct transfer, Bluetooth fallback
+- **Local LLM** - GGUF model chat via Ai-Core AAR (llama.cpp) with RAG + FieldNotes tools
+- **P2P Sharing** - BLE discovery, WiFi Direct transfer, FieldNotes gossip sync
 - **Morse Code** - Send/receive via flashlight and audio, DSP decoding
 - **Panel System** - Side panel with 5 tabs, 3 themes (Pip-Boy/Modern/Classic)
-- **Security Suite** - Encrypted chat (SQLCipher), panic wipe, biometric lock
+- **Security Suite** - Encrypted chat (SQLCipher), panic wipe (incl. signing key), biometric lock
 
 ### Known Issues
 - Requires Android 11+ (API 30) for AI features
-- Package rename from io.lampp.app requires fresh install
 
 ---
 
@@ -75,10 +81,11 @@ $ADB shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 ### Rushlight Custom Code
 | Path | Purpose |
 |------|---------|
-| `OsmAnd/src/net/osmand/plus/ai/` | LLM + RAG integration (16 files) |
+| `OsmAnd/src/net/osmand/plus/fieldnotes/` | FieldNotes: data model, DB, signer, manager, map layer, UI (7 files) |
+| `OsmAnd/src/net/osmand/plus/ai/` | LLM + RAG + FieldNote tools (17 files) |
 | `OsmAnd/src/net/osmand/plus/lampp/` | Panel system + theming (12 files) |
 | `OsmAnd/src/net/osmand/plus/morse/` | Morse code comms (14 files) |
-| `OsmAnd/src/net/osmand/plus/plugins/p2pshare/` | P2P sharing (16 files) |
+| `OsmAnd/src/net/osmand/plus/plugins/p2pshare/` | P2P sharing + FieldNote sync (16 files) |
 | `OsmAnd/src/net/osmand/plus/security/` | Security suite (4 files) |
 | `OsmAnd/src/net/osmand/plus/wikipedia/Zim*.java` | ZIM/Wikipedia integration |
 | `OsmAnd/libs/ai-core-release.aar` | llama.cpp native library (43 MB) |
@@ -97,7 +104,7 @@ $ADB shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 
 ```
 +------------------------------------------------------------------+
-|                   Rushlight (io.rushlight.app)                     |
+|                   Rushlight v1.3 (io.rushlight.app)                |
 +------------------------------------------------------------------+
 |                                                                    |
 |  +---------------------------+  +------------------------------+  |
@@ -109,18 +116,27 @@ $ADB shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 |  +---------------------------+  +------------------------------+  |
 |                                                                    |
 |  +---------------------------+  +------------------------------+  |
-|  |     AI / LLM Engine      |  |     Security Suite           |  |
-|  |  llama.cpp + RAG Pipeline |  |  Encrypted Chat (SQLCipher)  |  |
-|  |  Wikipedia + POI Context  |  |  Panic Wipe                  |  |
-|  |  Location-Aware Queries   |  |  Biometric Panel Lock        |  |
+|  |     FieldNotes System     |  |     AI / LLM Engine          |  |
+|  |  Geo-pinned annotations   |  |  llama.cpp + RAG Pipeline    |  |
+|  |  ECDSA P-256 signing      |  |  Wikipedia + POI + FieldNotes|  |
+|  |  P2P gossip sync          |  |  query_fieldnotes tool       |  |
+|  |  Voting/trust scoring     |  |  create_fieldnote tool       |  |
 |  +---------------------------+  +------------------------------+  |
 |                                                                    |
 |  +---------------------------+  +------------------------------+  |
-|  |     P2P Share System      |  |     Morse Code Comms         |  |
-|  |  BLE Discovery            |  |  Flashlight + Audio TX/RX    |  |
-|  |  WiFi Direct + BT         |  |  DSP Decoding (Goertzel)     |  |
-|  |  APK Self-Spreading       |  |  LLM Error Correction        |  |
+|  |     Security Suite        |  |     P2P Share System         |  |
+|  |  Encrypted Chat (SQLCipher)|  |  BLE Discovery              |  |
+|  |  Panic Wipe + key destroy |  |  WiFi Direct + BT            |  |
+|  |  Biometric Panel Lock     |  |  FieldNote gossip transport   |  |
+|  |  Stealth Mode + Duress PIN|  |  APK Self-Spreading          |  |
 |  +---------------------------+  +------------------------------+  |
+|                                                                    |
+|  +---------------------------+                                    |
+|  |     Morse Code Comms      |                                    |
+|  |  Flashlight + Audio TX/RX |                                    |
+|  |  DSP Decoding (Goertzel)  |                                    |
+|  |  LLM Error Correction     |                                    |
+|  +---------------------------+                                    |
 |                                                                    |
 +------------------------------------------------------------------+
 |  Android (API 30+)  |  ARM64  |  No internet required           |
@@ -147,4 +163,4 @@ $ADB shell am start -n io.rushlight.app/net.osmand.plus.activities.MapActivity
 
 ---
 
-*Last updated: February 13, 2026*
+*Last updated: February 22, 2026*
