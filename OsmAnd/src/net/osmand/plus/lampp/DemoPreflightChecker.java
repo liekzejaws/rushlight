@@ -15,6 +15,7 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.ai.DeviceCapabilityDetector;
 import net.osmand.plus.ai.LlmManager;
+import net.osmand.plus.ai.StartupProfiler;
 import net.osmand.plus.ai.rag.RagManager;
 import net.osmand.plus.lampp.FeatureAvailability.AvailabilityResult;
 
@@ -92,6 +93,8 @@ public class DemoPreflightChecker {
 	@NonNull
 	public PreflightReport runChecks(@NonNull OsmandApplication app) {
 		List<CheckResult> results = new ArrayList<>();
+		results.add(checkDeviceCompatibility(app));
+		results.add(checkStartupTime(app));
 		results.add(checkLlmModel(app));
 		results.add(checkWikipediaZim(app));
 		results.add(checkGuides(app));
@@ -104,6 +107,49 @@ public class DemoPreflightChecker {
 	}
 
 	// ---- Individual Checks ----
+
+	@NonNull
+	private CheckResult checkDeviceCompatibility(@NonNull OsmandApplication app) {
+		String name = "Device Compatibility";
+		DeviceCapabilityDetector detector = new DeviceCapabilityDetector(app);
+		DeviceCapabilityDetector.DeviceTier tier = detector.getDeviceTier();
+		long ramMb = detector.getTotalRamMb();
+		int cores = detector.getCpuCores();
+
+		if (detector.isAiCapable()) {
+			String detail = tier.getDisplayName() + " tier (" + ramMb + "MB RAM, " + cores + " cores)";
+			if (tier == DeviceCapabilityDetector.DeviceTier.HIGH
+					|| tier == DeviceCapabilityDetector.DeviceTier.MEDIUM) {
+				return new CheckResult(name, CheckStatus.PASS, detail, null, false);
+			}
+			return new CheckResult(name, CheckStatus.WARN,
+					detail + " — AI will work but may be slow", null, false);
+		}
+
+		String reason = detector.getAiUnavailableReason();
+		return new CheckResult(name, CheckStatus.FAIL,
+				reason != null ? reason : "AI not supported on this device",
+				null, true);
+	}
+
+	@NonNull
+	private CheckResult checkStartupTime(@NonNull OsmandApplication app) {
+		String name = "Cold Start Time";
+		long coldStartMs = StartupProfiler.getLastColdStartMs();
+
+		if (coldStartMs < 0) {
+			return new CheckResult(name, CheckStatus.WARN,
+					"Not measured yet — restart app to profile startup",
+					null, false);
+		}
+
+		String detail = String.format("%.1fs (target <5s)", coldStartMs / 1000.0);
+		if (coldStartMs <= 5000) {
+			return new CheckResult(name, CheckStatus.PASS, detail, null, false);
+		}
+
+		return new CheckResult(name, CheckStatus.WARN, detail, null, false);
+	}
 
 	@NonNull
 	private CheckResult checkLlmModel(@NonNull OsmandApplication app) {

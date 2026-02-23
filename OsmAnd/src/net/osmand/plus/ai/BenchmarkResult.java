@@ -15,6 +15,8 @@ public class BenchmarkResult {
 	// OTF roadmap performance targets
 	public static final long TARGET_QUERY_TIME_MS = 3000;
 	public static final long TARGET_MEMORY_MB = 500;
+	public static final int TARGET_BATTERY_PCT_HR = 15;  // v1.4
+	public static final long TARGET_COLD_START_MS = 5000;  // v1.4
 
 	public enum QueryCategory {
 		CONVERSATIONAL("Conversational"),

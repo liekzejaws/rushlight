@@ -17,7 +17,7 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 
 ## Current Status (February 2026)
 
-### Version: v1.3.0 (build 5900)
+### Version: v1.4.0 (build 5901)
 
 ### Completed Phases
 
@@ -36,12 +36,14 @@ An offline-first Android survival app forked from OsmAnd. A personal survival co
 | v1.1 | FieldNotes P2P sync + LLM tool integration | `c57e549210` |
 | v1.2 | FieldNotes voting/trust + bug fixes | `c57e549210` |
 | v1.3 | FieldNotes ECDSA P-256 crypto signing | `c57e549210` |
+| v1.4 | Demo-Ready: multi-model, benchmarks, device reports | — |
 
 ### Working Features
 - **FieldNotes** - Shared map annotations with P2P sync, LLM tools, voting, ECDSA signing
 - **Offline maps** - Full OsmAnd mapping with offline vector maps
 - **Offline Wikipedia** - Browse ZIM files via libkiwix integration
 - **Local LLM** - GGUF model chat via Ai-Core AAR (llama.cpp) with RAG + FieldNotes tools
+- **Multi-model switching** - Quick switcher between downloaded GGUF models
 - **P2P Sharing** - BLE discovery, WiFi Direct transfer, FieldNotes gossip sync
 - **Morse Code** - Send/receive via flashlight and audio, DSP decoding
 - **Panel System** - Side panel with 5 tabs, 3 themes (Pip-Boy/Modern/Classic)

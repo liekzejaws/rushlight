@@ -39,6 +39,7 @@ public class DeviceCapabilityDetector {
 	private static final Log LOG = PlatformUtil.getLog(DeviceCapabilityDetector.class);
 
 	public enum DeviceTier {
+		MINIMAL("Minimal"),
 		LOW("Low"),
 		MEDIUM("Medium"),
 		HIGH("High");
@@ -232,7 +233,9 @@ public class DeviceCapabilityDetector {
 		long ramMb = getTotalRamMb();
 		int cores = getCpuCores();
 
-		if (ramMb <= 4096 || cores <= 4) {
+		if (ramMb <= 3072 || cores <= 2) {
+			cachedTier = DeviceTier.MINIMAL;
+		} else if (ramMb <= 4096 || cores <= 4) {
 			cachedTier = DeviceTier.LOW;
 		} else if (ramMb <= 8192 || cores <= 6) {
 			cachedTier = DeviceTier.MEDIUM;
@@ -253,6 +256,9 @@ public class DeviceCapabilityDetector {
 	public int getRecommendedThreadCount() {
 		int baseThreads;
 		switch (getDeviceTier()) {
+			case MINIMAL:
+				baseThreads = 1;
+				break;
 			case LOW:
 				baseThreads = 2;
 				break;
@@ -283,6 +289,8 @@ public class DeviceCapabilityDetector {
 	 */
 	public int getRecommendedContextSize() {
 		switch (getDeviceTier()) {
+			case MINIMAL:
+				return 1024;
 			case LOW:
 				return 2048;
 			case MEDIUM:
@@ -300,6 +308,9 @@ public class DeviceCapabilityDetector {
 	public int getRecommendedMaxTokens() {
 		int baseTokens;
 		switch (getDeviceTier()) {
+			case MINIMAL:
+				baseTokens = 256;
+				break;
 			case LOW:
 				baseTokens = 512;
 				break;
@@ -325,6 +336,8 @@ public class DeviceCapabilityDetector {
 	 */
 	public int getInferenceTimeoutSeconds() {
 		switch (getDeviceTier()) {
+			case MINIMAL:
+				return 90;   // 1.5 minutes
 			case LOW:
 				return 120;  // 2 minutes
 			case MEDIUM:
@@ -401,5 +414,66 @@ public class DeviceCapabilityDetector {
 				+ "Storage: " + getAvailableAppStorageMb() + "MB free, "
 				+ "Battery: " + getBatteryLevel() + "%"
 				+ (isCharging() ? " (charging)" : "");
+	}
+
+	/**
+	 * v1.4: Check if this device can run AI features at all.
+	 * Returns false for devices with <3GB RAM (even if API 30+).
+	 * These devices can still use maps, wiki, morse, etc.
+	 */
+	public boolean isAiCapable() {
+		return getTotalRamMb() >= 3072 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+	}
+
+	/**
+	 * v1.4: Get a detailed reason why AI is not available, or null if it is.
+	 */
+	@Nullable
+	public String getAiUnavailableReason() {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+			return "AI features require Android 11 or higher (current: Android "
+					+ Build.VERSION.RELEASE + ", API " + Build.VERSION.SDK_INT + ")";
+		}
+		if (getTotalRamMb() < 3072) {
+			return "AI features require at least 3 GB RAM (this device has "
+					+ getTotalRamMb() + " MB). Maps, Wikipedia, Morse code, and P2P sharing still work.";
+		}
+		return null;
+	}
+
+	/**
+	 * v1.4: Generate a structured compatibility report for grant testing matrix.
+	 * Includes device model, Android version, RAM, CPU cores, tier, AI capability,
+	 * and available storage.
+	 */
+	@NonNull
+	public String getCompatibilityReport() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+		sb.append("Android: ").append(Build.VERSION.RELEASE)
+				.append(" (API ").append(Build.VERSION.SDK_INT).append(")\n");
+		sb.append("RAM: ").append(getTotalRamMb()).append(" MB total, ")
+				.append(getAvailableRamMb()).append(" MB available\n");
+		sb.append("CPU Cores: ").append(getCpuCores()).append("\n");
+		sb.append("Device Tier: ").append(getDeviceTier().getDisplayName()).append("\n");
+		sb.append("AI Capable: ").append(isAiCapable() ? "Yes" : "No");
+		String reason = getAiUnavailableReason();
+		if (reason != null) {
+			sb.append(" (").append(reason).append(")");
+		}
+		sb.append("\n");
+		sb.append("Storage: ").append(getAvailableAppStorageMb()).append(" MB free\n");
+		sb.append("Battery: ").append(getBatteryLevel()).append("%")
+				.append(isCharging() ? " (charging)" : "").append("\n");
+		sb.append("Thermal: ").append(isThermallyThrottled() ? "Throttled" : "Normal").append("\n");
+
+		// LLM recommendations
+		sb.append("\nLLM Configuration:\n");
+		sb.append("  Threads: ").append(getRecommendedThreadCount()).append("\n");
+		sb.append("  Context: ").append(getRecommendedContextSize()).append("\n");
+		sb.append("  Max Tokens: ").append(getRecommendedMaxTokens()).append("\n");
+		sb.append("  Timeout: ").append(getInferenceTimeoutSeconds()).append("s\n");
+
+		return sb.toString();
 	}
 }

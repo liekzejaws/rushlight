@@ -51,19 +51,40 @@
                 android:textColor="?android:attr/textColorSecondary"
                 android:visibility="gone" />
 
-            <!-- Copy button (visible for completed AI messages only) -->
-            <ImageButton
-                android:id="@+id/copy_button"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+            <!-- Action buttons row (copy + share, visible for completed AI messages) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:layout_marginTop="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/copy_message_desc"
-                android:padding="2dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_action_copy"
-                android:visibility="gone" />
+                android:orientation="horizontal">
+
+                <!-- Copy button -->
+                <ImageButton
+                    android:id="@+id/copy_button"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/copy_message_desc"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_action_copy"
+                    android:visibility="gone" />
+
+                <!-- Share button (v1.4) -->
+                <ImageButton
+                    android:id="@+id/share_button"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Share response"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_action_gshare_dark"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

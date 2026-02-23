@@ -107,6 +107,10 @@ public class PerformanceBenchmark {
 		String modelName = llmManager.getCurrentModelName();
 		if (modelName == null) modelName = "unknown";
 
+		// v1.4: Record battery level before benchmark for drain estimation
+		int batteryBefore = deviceDetector.getBatteryLevel();
+		long benchmarkStartTime = System.currentTimeMillis();
+
 		for (int i = 0; i < BENCHMARK_QUERIES.length; i++) {
 			BenchmarkQuery bq = BENCHMARK_QUERIES[i];
 			final int queryNum = i + 1;
@@ -203,23 +207,40 @@ public class PerformanceBenchmark {
 			}
 		}
 
+		// v1.4: Measure battery drain and compute hourly estimate
+		int batteryAfter = deviceDetector.getBatteryLevel();
+		long benchmarkDurationMs = System.currentTimeMillis() - benchmarkStartTime;
+		int batteryDelta = batteryBefore - batteryAfter;
+		float batteryDrainPerHour = benchmarkDurationMs > 0
+				? (batteryDelta * 3600000.0f / benchmarkDurationMs) : 0;
+
+		// v1.4: Get cold start time from profiler
+		long coldStartMs = StartupProfiler.getLastColdStartMs();
+
 		// Save results to file
 		saveResults(results);
 
-		// Build summary
-		String summary = buildSummary(results, deviceTier, modelName);
+		// Build summary with all 4 OTF targets
+		String summary = buildSummary(results, deviceTier, modelName,
+				batteryDrainPerHour, coldStartMs);
 
 		mainHandler.post(() -> callback.onComplete(results, summary));
 	}
 
 	@NonNull
 	private String buildSummary(@NonNull List<BenchmarkResult> results,
-	                            @NonNull String deviceTier, @NonNull String modelName) {
+	                            @NonNull String deviceTier, @NonNull String modelName,
+	                            float batteryDrainPerHour, long coldStartMs) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("Rushlight Benchmark Results\n");
+		sb.append("Rushlight v1.4 Benchmark Report\n");
+		sb.append("═══════════════════════════════\n");
 		sb.append("Device: ").append(deviceDetector.getDeviceSummary()).append("\n");
-		sb.append("Model: ").append(modelName).append("\n\n");
+		sb.append("Model: ").append(modelName).append("\n");
+		sb.append("Android: ").append(android.os.Build.VERSION.SDK_INT)
+				.append(" (").append(android.os.Build.MODEL).append(")\n\n");
 
+		// Per-query results
+		sb.append("Query Results:\n");
 		long totalTime = 0;
 		float totalTokSec = 0;
 		long maxMemory = 0;
@@ -228,10 +249,10 @@ public class PerformanceBenchmark {
 
 		for (int i = 0; i < results.size(); i++) {
 			BenchmarkResult r = results.get(i);
-			sb.append("Query ").append(i + 1).append(" (")
-				.append(r.getCategory().getDisplayName()).append("): ");
+			sb.append("  ").append(i + 1).append(". ")
+				.append(r.getCategory().getDisplayName()).append(": ");
 			sb.append(String.format("%.1fs", r.getTotalTimeMs() / 1000.0));
-			sb.append("  ").append(r.passesTimeTarget() ? "PASS" : "FAIL");
+			sb.append("  ").append(r.passesTimeTarget() ? "✓ PASS" : "✗ FAIL");
 			sb.append("\n");
 
 			totalTime += r.getTotalTimeMs();
@@ -243,20 +264,63 @@ public class PerformanceBenchmark {
 			if (r.passesTimeTarget()) passCount++;
 		}
 
+		// OTF Grant Targets — all 4 metrics
 		sb.append("\n");
+		sb.append("OTF Grant Targets:\n");
+		sb.append("═══════════════════════════════\n");
+
 		long avgTime = results.isEmpty() ? 0 : totalTime / results.size();
 		float avgTokSec = tokSecCount > 0 ? totalTokSec / tokSecCount : 0;
-		boolean avgPasses = avgTime <= BenchmarkResult.TARGET_QUERY_TIME_MS;
+		boolean queryPasses = avgTime <= BenchmarkResult.TARGET_QUERY_TIME_MS;
 		boolean memPasses = maxMemory <= BenchmarkResult.TARGET_MEMORY_MB;
+		boolean batteryPasses = batteryDrainPerHour <= BenchmarkResult.TARGET_BATTERY_PCT_HR;
+		boolean coldStartPasses = coldStartMs >= 0 && coldStartMs <= BenchmarkResult.TARGET_COLD_START_MS;
 
-		sb.append("Average: ").append(String.format("%.1fs", avgTime / 1000.0));
-		sb.append(" (target <3s)  ").append(avgPasses ? "PASS" : "FAIL").append("\n");
-		sb.append("Tokens/sec: ").append(String.format("%.1f", avgTokSec)).append("\n");
-		sb.append("Peak memory: ").append(maxMemory).append("MB");
-		sb.append(" (target <500MB)  ").append(memPasses ? "PASS" : "FAIL").append("\n");
-		sb.append("\nPassed: ").append(passCount).append("/").append(results.size()).append(" queries");
+		sb.append("  1. AI Query Time:   ").append(String.format("%.1fs", avgTime / 1000.0));
+		sb.append(" (target <3s)       ").append(queryPasses ? "✓ PASS" : "✗ FAIL").append("\n");
+
+		sb.append("  2. Peak RAM:        ").append(maxMemory).append("MB");
+		sb.append(" (target <500MB)    ").append(memPasses ? "✓ PASS" : "✗ FAIL").append("\n");
+
+		sb.append("  3. Battery Drain:   ").append(String.format("%.1f%%/hr", batteryDrainPerHour));
+		sb.append(" (target <15%/hr)   ").append(batteryPasses ? "✓ PASS" : "✗ FAIL").append("\n");
+
+		if (coldStartMs >= 0) {
+			sb.append("  4. Cold Start:      ").append(String.format("%.1fs", coldStartMs / 1000.0));
+			sb.append(" (target <5s)       ").append(coldStartPasses ? "✓ PASS" : "✗ FAIL").append("\n");
+		} else {
+			sb.append("  4. Cold Start:      N/A (restart app to measure)\n");
+		}
+
+		sb.append("\nTokens/sec: ").append(String.format("%.1f", avgTokSec));
+		sb.append("  |  Queries passed: ").append(passCount).append("/").append(results.size());
+
+		int totalTargetsPassed = (queryPasses ? 1 : 0) + (memPasses ? 1 : 0)
+				+ (batteryPasses ? 1 : 0) + (coldStartPasses ? 1 : 0);
+		sb.append("\nOverall: ").append(totalTargetsPassed).append("/4 OTF targets met");
 
 		return sb.toString();
+	}
+
+	/**
+	 * v1.4: Export benchmark results as a grant-ready markdown report.
+	 */
+	@NonNull
+	public static String exportMarkdownReport(@NonNull String summary,
+	                                          @NonNull DeviceCapabilityDetector detector) {
+		StringBuilder md = new StringBuilder();
+		md.append("# Rushlight Performance Benchmark Report\n\n");
+		md.append("**Date:** ").append(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm",
+				java.util.Locale.US).format(new java.util.Date())).append("\n");
+		md.append("**Device:** ").append(android.os.Build.MANUFACTURER).append(" ")
+				.append(android.os.Build.MODEL).append("\n");
+		md.append("**Android:** ").append(android.os.Build.VERSION.RELEASE)
+				.append(" (API ").append(android.os.Build.VERSION.SDK_INT).append(")\n");
+		md.append("**RAM:** ").append(detector.getTotalRamMb()).append(" MB\n");
+		md.append("**CPU Cores:** ").append(detector.getCpuCores()).append("\n");
+		md.append("**Device Tier:** ").append(detector.getDeviceTier().getDisplayName()).append("\n\n");
+		md.append("```\n").append(summary).append("\n```\n");
+		return md.toString();
 	}
 
 	private void saveResults(@NonNull List<BenchmarkResult> results) {

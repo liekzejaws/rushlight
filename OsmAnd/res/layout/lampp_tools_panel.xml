@@ -280,6 +280,22 @@
 			app:iconTint="?attr/lampp_button_text"
 			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
+		<!-- v1.4: Device Report button -->
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/device_report_button"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:text="Device Report"
+			android:textSize="@dimen/lampp_text_button"
+			android:textAllCaps="false"
+			android:textColor="?attr/lampp_button_text"
+			android:backgroundTint="@color/lampp_btn_tint_transparent_white"
+			app:cornerRadius="8dp"
+			app:icon="@drawable/ic_action_info_dark"
+			app:iconTint="?attr/lampp_button_text"
+			style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
 		<!-- v1.0: FieldNotes section -->
 		<View
 			android:layout_width="match_parent"

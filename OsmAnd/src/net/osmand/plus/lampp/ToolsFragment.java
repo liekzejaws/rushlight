@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.content.Intent;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,6 +21,7 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.ai.BenchmarkResult;
+import net.osmand.plus.ai.DeviceCapabilityDetector;
 import net.osmand.plus.ai.LlmManager;
 import net.osmand.plus.ai.PerformanceBenchmark;
 import net.osmand.plus.ai.rag.RagManager;
@@ -115,6 +117,12 @@ public class ToolsFragment extends LamppPanelFragment {
 		View benchmarkButton = contentView.findViewById(R.id.run_benchmark_button);
 		if (benchmarkButton != null) {
 			benchmarkButton.setOnClickListener(v -> showBenchmarkConfirmation());
+		}
+
+		// v1.4: Device Report button
+		View deviceReportButton = contentView.findViewById(R.id.device_report_button);
+		if (deviceReportButton != null) {
+			deviceReportButton.setOnClickListener(v -> showDeviceReport());
 		}
 
 		// Prepare Demo button
@@ -344,7 +352,7 @@ public class ToolsFragment extends LamppPanelFragment {
 
 		new AlertDialog.Builder(getContext())
 				.setTitle("Run Benchmark")
-				.setMessage("This will send 4 test queries to the AI model and measure performance against OTF targets (<3s query time, <500MB RAM).\n\nThis takes approximately 30-60 seconds. Continue?")
+				.setMessage("This will send 4 test queries to the AI model and measure performance against all 4 OTF grant targets:\n\n• AI query time (<3s)\n• Peak RAM (<500MB)\n• Battery drain (<15%/hr)\n• Cold start time (<5s)\n\nThis takes approximately 30-60 seconds. Continue?")
 				.setPositiveButton("Run", (dialog, which) -> runBenchmark(app))
 				.setNegativeButton(R.string.shared_string_cancel, null)
 				.show();
@@ -409,11 +417,33 @@ public class ToolsFragment extends LamppPanelFragment {
 
 	private void showBenchmarkResults(@NonNull String summary) {
 		if (getContext() == null) return;
+		OsmandApplication app = getMyApplication();
 		new AlertDialog.Builder(getContext())
 				.setTitle("Benchmark Results")
 				.setMessage(summary)
 				.setPositiveButton(R.string.shared_string_ok, null)
+				.setNeutralButton("Share Report", (dialog, which) -> {
+					// Generate a markdown report for grant documentation
+					String markdownReport;
+					if (app != null) {
+						DeviceCapabilityDetector detector = new DeviceCapabilityDetector(app);
+						markdownReport = PerformanceBenchmark.exportMarkdownReport(summary, detector);
+					} else {
+						markdownReport = summary;
+					}
+					Intent shareIntent = new Intent(Intent.ACTION_SEND);
+					shareIntent.setType("text/plain");
+					shareIntent.putExtra(Intent.EXTRA_TEXT, markdownReport);
+					shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Rushlight Benchmark Report");
+					startActivity(Intent.createChooser(shareIntent, "Share Report"));
+				})
 				.show();
+	}
+
+	private void showDeviceReport() {
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+		DeviceTestReportDialog.showInstance(activity.getSupportFragmentManager());
 	}
 
 	private void showPrepareDemoConfirmation() {

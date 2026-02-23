@@ -245,6 +245,9 @@ public class OsmandApplication extends MultiDexApplication {
 		if (RestartActivity.isRestartProcess(this)) {
 			return;
 		}
+		// v1.4: Begin startup profiling
+		net.osmand.plus.ai.StartupProfiler.begin();
+
 		long timeToStart = System.currentTimeMillis();
 		enableStrictMode();
 		super.onCreate();

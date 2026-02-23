@@ -326,14 +326,17 @@ public class LamppPanelManager {
 		OsmandApplication app = (OsmandApplication) mapActivity.getApplication();
 
 		// AI Chat: check if any models are downloaded
+		// v1.4: Check filesystem directly to avoid creating expensive LlmManager instance
 		try {
-			LlmManager llm = new LlmManager(app);
-			if (!llm.hasDownloadedModels()) {
-				tabBar.setBadgeCount(LamppTab.AI_CHAT, 1);
-			} else {
-				// Only clear if it was a content status badge (not a P2P notification)
-				tabBar.setBadgeCount(LamppTab.AI_CHAT, 0);
+			java.io.File modelsDir = new java.io.File(app.getAppPath(null),
+					net.osmand.plus.ai.LlmManager.MODELS_DIR);
+			boolean hasModels = false;
+			if (modelsDir.exists()) {
+				java.io.File[] ggufFiles = modelsDir.listFiles(
+						(d, name) -> name.endsWith(".gguf"));
+				hasModels = ggufFiles != null && ggufFiles.length > 0;
 			}
+			tabBar.setBadgeCount(LamppTab.AI_CHAT, hasModels ? 0 : 1);
 		} catch (Exception e) {
 			LOG.warn("Could not check AI model status for badge: " + e.getMessage());
 		}
@@ -407,13 +410,19 @@ public class LamppPanelManager {
 		// Phase 12: Register P2P badge listener for events while P2P panel is inactive
 		registerP2pBadgeListener();
 
-		// v0.5: Update content readiness badges (red dots on AI/Wiki tabs if content missing)
-		updateContentStatusBadges();
+		// v1.4: Defer badge check to avoid expensive LlmManager creation during cold start
+		mapActivity.getWindow().getDecorView().postDelayed(this::updateContentStatusBadges, 2000);
+
+		// v1.4: Startup profiler milestone
+		net.osmand.plus.ai.StartupProfiler profiler = net.osmand.plus.ai.StartupProfiler.get();
+		if (profiler != null) {
+			profiler.markPanelInit();
+		}
 
 		// Phase 12: Show onboarding overlay on first launch (slight delay for map to load)
 		mapActivity.getWindow().getDecorView().postDelayed(() -> {
 			OnboardingOverlay.showIfNeeded(mapActivity);
-		}, 1500);
+		}, 2500);
 
 		String tabName = app.getSettings().LAMPP_ACTIVE_TAB.get();
 		if (tabName != null && !tabName.isEmpty()) {

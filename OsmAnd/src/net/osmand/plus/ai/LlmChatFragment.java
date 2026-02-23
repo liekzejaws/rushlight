@@ -3,6 +3,7 @@ package net.osmand.plus.ai;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Editable;
@@ -279,9 +280,8 @@ public class LlmChatFragment extends LamppPanelFragment {
 			android.util.Log.i(TAG, "Model action clicked! isLoaded=" + llmManager.isModelLoaded()
 				+ " hasDownloaded=" + llmManager.hasDownloadedModels());
 			if (llmManager.isModelLoaded()) {
-				// Unload model to free memory
-				llmManager.closeModel();
-				updateModelStatus();
+				// v1.4: Open model switcher dialog instead of just unloading
+				showModelSwitcher();
 			} else if (llmManager.hasDownloadedModels()) {
 				// Load first available model
 				File[] models = llmManager.getDownloadedModels();
@@ -423,18 +423,29 @@ public class LlmChatFragment extends LamppPanelFragment {
 				modelDownloadProgress.setVisibility(View.VISIBLE);
 			}
 		} else {
-			// No model state: red card — download CTA
+			// No model state: red card — download CTA or hardware warning
 			modelStatusIcon.setVisibility(View.VISIBLE);
 			modelLoadingProgress.setVisibility(View.GONE);
 			modelStatusIcon.setImageResource(R.drawable.ic_action_alert);
 			modelStatusIcon.setColorFilter(preset.getStatusNoModelTextColor(ctx, nightMode));
-			modelStatusText.setText("No AI model");
 			modelStatusText.setTextColor(preset.getStatusNoModelTextColor(ctx, nightMode));
-			modelStatusDetail.setText("Download a model to enable AI");
 			modelStatusDetail.setTextColor(preset.getStatusDetailTextColor(ctx, nightMode));
 			modelStatusDetail.setVisibility(View.VISIBLE);
-			modelActionButton.setText(R.string.shared_string_download);
-			modelActionButton.setVisibility(View.VISIBLE);
+
+			// v1.4: Distinguish "needs Android 11" vs "insufficient RAM" vs "no model"
+			DeviceCapabilityDetector hwDetector = new DeviceCapabilityDetector(app);
+			String unavailableReason = hwDetector.getAiUnavailableReason();
+			if (unavailableReason != null) {
+				modelStatusText.setText("AI Unavailable");
+				modelStatusDetail.setText(unavailableReason);
+				modelActionButton.setVisibility(View.GONE);
+			} else {
+				modelStatusText.setText("No AI model");
+				modelStatusDetail.setText("Download a model to enable AI");
+				modelActionButton.setText(R.string.shared_string_download);
+				modelActionButton.setVisibility(View.VISIBLE);
+			}
+
 			if (modelStatusCard != null) {
 				modelStatusCard.setCardBackgroundColor(preset.getStatusNoModelBgColor(ctx, nightMode));
 			}
@@ -572,6 +583,25 @@ public class LlmChatFragment extends LamppPanelFragment {
 		if (generatingIndicator != null) {
 			generatingIndicator.setVisibility(View.VISIBLE);
 		}
+	}
+
+	/**
+	 * v1.4: Show the model switcher dialog for quick model switching.
+	 */
+	private void showModelSwitcher() {
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		ModelSwitcherDialog.show(
+				activity.getSupportFragmentManager(),
+				llmManager.getCurrentModelName(),
+				modelFile -> {
+					// Close current model and load the selected one
+					llmManager.closeModel();
+					updateModelStatus();
+					loadModel(modelFile);
+				}
+		);
 	}
 
 	private void loadModel(File modelFile) {
@@ -1032,6 +1062,30 @@ public class LlmChatFragment extends LamppPanelFragment {
 		}
 	}
 
+	/**
+	 * v1.4: Share an AI response via Android share sheet.
+	 * Includes sources text if available.
+	 */
+	private void shareResponse(@NonNull ChatMessage message) {
+		Context context = getContext();
+		if (context == null) return;
+
+		StringBuilder shareText = new StringBuilder(message.content);
+
+		// Append sources if available
+		if (message.hasAnySources()) {
+			shareText.append("\n\n---\nSources: ").append(message.getSourcesText().trim());
+		}
+
+		shareText.append("\n\n— via Rushlight (offline AI)");
+
+		Intent shareIntent = new Intent(Intent.ACTION_SEND);
+		shareIntent.setType("text/plain");
+		shareIntent.putExtra(Intent.EXTRA_TEXT, shareText.toString());
+		shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Rushlight AI Response");
+		startActivity(Intent.createChooser(shareIntent, "Share Response"));
+	}
+
 	// RecyclerView Adapter
 	class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHolder> {
 
@@ -1065,6 +1119,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 			TextView contentText;
 			TextView sourcesText;
 			ImageButton copyButton;
+			ImageButton shareButton; // v1.4
 
 			MessageViewHolder(@NonNull View itemView) {
 				super(itemView);
@@ -1073,6 +1128,7 @@ public class LlmChatFragment extends LamppPanelFragment {
 				contentText = itemView.findViewById(R.id.message_content);
 				sourcesText = itemView.findViewById(R.id.message_sources);
 				copyButton = itemView.findViewById(R.id.copy_button);
+				shareButton = itemView.findViewById(R.id.share_button);
 			}
 
 			void bind(ChatMessage message) {
@@ -1112,13 +1168,21 @@ public class LlmChatFragment extends LamppPanelFragment {
 					}
 				}
 
-				// Copy button: visible only for completed AI messages
+				// Copy + Share buttons: visible only for completed AI messages
 				if (copyButton != null) {
 					if (isAiMessage && !isStreamingThisMessage) {
 						copyButton.setVisibility(View.VISIBLE);
 						copyButton.setOnClickListener(v -> copyToClipboard(message.content));
 					} else {
 						copyButton.setVisibility(View.GONE);
+					}
+				}
+				if (shareButton != null) {
+					if (isAiMessage && !isStreamingThisMessage) {
+						shareButton.setVisibility(View.VISIBLE);
+						shareButton.setOnClickListener(v -> shareResponse(message));
+					} else {
+						shareButton.setVisibility(View.GONE);
 					}
 				}
 
@@ -1158,9 +1222,12 @@ public class LlmChatFragment extends LamppPanelFragment {
 
 				messageCard.setLayoutParams(params);
 
-				// Tint copy button to match theme
+				// Tint copy + share buttons to match theme
 				if (copyButton != null && isAiMessage) {
 					copyButton.setColorFilter(preset.getTextSecondaryColor(ctx, nightMode));
+				}
+				if (shareButton != null && isAiMessage) {
+					shareButton.setColorFilter(preset.getTextSecondaryColor(ctx, nightMode));
 				}
 			}
 		}

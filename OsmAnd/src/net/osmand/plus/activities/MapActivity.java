@@ -230,6 +230,11 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		long time = System.currentTimeMillis();
+		// v1.4: Startup profiler milestone
+		net.osmand.plus.ai.StartupProfiler profiler = net.osmand.plus.ai.StartupProfiler.get();
+		if (profiler != null) {
+			profiler.markActivityCreate();
+		}
 		app.applyTheme(this);
 		supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
 		setRequestedOrientation(AndroidUiHelper.getScreenOrientation(this));
@@ -365,6 +370,21 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			mapViewWithLayers.onCreate(savedInstanceState);
 		}
 		extendedMapActivity.onCreate(this, savedInstanceState);
+
+		// v1.4: Mark onCreate end and schedule map-ready milestone
+		net.osmand.plus.ai.StartupProfiler profilerEnd = net.osmand.plus.ai.StartupProfiler.get();
+		if (profilerEnd != null) {
+			profilerEnd.markActivityCreateEnd();
+			// Mark map ready after the first frame is rendered
+			if (mapViewWithLayers != null) {
+				mapViewWithLayers.post(() -> {
+					net.osmand.plus.ai.StartupProfiler p = net.osmand.plus.ai.StartupProfiler.get();
+					if (p != null) {
+						p.markMapReady();
+					}
+				});
+			}
+		}
 	}
 
 	public void setMapViewPaddings(int left, int top, int right, int bottom) {
