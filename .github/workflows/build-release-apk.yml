@@ -62,6 +62,15 @@ jobs:
       working-directory: ./android
       run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
 
+    - name: Patch OsmAnd-core compatibility
+      working-directory: ./android
+      run: |
+        # MapRendererContext references Map3DObjectsTiledProvider whose constructor
+        # signature changed in the upstream core AAR. Stub out the 3D provider call
+        # since Legacy builds don't use 3D rendering.
+        sed -i 's/map3DObjectsProvider = new Map3DObjectsTiledProvider(mapPrimitivesProvider, mapPresentationEnvironment);/map3DObjectsProvider = null; \/\/ CI: 3D objects disabled for legacy build/' \
+          OsmAnd/src/net/osmand/core/android/MapRendererContext.java
+
     - name: Build debug APK
       working-directory: ./android
       run: ./gradlew assembleNightlyFreeLegacyArm64Debug
