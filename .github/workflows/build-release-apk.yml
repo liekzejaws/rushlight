@@ -60,7 +60,7 @@ jobs:
 
     - name: Patch memory requirements
       working-directory: ./android
-      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
+      run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
 
     - name: Decode release keystore
       if: env.RELEASE_KEYSTORE_BASE64 != ''
