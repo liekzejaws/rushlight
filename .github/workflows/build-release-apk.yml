@@ -62,24 +62,15 @@ jobs:
       working-directory: ./android
       run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
 
-    - name: Decode release keystore
-      if: env.RELEASE_KEYSTORE_BASE64 != ''
-      env:
-        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+    - name: Build debug APK
       working-directory: ./android
-      run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > release.keystore
-
-    - name: Build release APK
-      working-directory: ./android
-      env:
-        OSMAND_APK_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-      run: ./gradlew assembleNightlyFreeLegacyFatRelease
+      run: ./gradlew assembleNightlyFreeLegacyArm64Debug
 
     - name: Rename APK
       working-directory: ./android
       run: |
         VERSION_TAG="${GITHUB_REF#refs/tags/}"
-        APK_DIR="OsmAnd/build/outputs/apk/nightlyFreeLegacyFat/release"
+        APK_DIR="OsmAnd/build/outputs/apk/nightlyFreeLegacyArm64/debug"
         for f in "$APK_DIR"/*.apk; do
           mv "$f" "$APK_DIR/Rushlight-${VERSION_TAG}.apk"
         done

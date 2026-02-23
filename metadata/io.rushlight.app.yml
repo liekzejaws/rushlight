@@ -37,7 +37,7 @@ Builds:
     commit: main
     subdir: OsmAnd
     gradle:
-      - nightlyFreeLegacyFat
+      - nightlyFreeLegacyArm64
 
 AutoUpdateMode: None
 UpdateCheckMode: Tags
