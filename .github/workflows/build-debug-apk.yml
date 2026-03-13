@@ -1,7 +1,9 @@
 name: Build debug apk
 
 on:
-  [workflow_dispatch]
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -59,6 +61,9 @@ jobs:
     - name: Patch memory requirements
       working-directory: ./android
       run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
+    - name: Run unit tests
+      working-directory: ./android
+      run: ./gradlew testNightlyFreeLegacyArm64DebugUnitTest
     - name: Build with Gradle
       working-directory: ./android
       run: ./gradlew assembleNightlyFreeLegacyArm64Debug
@@ -71,3 +76,10 @@ jobs:
         name: debug-apk
         path: android/OsmAnd/build/outputs/apk/*/*/*.apk
         retention-days: 90
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results
+        path: android/OsmAnd/build/test-results/
+        retention-days: 30
