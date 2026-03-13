@@ -11,7 +11,9 @@ import net.osmand.plus.api.SQLiteAPI.SQLiteCursor;
 import org.apache.commons.logging.Log;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * SQLite database helper for FieldNotes.
@@ -26,7 +28,7 @@ public class FieldNotesDbHelper {
 
 	private static final Log LOG = PlatformUtil.getLog(FieldNotesDbHelper.class);
 
-	private static final int DB_VERSION = 2;
+	private static final int DB_VERSION = 3;
 	public static final String DB_NAME = "fieldnotes_db";
 
 	// Table and column names
@@ -44,6 +46,18 @@ public class FieldNotesDbHelper {
 	private static final String COL_SCORE = "score";
 	private static final String COL_SIGNATURE = "signature";       // Step 5: crypto signing
 	private static final String COL_PUBLIC_KEY = "public_key";     // Step 5: crypto signing
+
+	// Voted notes table (v3) — persists which notes this device has voted on
+	private static final String VOTED_TABLE = "voted_notes";
+	private static final String VOTED_COL_NOTE_ID = "note_id";
+	private static final String VOTED_COL_DIRECTION = "vote_direction";
+	private static final String VOTED_COL_VOTED_AT = "voted_at";
+
+	private static final String VOTED_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS " +
+			VOTED_TABLE + " (" +
+			VOTED_COL_NOTE_ID + " TEXT PRIMARY KEY, " +
+			VOTED_COL_DIRECTION + " INTEGER, " +
+			VOTED_COL_VOTED_AT + " INTEGER);";
 
 	private static final String TABLE_CREATE = "CREATE TABLE IF NOT EXISTS " +
 			TABLE_NAME + " (" +
@@ -106,6 +120,7 @@ public class FieldNotesDbHelper {
 
 	private void onCreate(@NonNull SQLiteConnection db) {
 		db.execSQL(TABLE_CREATE);
+		db.execSQL(VOTED_TABLE_CREATE);
 		LOG.info("FieldNotes database created (v" + DB_VERSION + ")");
 	}
 
@@ -116,6 +131,10 @@ public class FieldNotesDbHelper {
 			db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_SIGNATURE + " TEXT");
 			db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_PUBLIC_KEY + " TEXT");
 			LOG.info("FieldNotes: added signature + public_key columns (v2)");
+		}
+		if (oldVersion < 3) {
+			db.execSQL(VOTED_TABLE_CREATE);
+			LOG.info("FieldNotes: added voted_notes table (v3)");
 		}
 	}
 
@@ -441,6 +460,103 @@ public class FieldNotesDbHelper {
 		} catch (Exception e) {
 			LOG.error("Failed to update score: " + e.getMessage());
 			return false;
+		} finally {
+			db.close();
+		}
+	}
+
+	// --- Vote persistence (v3) ---
+
+	/**
+	 * Record that this device voted on a note.
+	 * @param noteId note content-addressed ID
+	 * @param direction +1 for upvote, -1 for downvote
+	 */
+	public boolean addVote(@NonNull String noteId, int direction) {
+		SQLiteConnection db = openConnection(false);
+		if (db == null) return false;
+		try {
+			db.execSQL("INSERT OR REPLACE INTO " + VOTED_TABLE + " (" +
+							VOTED_COL_NOTE_ID + ", " + VOTED_COL_DIRECTION + ", " + VOTED_COL_VOTED_AT +
+							") VALUES (?, ?, ?)",
+					new Object[]{noteId, direction, System.currentTimeMillis()});
+			return true;
+		} catch (Exception e) {
+			LOG.error("Failed to record vote: " + e.getMessage());
+			return false;
+		} finally {
+			db.close();
+		}
+	}
+
+	/**
+	 * Check if this device has voted on a note.
+	 */
+	public boolean hasVoted(@NonNull String noteId) {
+		SQLiteConnection db = openConnection(true);
+		if (db == null) return false;
+		try {
+			SQLiteCursor cursor = db.rawQuery(
+					"SELECT 1 FROM " + VOTED_TABLE + " WHERE " + VOTED_COL_NOTE_ID + " = ?",
+					new String[]{noteId});
+			if (cursor != null) {
+				try {
+					return cursor.moveToFirst();
+				} finally {
+					cursor.close();
+				}
+			}
+		} catch (Exception e) {
+			LOG.error("Failed to check vote: " + e.getMessage());
+		} finally {
+			db.close();
+		}
+		return false;
+	}
+
+	/**
+	 * Get all voted note IDs for loading into the in-memory cache.
+	 */
+	@NonNull
+	public Set<String> getAllVotedNoteIds() {
+		Set<String> ids = new HashSet<>();
+		SQLiteConnection db = openConnection(true);
+		if (db == null) return ids;
+		try {
+			SQLiteCursor cursor = db.rawQuery(
+					"SELECT " + VOTED_COL_NOTE_ID + " FROM " + VOTED_TABLE, null);
+			if (cursor != null) {
+				try {
+					if (cursor.moveToFirst()) {
+						do {
+							ids.add(cursor.getString(0));
+						} while (cursor.moveToNext());
+					}
+				} finally {
+					cursor.close();
+				}
+			}
+		} catch (Exception e) {
+			LOG.error("Failed to load voted note IDs: " + e.getMessage());
+		} finally {
+			db.close();
+		}
+		return ids;
+	}
+
+	/**
+	 * Wipe all FieldNotes data — notes and votes.
+	 * Called during panic wipe to remove sensitive geo-pinned data.
+	 */
+	public void wipeAll() {
+		SQLiteConnection db = openConnection(false);
+		if (db == null) return;
+		try {
+			db.execSQL("DELETE FROM " + TABLE_NAME);
+			db.execSQL("DELETE FROM " + VOTED_TABLE);
+			LOG.info("FieldNotes database wiped (panic wipe)");
+		} catch (Exception e) {
+			LOG.error("Failed to wipe FieldNotes: " + e.getMessage());
 		} finally {
 			db.close();
 		}

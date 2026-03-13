@@ -58,7 +58,7 @@ public class QueryClassifierTest {
 
 	@Test
 	public void testExplain() {
-		assertEquals(QueryType.EXPLANATION, classifier.classify("Explain how a combustion engine works"));
+		assertEquals(QueryType.EXPLANATION, classifier.classify("Explain how photosynthesis works"));
 	}
 
 	@Test
