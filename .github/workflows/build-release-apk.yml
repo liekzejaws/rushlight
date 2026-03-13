@@ -76,7 +76,7 @@ jobs:
       run: ./gradlew testNightlyFreeLegacyArm64DebugUnitTest -x :OsmAnd-java:test
     - name: Build debug APK
       working-directory: ./android
-      run: ./gradlew assembleNightlyFreeLegacyArm64Debug
+      run: ./gradlew assembleNightlyFreeLegacyArm64Debug -x :OsmAnd-java:test
 
     - name: Rename APK
       working-directory: ./android
