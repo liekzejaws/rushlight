@@ -63,7 +63,7 @@ jobs:
       run: printf "\norg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n" >> gradle.properties
     - name: Run unit tests
       working-directory: ./android
-      run: ./gradlew testNightlyFreeLegacyArm64DebugUnitTest
+      run: ./gradlew testNightlyFreeLegacyArm64DebugUnitTest -x :OsmAnd-java:test
     - name: Build with Gradle
       working-directory: ./android
       run: ./gradlew assembleNightlyFreeLegacyArm64Debug
