@@ -131,7 +131,7 @@ public class SurvivalRagTest {
 		assertTrue("Prompt should contain guide context",
 				prompt.contains("Water Purification Methods"));
 		assertTrue("Prompt should contain survival template markers",
-				prompt.contains("=== Survival Guides ==="));
+				prompt.contains("=== Field Guides ==="));
 		assertTrue("Prompt should contain the question",
 				prompt.contains("How do I purify water?"));
 		assertTrue("Prompt should contain citation instruction",

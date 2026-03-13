@@ -22,7 +22,9 @@ import androidx.annotation.Nullable;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.plugins.p2pshare.ApkSignatureVerifier;
 import net.osmand.plus.plugins.p2pshare.ContentManifest;
+import net.osmand.plus.plugins.p2pshare.ContentType;
 import net.osmand.plus.plugins.p2pshare.P2pLogSanitizer;
 import net.osmand.plus.plugins.p2pshare.ShareableContent;
 import net.osmand.plus.plugins.p2pshare.discovery.DiscoveredPeer;
@@ -512,6 +514,18 @@ public class WifiDirectTransport {
             }
         }
 
+        // Verify APK signature matches this app's signing key
+        if (content.getType() == ContentType.APK) {
+            ApkSignatureVerifier verifier = new ApkSignatureVerifier(app);
+            if (!verifier.verifyApk(destFile)) {
+                destFile.delete();
+                LOG.error("APK signature verification FAILED after resume — possible tampered APK: " + filename);
+                notifyTransferComplete(filename, false,
+                        "APK signature mismatch: rejected for security (possible tampered APK)");
+                return;
+            }
+        }
+
         LOG.info("File resumed successfully: " + filename);
         notifyTransferComplete(filename, true, null);
     }
@@ -608,6 +622,18 @@ public class WifiDirectTransport {
             } catch (Exception e) {
                 LOG.warn("Checksum verification failed for " + filename + ": " + e.getMessage());
                 // Don't delete file — verification failure is non-fatal
+            }
+        }
+
+        // Verify APK signature matches this app's signing key
+        if (content.getType() == ContentType.APK) {
+            ApkSignatureVerifier verifier = new ApkSignatureVerifier(app);
+            if (!verifier.verifyApk(destFile)) {
+                destFile.delete();
+                LOG.error("APK signature verification FAILED — possible tampered APK: " + filename);
+                notifyTransferComplete(filename, false,
+                        "APK signature mismatch: rejected for security (possible tampered APK)");
+                return;
             }
         }
 

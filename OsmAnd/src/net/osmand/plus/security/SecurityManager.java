@@ -179,6 +179,14 @@ public class SecurityManager {
 				|| scope == DuressManager.DuressWipeScope.EVERYTHING) {
 			// Delete GGUF model files from the models directory
 			deleteModelFiles();
+
+			// Wipe FieldNotes — they contain sensitive geo-pinned data
+			// (safe houses, border crossings, route intel)
+			try {
+				app.getFieldNotesManager().getDbHelper().wipeAll();
+			} catch (Exception e) {
+				LOG.error("Failed to wipe FieldNotes: " + e.getMessage());
+			}
 		}
 
 		if (scope == DuressManager.DuressWipeScope.EVERYTHING) {

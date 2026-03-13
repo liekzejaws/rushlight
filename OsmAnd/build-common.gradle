@@ -449,7 +449,7 @@ dependencies {
 	}
 	implementation('com.github.scribejava:scribejava-apis:7.1.1')
 	implementation 'com.jaredrummler:colorpicker:1.1.0'
-	implementation 'org.bouncycastle:bcpkix-jdk15on:1.56'
+	implementation 'org.bouncycastle:bcpkix-jdk18on:1.80'
 	implementation 'com.google.android.play:review:2.0.1'
 
 	// ===== Rushlight: Kiwix ZIM file support for offline Wikipedia =====
@@ -465,7 +465,7 @@ dependencies {
 	// ===== Rushlight: Security suite (encrypted storage + biometric lock) =====
 	implementation "net.zetetic:sqlcipher-android:4.6.1@aar"
 	implementation "androidx.sqlite:sqlite:2.3.1"
-	implementation "androidx.biometric:biometric:1.2.0-alpha05"
+	implementation "androidx.biometric:biometric:1.1.0"
 
 	// ===== Rushlight: Markdown rendering for AI chat responses =====
 	implementation "io.noties.markwon:core:4.6.2"
@@ -490,6 +490,6 @@ dependencies {
 
 	// ===== Rushlight: Unit test dependencies =====
 	testImplementation "junit:junit:4.13.2"
-	testImplementation "org.mockito:mockito-core:5.8.0"
+	testImplementation "org.mockito:mockito-core:5.14.0"
 	testImplementation "org.json:json:20231013"
 }

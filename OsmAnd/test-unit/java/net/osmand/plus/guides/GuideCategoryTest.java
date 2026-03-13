@@ -19,7 +19,7 @@ public class GuideCategoryTest {
 
 	@Test
 	public void testCategoryCount() {
-		assertEquals(8, GuideCategory.values().length);
+		assertEquals(11, GuideCategory.values().length);
 	}
 
 	@Test

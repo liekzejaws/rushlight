@@ -71,9 +71,12 @@ jobs:
         sed -i 's/map3DObjectsProvider = new Map3DObjectsTiledProvider(mapPrimitivesProvider, mapPresentationEnvironment);/map3DObjectsProvider = null; \/\/ CI: 3D objects disabled for legacy build/' \
           OsmAnd/src/net/osmand/core/android/MapRendererContext.java
 
+    - name: Run unit tests
+      working-directory: ./android
+      run: ./gradlew testNightlyFreeLegacyArm64DebugUnitTest -x :OsmAnd-java:test
     - name: Build debug APK
       working-directory: ./android
-      run: ./gradlew assembleNightlyFreeLegacyArm64Debug
+      run: ./gradlew assembleNightlyFreeLegacyArm64Debug -x :OsmAnd-java:test
 
     - name: Rename APK
       working-directory: ./android
@@ -98,3 +101,10 @@ jobs:
         name: release-apk
         path: android/OsmAnd/build/outputs/apk/*/*/*.apk
         retention-days: 90
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-results
+        path: android/OsmAnd/build/test-results/
+        retention-days: 30

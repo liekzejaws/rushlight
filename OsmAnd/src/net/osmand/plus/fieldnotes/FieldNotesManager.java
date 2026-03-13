@@ -34,8 +34,8 @@ public class FieldNotesManager {
 	private final FieldNoteSigner signer;
 	private final CopyOnWriteArrayList<FieldNoteListener> listeners = new CopyOnWriteArrayList<>();
 
-	// Track which notes this device has voted on (in-memory, lost on restart)
-	private final Set<String> votedNoteIds = new HashSet<>();
+	// Track which notes this device has voted on (DB-backed with in-memory cache)
+	private final Set<String> votedNoteIds;
 
 	/**
 	 * Listener interface for FieldNote events.
@@ -65,13 +65,17 @@ public class FieldNotesManager {
 		this.dbHelper = new FieldNotesDbHelper(app);
 		this.signer = new FieldNoteSigner(app);
 
+		// Load persisted vote state into in-memory cache
+		this.votedNoteIds = new HashSet<>(dbHelper.getAllVotedNoteIds());
+
 		// ATAK-style stale event cleanup on init
 		int expired = dbHelper.deleteExpiredNotes();
 		if (expired > 0) {
 			LOG.info("FieldNotes startup: cleaned " + expired + " expired notes");
 		}
 
-		LOG.info("FieldNotesManager initialized. " + dbHelper.getNoteCount() + " active notes.");
+		LOG.info("FieldNotesManager initialized. " + dbHelper.getNoteCount() + " active notes, "
+				+ votedNoteIds.size() + " votes loaded.");
 	}
 
 	/**
@@ -80,6 +84,14 @@ public class FieldNotesManager {
 	@NonNull
 	public FieldNoteSigner getSigner() {
 		return signer;
+	}
+
+	/**
+	 * Get the DB helper for direct access (e.g., panic wipe).
+	 */
+	@NonNull
+	public FieldNotesDbHelper getDbHelper() {
+		return dbHelper;
 	}
 
 	// --- Public API ---
@@ -206,6 +218,7 @@ public class FieldNotesManager {
 		int newScore = note.getScore() + 1;
 		dbHelper.updateScore(noteId, newScore);
 		note.setScore(newScore);
+		dbHelper.addVote(noteId, 1);
 		votedNoteIds.add(noteId);
 		broadcastVote(noteId, 1);
 		notifyScoreChanged(noteId, newScore);
@@ -226,6 +239,7 @@ public class FieldNotesManager {
 		int newScore = note.getScore() - 1;
 		dbHelper.updateScore(noteId, newScore);
 		note.setScore(newScore);
+		dbHelper.addVote(noteId, -1);
 		votedNoteIds.add(noteId);
 		broadcastVote(noteId, -1);
 		notifyScoreChanged(noteId, newScore);
@@ -324,16 +338,16 @@ public class FieldNotesManager {
 			return false;
 		}
 
-		// Step 5: Verify signature if present (soft enforcement — warn but accept)
+		// Verify signature if present (hard enforcement — reject invalid signatures)
 		if (FieldNoteSigner.isSigned(note)) {
 			boolean valid = FieldNoteSigner.verify(note);
 			if (!valid) {
-				LOG.warn("FieldNote from " + peerName + " has INVALID signature: "
+				LOG.warn("REJECTING FieldNote from " + peerName + " with INVALID signature: "
 						+ note.getId().substring(0, Math.min(8, note.getId().length())));
-			} else {
-				LOG.info("FieldNote from " + peerName + " signature verified: "
-						+ note.getId().substring(0, Math.min(8, note.getId().length())));
+				return false;
 			}
+			LOG.info("FieldNote from " + peerName + " signature verified: "
+					+ note.getId().substring(0, Math.min(8, note.getId().length())));
 		}
 
 		// Check for duplicate (content-addressed ID)

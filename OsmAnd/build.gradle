@@ -72,12 +72,16 @@ android {
 		}
 	}
 
-	// related to kuromoji
-	//packagingOptions {
-	//	exclude '/META-INF/CONTRIBUTORS.md'
-	//	exclude '/META-INF/LICENSE.md'
-	//	exclude '/META-INF/NOTICE.md'
-	//}
+	packaging {
+		resources {
+			// kuromoji
+			excludes += '/META-INF/CONTRIBUTORS.md'
+			excludes += '/META-INF/LICENSE.md'
+			excludes += '/META-INF/NOTICE.md'
+			// BouncyCastle / jspecify duplicate OSGI manifests
+			excludes += 'META-INF/versions/9/OSGI-INF/MANIFEST.MF'
+		}
+	}
 
 	sourceSets {
 		debug {
