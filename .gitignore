@@ -44,6 +44,9 @@ hs_err_pid*
 # Windows
 Thumbs.db
 
+# Claude Code
+.claude/
+
 # Output files
 build
 

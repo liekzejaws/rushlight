@@ -5,8 +5,8 @@
 **Offline field intelligence for Android.** AI assistant, encrypted P2P comms, shared map annotations, offline Wikipedia, morse code, and navigation — all running locally on your phone with zero internet required.
 
 [![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Android%208.0+-green.svg)](https://developer.android.com/about/versions/oreo)
-[![Status](https://img.shields.io/badge/status-v1.3-brightgreen.svg)](https://github.com/liekzejaws/rushlight/releases)
+[![Platform](https://img.shields.io/badge/platform-Android%2011+-green.svg)](https://developer.android.com/about/versions/11)
+[![Status](https://img.shields.io/badge/status-v1.4.0-brightgreen.svg)](https://github.com/liekzejaws/rushlight/releases)
 [![Fork of OsmAnd](https://img.shields.io/badge/fork%20of-OsmAnd-lightgrey.svg)](https://github.com/osmandapp/OsmAnd)
 
 Built for journalists, activists, humanitarian workers, and anyone who needs to operate in low-connectivity or high-surveillance environments. **No cloud. No accounts. No telemetry. Everything stays on your device.**

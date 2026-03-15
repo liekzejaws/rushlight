@@ -1,3 +1,8 @@
+/*
+ * This file is part of Rushlight, licensed under the GNU Affero General
+ * Public License v3.0 or later. See the LICENSE file in the project root.
+ */
+
 package net.osmand.plus.plugins.p2pshare.history;
 
 import androidx.annotation.NonNull;
